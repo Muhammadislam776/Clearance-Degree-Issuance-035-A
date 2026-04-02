@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Smart Student Clearance & Degree Issuance System</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <main class="auth-layout">
+      <section class="brand-panel">
+        <div class="brand-pill">University SaaS Platform</div>
+        <h1>Smart Student Clearance & Degree Issuance System</h1>
+        <p>
+          Digitize student clearance, approvals, communication, and final degree issuance with a secure, role-based workflow.
+        </p>
+
+        <div class="feature-list">
+          <article>
+            <h3>Multi-Role Access</h3>
+            <p>Student, Admin, Department Staff, and Examiner accounts.</p>
+          </article>
+          <article>
+            <h3>Secure Authentication</h3>
+            <p>Separate signup and login flow with role-specific fields.</p>
+          </article>
+          <article>
+            <h3>Professional UI</h3>
+            <p>Modern, clean, and responsive design for real-world usage.</p>
+          </article>
+        </div>
+      </section>
+
+      <section class="form-panel">
+        <div class="tabs" role="tablist" aria-label="Authentication Tabs">
+          <button class="tab-btn active" data-tab="signup" role="tab" aria-selected="true">Sign Up</button>
+          <button class="tab-btn" data-tab="login" role="tab" aria-selected="false">Login</button>
+        </div>
+
+        <form id="signupForm" class="auth-form active" autocomplete="on">
+          <h2>Create your account</h2>
+          <p class="subtitle">Fill in your details to register.</p>
+
+          <div class="field-grid">
+            <label>
+              Full Name
+              <input type="text" name="name" placeholder="Enter full name" required />
+            </label>
+
+            <label>
+              Email Address
+              <input type="email" name="email" placeholder="Enter email" required />
+            </label>
+
+            <label>
+              Role
+              <select name="role" id="signupRole" required>
+                <option value="student">Student</option>
+                <option value="admin">Admin</option>
+                <option value="department">Department Staff</option>
+                <option value="examiner">Examiner</option>
+              </select>
+            </label>
+
+            <label>
+              Password
+              <input type="password" name="password" placeholder="Create password" minlength="8" required />
+            </label>
+
+            <label class="student-only">
+              Roll Number
+              <input type="text" name="rollNumber" placeholder="e.g., CS-2022-014" />
+            </label>
+
+            <label class="student-only">
+              Session
+              <input type="text" name="session" placeholder="e.g., 2022-2026" />
+            </label>
+
+            <label class="student-only">
+              Department
+              <input type="text" name="department" placeholder="e.g., Computer Science" />
+            </label>
+
+            <label class="staff-only hidden">
+              Staff ID
+              <input type="text" name="staffId" placeholder="Enter staff ID" />
+            </label>
+
+            <label class="staff-only hidden">
+              Office / Unit
+              <input type="text" name="office" placeholder="e.g., Accounts Office" />
+            </label>
+          </div>
+
+          <button type="submit" class="primary-btn">Create Account</button>
+        </form>
+
+        <form id="loginForm" class="auth-form" autocomplete="on">
+          <h2>Welcome back</h2>
+          <p class="subtitle">Use your registered credentials to login.</p>
+
+          <label>
+            Email Address
+            <input type="email" name="loginEmail" placeholder="Enter email" required />
+          </label>
+
+          <label>
+            Password
+            <input type="password" name="loginPassword" placeholder="Enter password" required />
+          </label>
+
+          <label>
+            Login As
+            <select name="loginRole" required>
+              <option value="student">Student</option>
+              <option value="admin">Admin</option>
+              <option value="department">Department Staff</option>
+              <option value="examiner">Examiner</option>
+            </select>
+          </label>
+
+          <button type="submit" class="primary-btn">Login</button>
+        </form>
+
+        <p id="formMessage" class="form-message" aria-live="polite"></p>
+      </section>
+    </main>
+
+    <script src="script.js"></script>
+  </body>
+</html>
