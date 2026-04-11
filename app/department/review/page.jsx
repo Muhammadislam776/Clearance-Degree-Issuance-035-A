@@ -6,6 +6,7 @@ import { Container, Row, Col, Card, Table, Spinner, Badge, Button, Alert } from 
 import DepartmentLayout from "@/components/layout/DepartmentLayout";
 import { useAuth } from "@/lib/useAuth";
 import { getPendingTasksForStaff } from "@/lib/clearanceService";
+import { supabase } from "@/lib/supabaseClient";
 
 const statusVariant = (status) => {
   switch (status) {
@@ -28,6 +29,29 @@ export default function DepartmentReviewListPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [tasks, setTasks] = useState([]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const load = async () => {
+      try {
+        if (profile?.department_id) {
+          const data = await getPendingTasksForStaff(profile.department_id);
+          if (!cancelled) {
+            setTasks(data || []);
+            setError("");
+          }
+        }
+      } catch (err) {
+        if (!cancelled) {
+          setError(err.message || "Failed to load tasks");
+        }
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      }
+    };
 
     if (!authLoading && user?.id) {
       load();
