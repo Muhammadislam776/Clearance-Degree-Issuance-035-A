@@ -448,12 +448,19 @@
 
 /* Input Group Styling */
 .input-group-enhanced {
-  display: flex;
+  display: flex !important;
+  flex-direction: row !important;
+  flex-wrap: nowrap !important;
   background: #fff;
-  border: 2px solid #e2e8f0;
-  border-radius: 12px;
+  border: 2px solid #e2e8f0 !important;
+  border-radius: 12px !important;
   transition: all 0.3s ease;
-  overflow: hidden;
+  overflow: hidden !important;
+  align-items: stretch !important;
+  height: 50px !important;
+  box-sizing: border-box !important;
+  width: 100% !important;
+  margin: 0 !important;
 }
 
 .input-group-enhanced:focus-within {
@@ -468,19 +475,32 @@
   border-radius: 0;
   display: flex !important;
   align-items: center;
+  justify-content: center;
+  padding: 0 16px;
+  flex: 0 0 auto !important;
+  width: auto !important;
+  height: 100%;
 }
 
-.input-group-enhanced .form-control {
-  border: none;
-  border-radius: 0;
-  background: transparent;
+.input-group-enhanced .form-control,
+.input-group-enhanced .input-enhanced {
+  border: none !important;
+  border-radius: 0 !important;
+  background: transparent !important;
   box-shadow: none !important;
+  flex: 1 1 auto !important;
+  width: 1% !important;
+  min-width: 0 !important;
+  height: 100%;
+  padding: 0 16px;
+  margin: 0 !important;
+  box-sizing: border-box !important;
 }
 
-.input-group-enhanced .form-control:focus {
-  border: none;
-  box-shadow: none;
-  background: transparent;
+.input-group-enhanced .input-enhanced:focus {
+  box-shadow: none !important;
+  background: transparent !important;
+  border-color: transparent !important;
 }
 
 /* Header Styling */
@@ -501,20 +521,23 @@
 
 /* Input Group Icon Button */
 .btn-icon-enhanced {
-  background: transparent !important;
+  background: #f8f9fa !important;
   border: none !important;
   border-left: 1px solid #e2e8f0 !important;
   border-radius: 0 !important;
   color: var(--text-color) !important;
-  cursor: pointer;
+  cursor: pointer !important;
   display: flex !important;
-  align-items: center;
-  justify-content: center;
-  padding: 0 16px;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 0 16px !important;
+  flex: 0 0 auto !important;
+  width: auto !important;
+  height: 100%;
 }
 
 .btn-icon-enhanced:hover {
-  background: #f8f9fa !important;
+  background: #e2e8f0 !important;
 }
 
 /* Success State */

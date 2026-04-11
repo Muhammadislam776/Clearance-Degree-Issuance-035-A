@@ -103,11 +103,6 @@ export default function Home() {
           </div>
         </div>
       </div>
-
-      {/* Footer */}
-      <footer className="footer">
-        <p>&copy; 2026 Smart Clearance System. All rights reserved.</p>
-      </footer>
     </div>
   );
 }

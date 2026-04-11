@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { signupUser, validateEmail, validatePassword, validateName, checkEmailExists, withTimeout } from "@/lib/authService";
 import { supabase } from "@/lib/supabaseClient";
 import { getDashboardPathForRole } from "@/lib/roleRouting";
+import { EyeIcon, EyeSlashIcon, EnvelopeIcon, LockClosedIcon, UserIcon, IdentificationIcon, BuildingOfficeIcon } from "@heroicons/react/24/outline";
 import "../../styles/auth-enhanced.css";
 
 export default function SignupPage() {
@@ -537,7 +538,7 @@ export default function SignupPage() {
                 <div className="form-group-enhanced">
                   <Form.Label className="form-label-enhanced">Password</Form.Label>
                   <InputGroup className="input-group-enhanced">
-                    <InputGroup.Text>🔒</InputGroup.Text>
+                    <InputGroup.Text><LockClosedIcon className="text-secondary" style={{ width: '20px', height: '20px' }} /></InputGroup.Text>
                     <Form.Control
                       type={showPassword ? "text" : "password"}
                       placeholder="Create a strong password"
@@ -555,7 +556,7 @@ export default function SignupPage() {
                       onClick={() => setShowPassword(!showPassword)}
                       type="button"
                     >
-                      {showPassword ? "👁️" : "👁️‍🗨️"}
+                      {showPassword ? <EyeSlashIcon style={{ width: '20px', height: '20px', color: '#6c757d' }} /> : <EyeIcon style={{ width: '20px', height: '20px', color: '#6c757d' }} />}
                     </Button>
                   </InputGroup>
                   {password && (
@@ -575,7 +576,7 @@ export default function SignupPage() {
                 <div className="form-group-enhanced">
                   <Form.Label className="form-label-enhanced">Confirm Password</Form.Label>
                   <InputGroup className="input-group-enhanced">
-                    <InputGroup.Text>🔒</InputGroup.Text>
+                    <InputGroup.Text><LockClosedIcon className="text-secondary" style={{ width: '20px', height: '20px' }} /></InputGroup.Text>
                     <Form.Control
                       type={showConfirmPassword ? "text" : "password"}
                       placeholder="Re-enter your password"
@@ -593,7 +594,7 @@ export default function SignupPage() {
                       onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                       type="button"
                     >
-                      {showConfirmPassword ? "👁️" : "👁️‍🗨️"}
+                      {showConfirmPassword ? <EyeSlashIcon style={{ width: '20px', height: '20px', color: '#6c757d' }} /> : <EyeIcon style={{ width: '20px', height: '20px', color: '#6c757d' }} />}
                     </Button>
                   </InputGroup>
                   {formErrors.confirmPassword && <div className="form-error-enhanced">⚠️ {formErrors.confirmPassword}</div>}

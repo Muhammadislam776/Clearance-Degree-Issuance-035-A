@@ -4,6 +4,7 @@ import { Container, Row, Col, Form, Button, Alert, Spinner, InputGroup } from "r
 import { useRouter } from "next/navigation";
 import { loginUser, validateEmail } from "@/lib/authService";
 import { getDashboardPathForRole } from "@/lib/roleRouting";
+import { EyeIcon, EyeSlashIcon, EnvelopeIcon, LockClosedIcon } from "@heroicons/react/24/outline";
 import "../../styles/auth-enhanced.css";
 
 export default function LoginPage() {
@@ -151,7 +152,7 @@ export default function LoginPage() {
                 <div className="form-group-enhanced">
                   <Form.Label className="form-label-enhanced">Email Address</Form.Label>
                   <InputGroup className="input-group-enhanced">
-                    <InputGroup.Text>📧</InputGroup.Text>
+                    <InputGroup.Text><EnvelopeIcon className="text-secondary" style={{ width: '20px', height: '20px' }} /></InputGroup.Text>
                     <Form.Control
                       type="email"
                       placeholder="you@university.edu"
@@ -173,7 +174,7 @@ export default function LoginPage() {
                 <div className="form-group-enhanced">
                   <Form.Label className="form-label-enhanced">Password</Form.Label>
                   <InputGroup className="input-group-enhanced">
-                    <InputGroup.Text>🔒</InputGroup.Text>
+                    <InputGroup.Text><LockClosedIcon className="text-secondary" style={{ width: '20px', height: '20px' }} /></InputGroup.Text>
                     <Form.Control
                       type={showPassword ? "text" : "password"}
                       placeholder="Enter your password"
@@ -190,8 +191,9 @@ export default function LoginPage() {
                       className="btn-icon-enhanced"
                       onClick={() => setShowPassword(!showPassword)}
                       type="button"
+                      aria-label={showPassword ? "Hide password" : "Show password"}
                     >
-                      {showPassword ? "👁️" : "👁️‍🗨️"}
+                      {showPassword ? <EyeSlashIcon style={{ width: '20px', height: '20px', color: '#6c757d' }} /> : <EyeIcon style={{ width: '20px', height: '20px', color: '#6c757d' }} />}
                     </Button>
                   </InputGroup>
                   {formErrors.password && (

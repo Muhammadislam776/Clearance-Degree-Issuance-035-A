@@ -37,6 +37,7 @@ body {
   position: relative;
   display: flex;
   flex-direction: column;
+  overflow-x: hidden;
   background: 
     radial-gradient(circle at 15% 50%, rgba(75, 0, 130, 0.4), transparent 35%),
     radial-gradient(circle at 85% 30%, rgba(102, 16, 242, 0.3), transparent 35%);
@@ -45,7 +46,7 @@ body {
 
 .landing-page::before {
   content: "";
-  position: absolute;
+  position: fixed;
   top: -50%; left: -50%; width: 200%; height: 200%;
   background: radial-gradient(circle at center, transparent, var(--indigo-900));
   z-index: -1;
