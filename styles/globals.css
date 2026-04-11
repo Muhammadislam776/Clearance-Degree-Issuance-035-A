@@ -1,0 +1,326 @@
+/* ========== BASE STYLES ========== */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  background-color: #f5f7fa;
+  font-family: 'Inter', 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+  color: #2d3748;
+  line-height: 1.6;
+}
+
+/* ========== ANIMATIONS ========== */
+@keyframes slideInUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideInDown {
+  from {
+    opacity: 0;
+    transform: translateY(-30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideInLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+@keyframes bounce {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+@keyframes glow {
+  0%, 100% {
+    box-shadow: 0 0 10px rgba(102, 126, 234, 0.3);
+  }
+  50% {
+    box-shadow: 0 0 20px rgba(102, 126, 234, 0.6);
+  }
+}
+
+/* ========== CARD STYLES ========== */
+.card {
+  border: none !important;
+  border-radius: 12px !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08) !important;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+.card:hover {
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15) !important;
+  transform: translateY(-4px) !important;
+}
+
+.hover-card {
+  border-radius: 12px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+.hover-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: rgba(255, 255, 255, 0.1);
+  transition: left 0.3s ease;
+  z-index: 1;
+}
+
+.hover-card:hover::before {
+  left: 100%;
+}
+
+.hover-card:hover {
+  transform: translateY(-8px) scale(1.02);
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.2);
+}
+
+/* ========== BUTTON STYLES ========== */
+.btn {
+  border-radius: 8px !important;
+  font-weight: 600 !important;
+  transition: all 0.2s ease !important;
+  border: none !important;
+}
+
+.btn:hover {
+  transform: translateY(-2px) !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+}
+
+.btn:active {
+  transform: translateY(0) !important;
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3) !important;
+}
+
+.btn-success {
+  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%) !important;
+}
+
+.btn-danger {
+  background: linear-gradient(135deg, #fa709a 0%, #fee140 100%) !important;
+}
+
+/* ========== NAVBAR STYLES ========== */
+.navbar {
+  background: white !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08) !important;
+  border-bottom: 1px solid #e2e8f0 !important;
+}
+
+.navbar-brand {
+  font-weight: 700 !important;
+  color: #667eea !important;
+  font-size: 1.3rem !important;
+}
+
+.nav-link {
+  font-weight: 500 !important;
+  color: #4a5568 !important;
+  transition: all 0.2s ease !important;
+  position: relative;
+}
+
+.nav-link::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 0;
+  height: 2px;
+  background: #667eea;
+  transition: width 0.3s ease;
+}
+
+.nav-link:hover {
+  color: #667eea !important;
+}
+
+.nav-link:hover::after {
+  width: 100%;
+}
+
+/* ========== BADGE STYLES ========== */
+.badge {
+  padding: 0.5rem 0.75rem !important;
+  border-radius: 6px !important;
+  font-weight: 600 !important;
+  font-size: 0.85rem !important;
+}
+
+/* ========== TABLE STYLES ========== */
+.table {
+  border-collapse: separate;
+  border-spacing: 0 0.5rem;
+}
+
+.table tbody tr {
+  transition: all 0.2s ease;
+  background-color: white;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.table tbody tr:hover {
+  background-color: #f8f9fa;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  transform: translateX(2px);
+}
+
+/* ========== FORM STYLES ========== */
+.form-control {
+  border-radius: 8px !important;
+  border: 1px solid #e2e8f0 !important;
+  padding: 0.625rem 0.875rem !important;
+  transition: all 0.2s ease !important;
+}
+
+.form-control:focus {
+  background-color: #f0f3ff !important;
+  border-color: #667eea !important;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1) !important;
+}
+
+.form-label {
+  font-weight: 600 !important;
+  color: #2d3748 !important;
+  margin-bottom: 0.5rem !important;
+}
+
+/* ========== PROGRESS BAR ========== */
+.progress {
+  background-color: #e2e8f0 !important;
+  border-radius: 10px !important;
+  overflow: hidden;
+}
+
+.progress-bar {
+  background: linear-gradient(90deg, #667eea 0%, #764ba2 100%) !important;
+  border-radius: 10px !important;
+}
+
+/* ========== UTILITY CLASSES ========== */
+.text-gradient {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.shadow-lg {
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1) !important;
+}
+
+.animation-slideInUp {
+  animation: slideInUp 0.5s ease-out;
+}
+
+.animation-slideInDown {
+  animation: slideInDown 0.5s ease-out;
+}
+
+.animation-slideInLeft {
+  animation: slideInLeft 0.5s ease-out;
+}
+
+.animation-slideInRight {
+  animation: slideInRight 0.5s ease-out;
+}
+
+.animation-fadeIn {
+  animation: fadeIn 0.5s ease-out;
+}
+
+.animation-pulse {
+  animation: pulse 2s ease-in-out infinite;
+}
+
+.animation-bounce {
+  animation: bounce 1s ease-in-out infinite;
+}
+
+.animation-glow {
+  animation: glow 2s ease-in-out infinite;
+}
+
+/* ========== SCROLLBAR STYLES ========== */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #667eea;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #764ba2;
+}

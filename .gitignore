@@ -1,0 +1,38 @@
+# dependencies
+
+
+# Next.js
+
+out/
+
+# production
+build/
+dist/
+
+# logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+*.log
+
+# env
+.env.*
+!.env.example
+
+# misc
+.DS_Store
+Thumbs.db
+.vscode/
+!.vscode/extensions.json
+
+# test coverage
+coverage/
+
+.next/
+node_modules/
+.env
+*.log
+
+# vercel
+.vercel/

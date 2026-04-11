@@ -1,0 +1,486 @@
+/* ============================================================================
+   STUDENT CLEARANCE APPLICATION PAGE STYLES
+   ============================================================================ */
+
+.student-apply-container {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+/* Header */
+.apply-header {
+  text-align: center;
+  margin-bottom: 3rem;
+}
+
+.apply-header h1 {
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: #1a1a1a;
+  margin-bottom: 0.5rem;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.apply-header p {
+  font-size: 1.1rem;
+  color: #666;
+}
+
+/* Form Card */
+.apply-form-card {
+  border: none;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+  border-radius: 12px;
+  background: #fff;
+}
+
+.apply-form-card .card-body {
+  padding: 2rem !important;
+}
+
+/* Form Sections */
+.form-section {
+  margin-bottom: 2rem;
+  padding-bottom: 2rem;
+  border-bottom: 1px solid #eee;
+}
+
+.form-section:last-child {
+  border-bottom: none;
+}
+
+.section-title {
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: #1a1a1a;
+  margin-bottom: 1.5rem;
+  display: flex;
+  align-items: center;
+}
+
+.section-title:before {
+  content: '';
+  display: inline-block;
+  width: 4px;
+  height: 24px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 2px;
+  margin-right: 12px;
+}
+
+/* Form Labels & Controls */
+.form-label {
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 0.5rem;
+  font-size: 0.95rem;
+}
+
+.form-control {
+  border: 1.5px solid #e0e0e0;
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  font-size: 0.95rem;
+  transition: all 0.3s ease;
+}
+
+.form-control:focus {
+  border-color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+  background-color: #f8f9ff;
+}
+
+.form-control-disabled {
+  background-color: #f5f5f5;
+  border-color: #ddd;
+  color: #666;
+}
+
+.form-text {
+  font-size: 0.85rem;
+  color: #999;
+  display: block;
+  margin-top: 0.25rem;
+}
+
+/* Requirement Card */
+.requirement-card {
+  border: none;
+  background: linear-gradient(135deg, #f5f7fa 0%, #f0f2f5 100%);
+  border-radius: 10px;
+  margin-bottom: 1rem;
+}
+
+.requirement-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  padding: 1rem;
+  border-radius: 8px;
+  background: white;
+  margin-bottom: 0.5rem;
+  border-left: 4px solid #667eea;
+}
+
+.requirement-item:last-child {
+  margin-bottom: 0;
+}
+
+.req-icon {
+  font-size: 1.5rem;
+  min-width: 40px;
+  text-align: center;
+}
+
+.req-content h6 {
+  font-weight: 600;
+  color: #1a1a1a;
+  margin-bottom: 0.25rem;
+}
+
+.req-content p {
+  margin: 0;
+  font-size: 0.9rem;
+}
+
+/* Timeline */
+.timeline {
+  position: relative;
+  padding: 1rem 0;
+}
+
+.timeline::before {
+  content: '';
+  position: absolute;
+  left: 20px;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: linear-gradient(180deg, #667eea 0%, #764ba2 100%);
+}
+
+.timeline-item {
+  position: relative;
+  padding-left: 70px;
+  margin-bottom: 2rem;
+}
+
+.timeline-item:last-child {
+  margin-bottom: 0;
+}
+
+.timeline-marker {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 40px;
+  height: 40px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 1rem;
+  box-shadow: 0 4px 10px rgba(102, 126, 234, 0.3);
+}
+
+.timeline-content h6 {
+  font-weight: 600;
+  color: #1a1a1a;
+  margin-bottom: 0.25rem;
+}
+
+.timeline-content p {
+  margin: 0;
+  font-size: 0.9rem;
+  color: #666;
+}
+
+/* Checkboxes */
+.check-item {
+  margin-bottom: 1rem;
+  padding: 0.75rem;
+  border-radius: 8px;
+  transition: all 0.3s ease;
+}
+
+.check-item:hover {
+  background-color: rgba(102, 126, 234, 0.05);
+}
+
+.form-check-input {
+  width: 20px;
+  height: 20px;
+  border: 2px solid #ddd;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  margin-top: 3px;
+}
+
+.form-check-input:checked {
+  background-color: #667eea;
+  border-color: #667eea;
+}
+
+.form-check-input:focus {
+  border-color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.form-check-label {
+  cursor: pointer;
+  margin-left: 0.5rem;
+  color: #333;
+  font-size: 0.95rem;
+}
+
+/* Form Actions */
+.form-actions {
+  margin-top: 2rem;
+  padding-top: 2rem;
+  border-top: 1px solid #eee;
+}
+
+.btn-submit {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border: none;
+  font-weight: 600;
+  font-size: 1rem;
+  padding: 0.75rem 1.5rem;
+  border-radius: 8px;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+}
+
+.btn-submit:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+}
+
+.btn-submit:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.btn-cancel {
+  font-weight: 600;
+  border: 2px solid #ddd;
+  color: #666;
+  transition: all 0.3s ease;
+}
+
+.btn-cancel:hover:not(:disabled) {
+  border-color: #667eea;
+  color: #667eea;
+  background-color: rgba(102, 126, 234, 0.05);
+}
+
+/* Info Cards */
+.info-card {
+  border: none;
+  border-radius: 10px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  background: #fff;
+  border-left: 4px solid #667eea;
+}
+
+.info-card .card-body {
+  padding: 1.5rem;
+}
+
+.info-card h6 {
+  font-weight: 700;
+  color: #1a1a1a;
+  margin-bottom: 1rem;
+}
+
+.info-card ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.info-card li {
+  padding: 0.5rem 0;
+  color: #555;
+  line-height: 1.6;
+  border-bottom: 1px solid #eee;
+}
+
+.info-card li:last-child {
+  border-bottom: none;
+}
+
+.info-card p {
+  margin-bottom: 0.5rem;
+  color: #555;
+  line-height: 1.6;
+}
+
+.info-card strong {
+  color: #667eea;
+}
+
+/* Alert Customization */
+.alert {
+  border: none;
+  border-radius: 10px;
+  border-left: 4px solid;
+}
+
+.alert-danger {
+  background-color: #fee;
+  border-left-color: #f44;
+  color: #c33;
+}
+
+.alert-success {
+  background-color: #efe;
+  border-left-color: #4f4;
+  color: #3c3;
+}
+
+.alert-warning {
+  background-color: #ffe;
+  border-left-color: #fd4;
+  color: #884;
+}
+
+.alert-heading {
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+}
+
+/* Responsive Design */
+@media (max-width: 992px) {
+  .apply-header h1 {
+    font-size: 2rem;
+  }
+
+  .apply-form-card .card-body {
+    padding: 1.5rem !important;
+  }
+
+  .form-section {
+    margin-bottom: 1.5rem;
+    padding-bottom: 1.5rem;
+  }
+
+  .timeline::before {
+    left: 15px;
+  }
+
+  .timeline-item {
+    padding-left: 60px;
+  }
+
+  .timeline-marker {
+    width: 35px;
+    height: 35px;
+    font-size: 0.9rem;
+  }
+
+  .timeline-content h6 {
+    font-size: 0.95rem;
+  }
+
+  .timeline-content p {
+    font-size: 0.85rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .student-apply-container {
+    padding: 1rem;
+  }
+
+  .apply-header {
+    margin-bottom: 2rem;
+  }
+
+  .apply-header h1 {
+    font-size: 1.75rem;
+  }
+
+  .apply-header p {
+    font-size: 1rem;
+  }
+
+  .apply-form-card .card-body {
+    padding: 1rem !important;
+  }
+
+  .form-section {
+    margin-bottom: 1rem;
+    padding-bottom: 1rem;
+  }
+
+  .requirement-item {
+    padding: 0.75rem;
+  }
+
+  .req-content h6 {
+    font-size: 0.95rem;
+  }
+
+  .req-content p {
+    font-size: 0.85rem;
+  }
+
+  .timeline-item {
+    margin-bottom: 1.5rem;
+  }
+
+  .info-card {
+    margin-bottom: 1rem;
+  }
+
+  .form-check-label {
+    font-size: 0.9rem;
+  }
+
+  .btn-submit,
+  .btn-cancel {
+    font-size: 0.95rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .apply-header h1 {
+    font-size: 1.5rem;
+  }
+
+  .section-title {
+    font-size: 1rem;
+  }
+
+  .row > div[class*='col-'] {
+    margin-bottom: 1rem;
+  }
+
+  .form-actions {
+    margin-top: 1rem;
+    padding-top: 1rem;
+  }
+
+  .timeline::before {
+    left: 12px;
+  }
+
+  .timeline-item {
+    padding-left: 50px;
+    margin-bottom: 1rem;
+  }
+
+  .timeline-marker {
+    width: 30px;
+    height: 30px;
+    font-size: 0.8rem;
+  }
+}

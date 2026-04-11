@@ -1,0 +1,518 @@
+/* ============================================================================
+   DEPARTMENT REVIEW PAGE STYLES
+   ============================================================================ */
+
+.department-review-container {
+  background-color: #f5f7fa;
+  min-height: 100vh;
+}
+
+/* Header */
+.review-header {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  padding: 2rem;
+  border-radius: 12px;
+  color: white;
+  margin: -2rem -2rem 0 -2rem;
+  margin-bottom: 2rem !important;
+}
+
+.review-header h1 {
+  font-size: 2.5rem;
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+}
+
+.review-header p {
+  font-size: 1.1rem;
+  opacity: 0.9;
+}
+
+/* Statistics Cards */
+.stat-card {
+  border: none;
+  border-radius: 10px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  transition: all 0.3s ease;
+  overflow: hidden;
+  position: relative;
+}
+
+.stat-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+}
+
+.stat-card .card-body {
+  padding: 1.5rem;
+}
+
+.stat-number {
+  font-size: 2rem;
+  font-weight: 700;
+  line-height: 1;
+  margin-bottom: 0.5rem;
+}
+
+.stat-label {
+  font-size: 0.9rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  opacity: 0.8;
+}
+
+.stat-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+}
+
+.stat-total {
+  color: #667eea;
+}
+
+.stat-total::before {
+  background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+}
+
+.stat-pending {
+  color: #fbbf24;
+}
+
+.stat-pending::before {
+  background: #fbbf24;
+}
+
+.stat-approved {
+  color: #34c759;
+}
+
+.stat-approved::before {
+  background: #34c759;
+}
+
+.stat-rejected {
+  color: #ff3b30;
+}
+
+.stat-rejected::before {
+  background: #ff3b30;
+}
+
+/* Filter Card */
+.filter-card {
+  border: none;
+  border-radius: 10px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  background: white;
+}
+
+.filter-card .card-body {
+  padding: 1.5rem;
+}
+
+.filter-select {
+  border: 1.5px solid #e0e0e0;
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  transition: all 0.3s ease;
+}
+
+.filter-select:focus {
+  border-color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+/* Requests Card */
+.requests-card {
+  border: none;
+  border-radius: 10px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  background: white;
+  overflow: hidden;
+}
+
+/* Table Styles */
+.table-responsive {
+  overflow-x: auto;
+}
+
+.table {
+  margin-bottom: 0;
+}
+
+.table-header {
+  background: linear-gradient(135deg, #f5f7fa 0%, #f0f2f5 100%);
+  border-bottom: 2px solid #e0e0e0;
+}
+
+.table-header th {
+  font-weight: 700;
+  color: #1a1a1a;
+  padding: 1rem;
+  font-size: 0.9rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  vertical-align: middle;
+}
+
+.table-row {
+  border-bottom: 1px solid #f0f0f0;
+  transition: all 0.3s ease;
+}
+
+.table-row:hover {
+  background-color: #fafbff;
+}
+
+.table tbody td {
+  padding: 1rem;
+  vertical-align: middle;
+  font-size: 0.95rem;
+}
+
+.student-name {
+  font-weight: 600;
+  color: #1a1a1a;
+}
+
+.text-muted {
+  color: #666;
+}
+
+.small {
+  font-size: 0.85rem;
+}
+
+.btn-action {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border: none;
+  font-weight: 600;
+  transition: all 0.3s ease;
+}
+
+.btn-action:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
+/* Pagination */
+.pagination {
+  gap: 0.5rem;
+}
+
+.page-link {
+  border: 1px solid #e0e0e0;
+  color: #667eea;
+  border-radius: 6px;
+  margin: 0 2px;
+  transition: all 0.3s ease;
+}
+
+.page-link:hover:not(.disabled) {
+  background-color: #667eea;
+  border-color: #667eea;
+  color: white;
+}
+
+.page-link.active {
+  background-color: #667eea;
+  border-color: #667eea;
+}
+
+.page-link.disabled {
+  opacity: 0.5;
+}
+
+/* Modal Styles */
+.modal-header {
+  border-bottom: 1px solid #e0e0e0;
+  background: white;
+}
+
+.modal-title {
+  font-weight: 700;
+  color: #1a1a1a;
+}
+
+.modal-body {
+  padding: 2rem;
+}
+
+.review-modal-content {
+  max-height: 70vh;
+  overflow-y: auto;
+}
+
+/* Info Sections in Modal */
+.info-section {
+  padding: 1.5rem;
+  background: #f5f7fa;
+  border-radius: 10px;
+  border-left: 4px solid #667eea;
+}
+
+.section-title {
+  font-weight: 700;
+  color: #1a1a1a;
+  font-size: 1.1rem;
+  margin: 0;
+}
+
+.info-label {
+  font-size: 0.85rem;
+  color: #999;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 0.25rem;
+}
+
+.info-value {
+  font-size: 1rem;
+  color: #1a1a1a;
+  font-weight: 600;
+  margin: 0;
+}
+
+.status-badge {
+  font-size: 1rem;
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+}
+
+.remarks-box {
+  background: white;
+  padding: 1rem;
+  border-radius: 8px;
+  border-left: 3px solid #667eea;
+  color: #555;
+  font-size: 0.9rem;
+  line-height: 1.6;
+  margin: 0;
+}
+
+/* Decision Options */
+.decision-options {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 1rem;
+}
+
+.decision-option {
+  padding: 1rem;
+  border: 2px solid #e0e0e0;
+  border-radius: 8px;
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+
+.decision-option:hover {
+  border-color: #667eea;
+  background-color: rgba(102, 126, 234, 0.05);
+}
+
+.decision-option input[type='radio']:checked ~ label {
+  font-weight: 700;
+}
+
+.form-check-input {
+  width: 18px;
+  height: 18px;
+  border: 2px solid #ddd;
+  margin-top: 3px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.form-check-input:checked {
+  background-color: #667eea;
+  border-color: #667eea;
+}
+
+.form-check-label {
+  cursor: pointer;
+  margin-left: 0.5rem;
+  font-weight: 600;
+}
+
+/* Textarea */
+.remarks-textarea {
+  border: 1.5px solid #e0e0e0;
+  border-radius: 8px;
+  padding: 1rem;
+  font-size: 0.95rem;
+  font-family: inherit;
+  resize: vertical;
+  transition: all 0.3s ease;
+}
+
+.remarks-textarea:focus {
+  border-color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+  background-color: #f8f9ff;
+}
+
+.form-text {
+  display: block;
+  margin-top: 0.5rem;
+  color: #999;
+  font-size: 0.85rem;
+}
+
+/* Modal Footer */
+.modal-footer {
+  border-top: 1px solid #e0e0e0;
+  background: #f5f7fa;
+  padding: 1.5rem;
+}
+
+.btn-submit {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border: none;
+  font-weight: 600;
+  padding: 0.75rem 2rem;
+  min-width: 150px;
+  transition: all 0.3s ease;
+}
+
+.btn-submit:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+}
+
+.btn-submit:disabled {
+  opacity: 0.7;
+}
+
+/* Responsive Design */
+@media (max-width: 992px) {
+  .review-header h1 {
+    font-size: 2rem;
+  }
+
+  .stat-card .card-body {
+    padding: 1rem;
+  }
+
+  .stat-number {
+    font-size: 1.75rem;
+  }
+
+  .table tbody td {
+    padding: 0.75rem;
+    font-size: 0.9rem;
+  }
+
+  .table-header th {
+    padding: 0.75rem;
+    font-size: 0.85rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .department-review-container {
+    padding: 1rem;
+  }
+
+  .review-header {
+    margin: -1rem -1rem 0 -1rem;
+    padding: 1.5rem;
+  }
+
+  .review-header h1 {
+    font-size: 1.75rem;
+  }
+
+  .review-header p {
+    font-size: 1rem;
+  }
+
+  .row > [class*='col-'] {
+    margin-bottom: 1rem;
+  }
+
+  .filter-card .card-body {
+    padding: 1rem;
+  }
+
+  .requests-card {
+    margin-top: 1rem;
+  }
+
+  .table tbody td {
+    padding: 0.5rem;
+    font-size: 0.85rem;
+  }
+
+  .table-header th {
+    padding: 0.5rem;
+    font-size: 0.75rem;
+  }
+
+  .modal-body {
+    padding: 1rem;
+  }
+
+  .info-section {
+    padding: 1rem;
+    margin-bottom: 1rem;
+  }
+
+  .decision-options {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 480px) {
+  .review-header h1 {
+    font-size: 1.5rem;
+  }
+
+  .stat-number {
+    font-size: 1.5rem;
+  }
+
+  .stat-label {
+    font-size: 0.8rem;
+  }
+
+  .table-responsive {
+    overflow-x: auto;
+  }
+
+  .table {
+    font-size: 0.75rem;
+  }
+
+  .btn-action {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.75rem;
+  }
+
+  .modal-body {
+    padding: 0.75rem;
+    max-height: 60vh;
+  }
+
+  .info-section {
+    padding: 0.75rem;
+    margin-bottom: 0.75rem;
+  }
+
+  .section-title {
+    font-size: 0.95rem;
+  }
+
+  .info-label {
+    font-size: 0.75rem;
+  }
+
+  .info-value {
+    font-size: 0.9rem;
+  }
+}
