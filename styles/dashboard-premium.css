@@ -240,3 +240,44 @@ body {
 .pulse-primary {
   animation: pulse-indigo 2s infinite;
 }
+
+/* Mobile Sidebar Styles */
+@media (max-width: 991.98px) {
+  .sidebar-premium {
+    position: fixed !important;
+    left: -280px;
+    top: 72px; /* adjust based on top navbar height */
+    height: calc(100vh - 72px);
+    z-index: 1045;
+    transition: left 0.3s ease-in-out;
+    box-shadow: 4px 0 15px rgba(0,0,0,0.1);
+  }
+  
+  .sidebar-premium.mobile-open {
+    left: 0;
+  }
+  
+  .sidebar-overlay {
+    position: fixed;
+    top: 72px;
+    left: 0;
+    width: 100vw;
+    height: calc(100vh - 72px);
+    background: rgba(0,0,0,0.5);
+    z-index: 1040;
+    transition: opacity 0.3s ease-in-out;
+    opacity: 0;
+    visibility: hidden;
+  }
+  
+  .sidebar-overlay.active {
+    opacity: 1;
+    visibility: visible;
+  }
+
+  .main-content {
+    margin-left: 0 !important;
+    width: 100% !important;
+  }
+}
+
