@@ -1,227 +1,327 @@
 "use client";
-import React, { useState, useEffect } from "react";
-import { Container, Row, Col, Card, Badge, Button, Spinner, Dropdown } from "react-bootstrap";
+import React, { useState, useEffect, useCallback } from "react";
+import { Container, Row, Col, Card, Badge, Button, Spinner } from "react-bootstrap";
 import StudentLayout from "@/components/layout/StudentLayout";
 import { useAuth } from "@/lib/useAuth";
 import { supabase } from "@/lib/supabaseClient";
 import notificationService from "@/lib/notificationService";
 
+// ── Event config per notification type ───────────────────────────────────────
+const NOTIF_CONFIG = {
+  degree_issued: {
+    icon: "🎓",
+    label: "Degree Issued",
+    accent: "linear-gradient(135deg, #059669, #10b981)",
+    border: "#059669",
+    badge: "#059669",
+    bg: "rgba(5,150,105,0.06)",
+  },
+  clearance_update: {
+    icon: "📋",
+    label: "Clearance Update",
+    accent: "linear-gradient(135deg, #0062FF, #6366F1)",
+    border: "#0062FF",
+    badge: "#0062FF",
+    bg: "rgba(0,98,255,0.05)",
+  },
+  document_rejected: {
+    icon: "❌",
+    label: "Rejected",
+    accent: "linear-gradient(135deg, #DC2626, #ef4444)",
+    border: "#DC2626",
+    badge: "#DC2626",
+    bg: "rgba(220,38,38,0.05)",
+  },
+  chat_message: {
+    icon: "💬",
+    label: "Message",
+    accent: "linear-gradient(135deg, #0284c7, #38bdf8)",
+    border: "#0284c7",
+    badge: "#0284c7",
+    bg: "rgba(2,132,199,0.05)",
+  },
+  deadline_reminder: {
+    icon: "⏰",
+    label: "Deadline",
+    accent: "linear-gradient(135deg, #D97706, #f59e0b)",
+    border: "#D97706",
+    badge: "#D97706",
+    bg: "rgba(217,119,6,0.05)",
+  },
+  system: {
+    icon: "⚙️",
+    label: "System",
+    accent: "linear-gradient(135deg, #6366F1, #8B5CF6)",
+    border: "#6366F1",
+    badge: "#6366F1",
+    bg: "rgba(99,102,241,0.05)",
+  },
+  default: {
+    icon: "🔔",
+    label: "Notification",
+    accent: "linear-gradient(135deg, #475569, #64748b)",
+    border: "#475569",
+    badge: "#475569",
+    bg: "rgba(71,85,105,0.05)",
+  },
+};
+
+const getConfig = (type) => NOTIF_CONFIG[type] || NOTIF_CONFIG.default;
+
+const formatTime = (dateStr) => {
+  const date = new Date(dateStr);
+  const now = new Date();
+  const diff = Math.floor((now - date) / 1000);
+  if (diff < 60) return "Just now";
+  if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+  if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+  if (diff < 604800) return `${Math.floor(diff / 86400)}d ago`;
+  return date.toLocaleDateString([], { month: "short", day: "numeric" });
+};
+
 export default function NotificationsPage() {
   const { profile } = useAuth();
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState("all"); // "all", "unread"
+  const [filter, setFilter] = useState("all");
+  const [newToast, setNewToast] = useState(null);
 
-  const fetchNotifs = async () => {
+  const fetchNotifs = useCallback(async () => {
     if (!profile?.id) return;
     const filters = filter === "unread" ? { isRead: false } : {};
     const result = await notificationService.getUserNotifications(profile.id, filters);
-    if (result.success) {
-      setNotifications(result.data);
-    }
+    if (result.success) setNotifications(result.data || []);
     setLoading(false);
-  };
+  }, [profile?.id, filter]);
 
   useEffect(() => {
     if (!profile?.id) return;
+    setLoading(true);
     fetchNotifs();
 
-    // Enhanced Real-Time Subscription
     const channel = supabase
-      .channel(`notifs-${profile.id}`)
-      .on(
-        "postgres_changes",
-        {
-          event: "*", // Handle INSERT, UPDATE, DELETE
-          schema: "public",
-          table: "notifications",
-          filter: `user_id=eq.${profile.id}`,
-        },
-        (payload) => {
-          console.log("Notif change:", payload.eventType);
-          fetchNotifs();
+      .channel(`notifs-page-${profile.id}`)
+      .on("postgres_changes", {
+        event: "*",
+        schema: "public",
+        table: "notifications",
+        filter: `user_id=eq.${profile.id}`,
+      }, (payload) => {
+        if (payload.eventType === "INSERT") {
+          const cfg = getConfig(payload.new?.type);
+          setNewToast({ ...payload.new, cfg });
+          setTimeout(() => setNewToast(null), 4000);
         }
-      )
+        fetchNotifs();
+      })
       .subscribe();
 
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [profile?.id, filter]);
+    return () => supabase.removeChannel(channel);
+  }, [profile?.id, filter, fetchNotifs]);
 
   const handleMarkAsRead = async (id) => {
+    setNotifications(prev => prev.map(n => n.id === id ? { ...n, is_read: true } : n));
     await notificationService.markNotificationAsRead(id);
-    // Real-time will trigger fetchNotifs
   };
 
   const handleMarkAllRead = async () => {
+    setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
     await notificationService.markAllNotificationsAsRead(profile.id);
-    // Real-time will trigger fetchNotifs
   };
 
   const handleDelete = async (id) => {
+    setNotifications(prev => prev.filter(n => n.id !== id));
     await notificationService.deleteNotification(id);
-    // Real-time will trigger fetchNotifs
   };
 
-  const getNotifMeta = (type) => {
-    switch (type) {
-      case "clearance_update":
-        return { icon: "📝", color: "#667eea", title: "Clearance Update" };
-      case "document_rejected":
-        return { icon: "❌", color: "#ef4444", title: "Document Review" };
-      case "chat_message":
-        return { icon: "💬", color: "#10b981", title: "New Message" };
-      case "system":
-        return { icon: "⚙️", color: "#6b7280", title: "System Notice" };
-      case "deadline_reminder":
-        return { icon: "⏰", color: "#f59e0b", title: "Deadline Priority" };
-      default:
-        return { icon: "🔔", color: "#7c3aed", title: "Notification" };
-    }
-  };
-
-  const formatTime = (dateStr) => {
-    const date = new Date(dateStr);
-    const now = new Date();
-    const diffInSeconds = Math.floor((now - date) / 1000);
-    
-    if (diffInSeconds < 60) return "Just now";
-    if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)}m ago`;
-    if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)}h ago`;
-    return date.toLocaleDateString([], { month: "short", day: "numeric" });
-  };
+  const unreadCount = notifications.filter(n => !n.is_read).length;
 
   return (
     <StudentLayout>
-      <Container fluid className="py-4 px-md-4" style={{ background: "#f8fafc", minHeight: "calc(100vh - 80px)" }}>
-        {/* Modern Header */}
-        <div 
-          className="p-4 p-md-5 mb-4 shadow-sm" 
-          style={{ 
-            background: "linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)", 
-            borderRadius: "24px",
-            color: "white",
-            position: "relative",
-            overflow: "hidden"
-          }}
-        >
-          <div style={{ position: "relative", zIndex: 2 }}>
-            <h1 className="fw-bold mb-2">Alerts & Notifications</h1>
-            <p className="opacity-75 mb-0">Stay informed about your clearance actions and department feedback.</p>
+      <Container fluid className="py-4 px-md-4" style={{ background: "#F4F7F9", minHeight: "calc(100vh - 80px)" }}>
+
+        {/* ── Live Toast ─────────────────────────────────────────────────── */}
+        {newToast && (
+          <div style={{
+            position: "fixed", top: "80px", right: "24px", zIndex: 9999,
+            background: "white", borderRadius: "16px", padding: "16px 20px",
+            boxShadow: "0 20px 40px rgba(0,0,0,0.12)", maxWidth: "360px", width: "100%",
+            borderLeft: `4px solid ${newToast.cfg.border}`,
+            animation: "slideIn 0.4s cubic-bezier(0.34,1.56,0.64,1)",
+            display: "flex", alignItems: "flex-start", gap: "12px"
+          }}>
+            <span style={{ fontSize: "1.5rem", lineHeight: 1 }}>{newToast.cfg.icon}</span>
+            <div>
+              <div style={{ fontWeight: 700, fontSize: "0.9rem", color: "#0F172A" }}>{newToast.title}</div>
+              <div style={{ fontSize: "0.82rem", color: "#475569", marginTop: "2px", lineHeight: 1.4 }}>{newToast.message}</div>
+            </div>
           </div>
-          {/* Decorative Circle */}
-          <div style={{ position: "absolute", top: "-50px", right: "-50px", width: "200px", height: "200px", background: "rgba(255,255,255,0.1)", borderRadius: "50%" }}></div>
+        )}
+
+        {/* ── Hero Banner ────────────────────────────────────────────────── */}
+        <div style={{
+          background: "linear-gradient(135deg, #0062FF 0%, #6366F1 60%, #8B5CF6 100%)",
+          borderRadius: "24px", padding: "2.5rem 3rem", marginBottom: "2rem",
+          color: "white", position: "relative", overflow: "hidden",
+          boxShadow: "0 10px 30px rgba(0,98,255,0.25)"
+        }}>
+          <div style={{ position: "relative", zIndex: 2 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "1rem", flexWrap: "wrap" }}>
+              <div>
+                <h1 style={{ fontFamily: "'Poppins',sans-serif", fontWeight: 800, fontSize: "clamp(1.5rem,3vw,2rem)", margin: 0 }}>
+                  🔔 Alerts & Notifications
+                </h1>
+                <p style={{ opacity: 0.8, margin: "0.4rem 0 0", fontSize: "0.95rem" }}>
+                  Real-time updates on your clearance, approvals, and degree issuance.
+                </p>
+              </div>
+              {unreadCount > 0 && (
+                <div style={{
+                  background: "rgba(255,255,255,0.2)", backdropFilter: "blur(10px)",
+                  border: "1px solid rgba(255,255,255,0.3)", borderRadius: "50px",
+                  padding: "0.4rem 1rem", fontSize: "0.85rem", fontWeight: 700,
+                  display: "flex", alignItems: "center", gap: "0.5rem"
+                }}>
+                  <span style={{ width: 8, height: 8, borderRadius: "50%", background: "#fbbf24", display: "inline-block", animation: "pulse 1.5s infinite" }} />
+                  {unreadCount} unread
+                </div>
+              )}
+            </div>
+          </div>
+          {/* decorative circles */}
+          <div style={{ position: "absolute", top: "-60px", right: "-60px", width: "220px", height: "220px", background: "rgba(255,255,255,0.08)", borderRadius: "50%" }} />
+          <div style={{ position: "absolute", bottom: "-40px", right: "120px", width: "140px", height: "140px", background: "rgba(255,255,255,0.06)", borderRadius: "50%" }} />
         </div>
 
         <Row className="justify-content-center">
           <Col xl={10}>
-            {/* Actions Bar */}
-            <div className="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
-              <div className="d-flex bg-white p-1 rounded-pill shadow-sm" style={{ border: "1px solid #e2e8f0" }}>
-                <Button 
-                  variant={filter === "all" ? "primary" : "light"} 
-                  className={`rounded-pill px-4 border-0 transition-all ${filter === "all" ? "shadow-sm" : "bg-transparent text-muted"}`}
-                  onClick={() => setFilter("all")}
-                  style={{ background: filter === "all" ? "#4f46e5" : "transparent" }}
-                >
-                  All
-                </Button>
-                <Button 
-                  variant={filter === "unread" ? "primary" : "light"} 
-                  className={`rounded-pill px-4 border-0 transition-all ${filter === "unread" ? "shadow-sm" : "bg-transparent text-muted"}`}
-                  onClick={() => setFilter("unread")}
-                  style={{ background: filter === "unread" ? "#4f46e5" : "transparent" }}
-                >
-                  Unread
-                </Button>
-              </div>
 
-              <div className="d-flex gap-2">
-                <Button 
-                  variant="outline-primary" 
-                  className="rounded-pill px-4 border-2 fw-medium"
-                  style={{ borderColor: "#4f46e5", color: "#4f46e5" }}
-                  onClick={handleMarkAllRead}
-                  disabled={notifications.every(n => n.is_read)}
-                >
-                  Mark all as read
-                </Button>
+            {/* ── Filter / Actions Bar ───────────────────────────────────── */}
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.5rem", flexWrap: "wrap", gap: "1rem" }}>
+              <div style={{ display: "flex", background: "white", padding: "4px", borderRadius: "50px", border: "1.5px solid #E2E8F0", gap: "4px", boxShadow: "0 2px 8px rgba(0,0,0,0.04)" }}>
+                {["all", "unread"].map(f => (
+                  <button
+                    key={f}
+                    onClick={() => setFilter(f)}
+                    style={{
+                      padding: "0.45rem 1.4rem", borderRadius: "50px", border: "none",
+                      fontWeight: 600, fontSize: "0.875rem", cursor: "pointer",
+                      transition: "all 0.2s ease",
+                      background: filter === f ? "linear-gradient(135deg, #0062FF, #6366F1)" : "transparent",
+                      color: filter === f ? "white" : "#475569",
+                      boxShadow: filter === f ? "0 4px 12px rgba(0,98,255,0.25)" : "none",
+                    }}
+                  >
+                    {f === "all" ? "All" : `Unread${unreadCount > 0 ? ` (${unreadCount})` : ""}`}
+                  </button>
+                ))}
               </div>
+              <button
+                onClick={handleMarkAllRead}
+                disabled={unreadCount === 0}
+                style={{
+                  padding: "0.45rem 1.4rem", borderRadius: "50px",
+                  border: "1.5px solid #0062FF", background: "transparent",
+                  color: "#0062FF", fontWeight: 600, fontSize: "0.875rem",
+                  cursor: unreadCount === 0 ? "not-allowed" : "pointer",
+                  opacity: unreadCount === 0 ? 0.4 : 1, transition: "all 0.2s ease"
+                }}
+              >
+                ✓ Mark all as read
+              </button>
             </div>
 
+            {/* ── Content ────────────────────────────────────────────────── */}
             {loading ? (
-              <div className="text-center py-5">
-                <Spinner animation="border" variant="primary" />
-                <p className="mt-3 text-muted">Retrieving your latest updates...</p>
+              <div style={{ textAlign: "center", padding: "5rem 0" }}>
+                <Spinner animation="border" style={{ color: "#0062FF", width: "3rem", height: "3rem", borderWidth: "3px" }} />
+                <p style={{ marginTop: "1rem", color: "#475569", fontWeight: 600 }}>Loading notifications...</p>
               </div>
             ) : notifications.length === 0 ? (
-              <Card className="border-0 shadow-sm text-center py-5" style={{ borderRadius: "24px" }}>
-                <div style={{ fontSize: "5rem" }}>🎐</div>
-                <h4 className="fw-bold mt-4">All Caught Up!</h4>
-                <p className="text-muted">You have no new notifications right now.</p>
-                <Button variant="link" className="text-decoration-none" onClick={() => setFilter("all")}>View History</Button>
+              <Card style={{ border: "none", borderRadius: "24px", padding: "4rem 2rem", textAlign: "center", boxShadow: "0 4px 20px rgba(0,0,0,0.04)" }}>
+                <div style={{ fontSize: "5rem", marginBottom: "1rem" }}>🎐</div>
+                <h3 style={{ fontFamily: "'Poppins',sans-serif", fontWeight: 700, color: "#0F172A" }}>All Caught Up!</h3>
+                <p style={{ color: "#475569", maxWidth: "400px", margin: "0 auto 1.5rem" }}>
+                  {filter === "unread"
+                    ? "No unread notifications. You're up to date!"
+                    : "Notifications will appear here when departments review your clearance, approve or reject requests, or when your degree is issued."}
+                </p>
+                {filter === "unread" && (
+                  <button onClick={() => setFilter("all")} style={{ background: "linear-gradient(135deg,#0062FF,#6366F1)", color: "white", border: "none", borderRadius: "50px", padding: "0.6rem 1.8rem", fontWeight: 600, cursor: "pointer", fontSize: "0.9rem" }}>
+                    View All History
+                  </button>
+                )}
               </Card>
             ) : (
-              <div className="notif-timeline">
+              <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
                 {notifications.map((notif) => {
-                  const meta = getNotifMeta(notif.type);
+                  const cfg = getConfig(notif.type);
                   return (
-                    <Card
+                    <div
                       key={notif.id}
-                      className={`border-0 mb-3 shadow-hover transition-all ${!notif.is_read ? 'bg-white border-start' : 'bg-light opacity-75'}`}
-                      style={{ 
-                        borderRadius: "20px",
-                        borderLeft: !notif.is_read ? `6px solid ${meta.color}` : 'none',
-                        boxShadow: "0 4px 6px -1px rgba(0,0,0,0.05)",
-                        transition: "all 0.2s ease"
+                      style={{
+                        background: notif.is_read ? "white" : cfg.bg,
+                        border: `1px solid ${notif.is_read ? "#E2E8F0" : cfg.border}`,
+                        borderLeft: `5px solid ${cfg.border}`,
+                        borderRadius: "16px",
+                        padding: "1.1rem 1.4rem",
+                        display: "flex",
+                        alignItems: "flex-start",
+                        gap: "1rem",
+                        boxShadow: notif.is_read ? "0 2px 8px rgba(0,0,0,0.03)" : "0 4px 16px rgba(0,0,0,0.07)",
+                        transition: "all 0.2s ease",
+                        position: "relative",
                       }}
                     >
-                      <Card.Body className="p-4">
-                        <Row className="align-items-start g-3">
-                          <Col xs="auto">
-                            <div 
-                              className="d-flex align-items-center justify-content-center shadow-sm"
-                              style={{ 
-                                width: "50px", 
-                                height: "50px", 
-                                background: !notif.is_read ? "#fff" : "#f1f5f9", 
-                                borderRadius: "14px",
-                                fontSize: "1.2rem",
-                                border: `1px solid ${!notif.is_read ? '#e2e8f0' : 'transparent'}`
-                              }}
-                            >
-                              {meta.icon}
-                            </div>
-                          </Col>
-                          <Col className="pt-1">
-                            <div className="d-flex justify-content-between align-items-center mb-1">
-                              <h6 className="fw-bold mb-0 text-dark d-flex align-items-center gap-2">
-                                {notif.title || meta.title}
-                                {!notif.is_read && <Badge pill bg="primary" style={{ fontSize: "0.5rem", background: "#4f46e5" }}>NEW</Badge>}
-                              </h6>
-                              <small className="text-muted fw-medium">{formatTime(notif.created_at)}</small>
-                            </div>
-                            <p className="text-muted mb-0" style={{ fontSize: "0.95rem", lineHeight: "1.5" }}>
-                              {notif.message}
-                            </p>
-                          </Col>
-                          <Col xs="auto" className="d-flex flex-column gap-2">
-                            <Dropdown align="end">
-                              <Dropdown.Toggle variant="link" className="p-0 text-muted hide-caret">
-                                <i className="bi bi-three-dots-vertical"></i>
-                              </Dropdown.Toggle>
-                              <Dropdown.Menu className="border-0 shadow-sm" style={{ borderRadius: "12px" }}>
-                                {!notif.is_read && (
-                                  <Dropdown.Item onClick={() => handleMarkAsRead(notif.id)}>Mark as read</Dropdown.Item>
-                                )}
-                                <Dropdown.Item className="text-danger" onClick={() => handleDelete(notif.id)}>Delete</Dropdown.Item>
-                              </Dropdown.Menu>
-                            </Dropdown>
-                          </Col>
-                        </Row>
-                      </Card.Body>
-                    </Card>
+                      {/* Icon pill */}
+                      <div style={{
+                        width: "46px", height: "46px", borderRadius: "13px", flexShrink: 0,
+                        background: cfg.accent, display: "flex", alignItems: "center",
+                        justifyContent: "center", fontSize: "1.3rem",
+                        boxShadow: `0 4px 12px ${cfg.border}40`,
+                      }}>
+                        {cfg.icon}
+                      </div>
+
+                      {/* Body */}
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", flexWrap: "wrap", marginBottom: "0.25rem" }}>
+                          <span style={{ fontWeight: 700, color: "#0F172A", fontSize: "0.92rem" }}>
+                            {notif.title || cfg.label}
+                          </span>
+                          {!notif.is_read && (
+                            <span style={{
+                              background: cfg.badge, color: "white",
+                              fontSize: "0.62rem", fontWeight: 800, letterSpacing: "0.05em",
+                              padding: "2px 8px", borderRadius: "50px",
+                              textTransform: "uppercase"
+                            }}>NEW</span>
+                          )}
+                          <span style={{ marginLeft: "auto", fontSize: "0.78rem", color: "#94A3B8", whiteSpace: "nowrap", fontWeight: 500 }}>
+                            {formatTime(notif.created_at)}
+                          </span>
+                        </div>
+                        <p style={{ color: "#475569", fontSize: "0.875rem", margin: 0, lineHeight: 1.55 }}>
+                          {notif.message}
+                        </p>
+                      </div>
+
+                      {/* Actions */}
+                      <div style={{ display: "flex", flexDirection: "column", gap: "0.4rem", flexShrink: 0 }}>
+                        {!notif.is_read && (
+                          <button
+                            onClick={() => handleMarkAsRead(notif.id)}
+                            title="Mark as read"
+                            style={{ background: "rgba(0,98,255,0.08)", border: "none", borderRadius: "8px", width: "32px", height: "32px", cursor: "pointer", fontSize: "0.8rem", color: "#0062FF", display: "flex", alignItems: "center", justifyContent: "center" }}
+                          >✓</button>
+                        )}
+                        <button
+                          onClick={() => handleDelete(notif.id)}
+                          title="Delete"
+                          style={{ background: "rgba(220,38,38,0.07)", border: "none", borderRadius: "8px", width: "32px", height: "32px", cursor: "pointer", fontSize: "0.9rem", color: "#DC2626", display: "flex", alignItems: "center", justifyContent: "center" }}
+                        >×</button>
+                      </div>
+                    </div>
                   );
                 })}
               </div>
@@ -229,12 +329,16 @@ export default function NotificationsPage() {
           </Col>
         </Row>
       </Container>
-      
-      <style jsx>{`
-        .transition-all { transition: all 0.3s ease; }
-        .shadow-hover:hover { transform: translateY(-3px); box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1) !important; }
-        .hide-caret::after { display: none !important; }
-        .notif-timeline :global(.dropdown-toggle) { font-size: 1.2rem; }
+
+      <style jsx global>{`
+        @keyframes slideIn {
+          from { opacity: 0; transform: translateX(40px); }
+          to   { opacity: 1; transform: translateX(0); }
+        }
+        @keyframes pulse {
+          0%, 100% { opacity: 1; transform: scale(1); }
+          50%       { opacity: 0.5; transform: scale(1.4); }
+        }
       `}</style>
     </StudentLayout>
   );

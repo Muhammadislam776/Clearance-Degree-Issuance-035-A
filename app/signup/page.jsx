@@ -1,16 +1,16 @@
 "use client";
 import React, { useEffect, useRef, useState } from "react";
-import { Container, Row, Col, Form, Button, Alert, Spinner, InputGroup } from "react-bootstrap";
+import { Spinner } from "react-bootstrap";
 import { useRouter } from "next/navigation";
 import { signupUser, validateEmail, validatePassword, validateName, checkEmailExists, withTimeout } from "@/lib/authService";
 import { supabase } from "@/lib/supabaseClient";
 import { getDashboardPathForRole } from "@/lib/roleRouting";
-import { EyeIcon, EyeSlashIcon, EnvelopeIcon, LockClosedIcon, UserIcon, IdentificationIcon, BuildingOfficeIcon } from "@heroicons/react/24/outline";
+import { EyeIcon, EyeSlashIcon } from "@heroicons/react/24/outline";
+import Link from "next/link";
 import "../../styles/auth-enhanced.css";
 
 export default function SignupPage() {
   const router = useRouter();
-
   const seedAttemptedRef = useRef(false);
   const isLocalhost = typeof window !== "undefined" && window.location?.hostname === "localhost";
 
@@ -36,10 +36,8 @@ export default function SignupPage() {
   const [success, setSuccess] = useState("");
   const [formErrors, setFormErrors] = useState({});
   const [agreeTerms, setAgreeTerms] = useState(false);
-  // Real-time email check state
-  const [emailCheck, setEmailCheck] = useState({ status: "idle" }); // idle | checking | taken | available | error
+  const [emailCheck, setEmailCheck] = useState({ status: "idle" });
 
-  // Fallback departments list used when DB is unreachable or RLS blocks unauthenticated reads
   const FALLBACK_DEPARTMENTS = [
     { id: "lib", name: "Library" },
     { id: "fin", name: "Accounts & Finance" },
@@ -56,45 +54,21 @@ export default function SignupPage() {
 
   const seedDefaultDepartments = async ({ silent } = { silent: false }) => {
     const seedNameOnly = [
-      { name: "Computer Science" },
-      { name: "Engineering" },
-      { name: "Business" },
-      { name: "Library" },
-      { name: "Accounts & Finance" },
-      { name: "Hostel" },
-      { name: "IT Department" },
-      { name: "Registrar Office" },
+      { name: "Computer Science" }, { name: "Engineering" }, { name: "Business" },
+      { name: "Library" }, { name: "Accounts & Finance" }, { name: "Hostel" },
+      { name: "IT Department" }, { name: "Registrar Office" },
     ];
-
-    if (!silent) {
-      setSeedingDepartments(true);
-      setSeedDepartmentsError("");
-    }
-
+    if (!silent) { setSeedingDepartments(true); setSeedDepartmentsError(""); }
     try {
       const inserted = await supabase.from("departments").insert(seedNameOnly);
       const insertError = inserted?.error ?? null;
-
       if (insertError) {
         const msg = String(insertError?.message || "").toLowerCase();
         const isDuplicate = msg.includes("duplicate") || msg.includes("unique");
-        if (!isDuplicate && !silent) {
-          setSeedDepartmentsError(insertError?.message || "Unable to seed departments. RLS policy may be blocking inserts.");
-          return false;
-        }
+        if (!isDuplicate && !silent) { setSeedDepartmentsError(insertError?.message || "Unable to seed departments."); return false; }
       }
-
-      const reloaded = await supabase
-        .from("departments")
-        .select("id, name")
-        .order("name", { ascending: true });
-
-      if (!reloaded?.error && Array.isArray(reloaded?.data) && reloaded.data.length > 0) {
-        setDepartments(reloaded.data);
-        return true;
-      }
-
-      // Even if seeding succeeded, DB might still block reads — use fallback
+      const reloaded = await supabase.from("departments").select("id, name").order("name", { ascending: true });
+      if (!reloaded?.error && Array.isArray(reloaded?.data) && reloaded.data.length > 0) { setDepartments(reloaded.data); return true; }
       setDepartments(FALLBACK_DEPARTMENTS);
       return true;
     } catch (e) {
@@ -108,553 +82,391 @@ export default function SignupPage() {
 
   useEffect(() => {
     let cancelled = false;
-
     const loadDepartments = async () => {
       try {
-        if (!cancelled) {
-          setDepartmentsLoading(true);
-          setDepartmentsLoadError("");
-        }
-
+        if (!cancelled) { setDepartmentsLoading(true); setDepartmentsLoadError(""); }
         const { data, error } = await withTimeout(
-          supabase
-            .from("departments")
-            .select("id, name")
-            .order("name", { ascending: true }),
-          5000,
-          "Department Load"
+          supabase.from("departments").select("id, name").order("name", { ascending: true }),
+          5000, "Department Load"
         );
-
         if (cancelled) return;
-
-        // No error and we have real departments from DB
-        if (!error && Array.isArray(data) && data.length > 0) {
-          setDepartments(data);
-          return;
-        }
-
-        // RLS block or empty table — use fallback so form still works
-        // Also silently try to seed if on localhost
-        if (isLocalhost && !seedAttemptedRef.current) {
-          seedAttemptedRef.current = true;
-          await seedDefaultDepartments({ silent: true });
-          // seedDefaultDepartments already sets state, just return
-          return;
-        }
-
-        // Production or seeding skipped — use hardcoded fallback
-        // NOTE: These IDs are placeholders; actual UUIDs will come from Supabase
-        // after admin runs fix_rls_policies.sql. Signup will store the selected
-        // name in user metadata until DB lookup is available.
+        if (!error && Array.isArray(data) && data.length > 0) { setDepartments(data); return; }
+        if (isLocalhost && !seedAttemptedRef.current) { seedAttemptedRef.current = true; await seedDefaultDepartments({ silent: true }); return; }
         setDepartments(FALLBACK_DEPARTMENTS);
       } catch (e) {
         if (cancelled) return;
-        // On any error, still show fallback so form isn't broken
         setDepartments(FALLBACK_DEPARTMENTS);
-        setDepartmentsLoadError(""); // Clear error since fallback is available
+        setDepartmentsLoadError("");
       } finally {
         if (!cancelled) setDepartmentsLoading(false);
       }
     };
-
     loadDepartments();
     return () => { cancelled = true; };
   }, []);
-  // Debounced real-time email check
-  useEffect(() => {
-    if (!email || !validateEmail(email)) {
-      setEmailCheck({ status: "idle" });
-      return;
-    }
 
+  useEffect(() => {
+    if (!email || !validateEmail(email)) { setEmailCheck({ status: "idle" }); return; }
     setEmailCheck({ status: "checking" });
     const timer = setTimeout(async () => {
       try {
         const result = await checkEmailExists(email);
-        if (result.exists) {
-          setEmailCheck({ status: "taken" });
-        } else if (result.checked) {
-          setEmailCheck({ status: "available" });
-        } else {
-          setEmailCheck({ status: "idle" }); // Couldn't determine — don't block
-        }
-      } catch {
-        setEmailCheck({ status: "idle" });
-      }
-    }, 700); // 700ms debounce
-
+        if (result.exists) setEmailCheck({ status: "taken" });
+        else if (result.checked) setEmailCheck({ status: "available" });
+        else setEmailCheck({ status: "idle" });
+      } catch { setEmailCheck({ status: "idle" }); }
+    }, 700);
     return () => clearTimeout(timer);
   }, [email]);
 
-
-
   const getPasswordStrength = (pwd) => {
-    if (!pwd) return { strength: 0, label: "None", color: "strength-weak" };
-    let strength = 0;
-    if (pwd.length >= 8) strength++;
-    if (pwd.length >= 12) strength++;
-    if (/[0-9]/.test(pwd)) strength++;
-    if (/[A-Z]/.test(pwd)) strength++;
-    if (/[^A-Za-z0-9]/.test(pwd)) strength++;
+    if (!pwd) return { strength: 0, label: "None", color: "#94A3B8" };
+    let s = 0;
+    if (pwd.length >= 8) s++;
+    if (pwd.length >= 12) s++;
+    if (/[0-9]/.test(pwd)) s++;
+    if (/[A-Z]/.test(pwd)) s++;
+    if (/[^A-Za-z0-9]/.test(pwd)) s++;
+    if (s < 2) return { strength: 25, label: "Weak", color: "#DC2626" };
+    if (s < 3) return { strength: 50, label: "Fair", color: "#D97706" };
+    if (s < 4) return { strength: 75, label: "Good", color: "#3B82F6" };
+    return { strength: 100, label: "Strong", color: "#059669" };
+  };
+  const pwdStrength = getPasswordStrength(password);
 
-    if (strength < 2) return { strength: 25, label: "Weak", color: "strength-weak" };
-    if (strength < 3) return { strength: 50, label: "Fair", color: "strength-fair" };
-    if (strength < 4) return { strength: 75, label: "Good", color: "strength-good" };
-    return { strength: 100, label: "Strong", color: "strength-strong" };
+  /**
+   * Auto-formats roll number to FA23-BCS-035 pattern.
+   * Pattern: [2 alpha][2 digit] - [2-4 alpha] - [3 digit]
+   * Dashes are inserted automatically as the user types.
+   */
+  const formatRollNumber = (input) => {
+    // Strip everything except alphanumeric and uppercase
+    const clean = input.replace(/[^A-Z0-9]/gi, "").toUpperCase();
+    if (!clean) return "";
+
+    // Part 1: first 4 raw chars → e.g. FA23
+    const part1 = clean.slice(0, 4);
+    if (clean.length <= 4) return part1;
+
+    // Part 2: consecutive alpha chars after part1 (dept code, e.g. BCS), max 4
+    let p2End = 4;
+    while (p2End < clean.length && p2End < 8 && /[A-Z]/i.test(clean[p2End])) {
+      p2End++;
+    }
+    const part2 = clean.slice(4, p2End);
+    if (!part2) return part1;
+
+    // Part 3: next 3 digit chars (roll digits, e.g. 035)
+    const part3 = clean.slice(p2End, p2End + 3).replace(/[^0-9]/g, "");
+
+    return part1 + "-" + part2 + (part3 ? "-" + part3 : "");
   };
 
-  const passwordStrength = getPasswordStrength(password);
+  const ROLL_REGEX = /^[A-Z]{2}\d{2}-[A-Z]{2,4}-\d{3}$/;
 
   const validateForm = () => {
     const errors = {};
-
     if (!validateName(name)) errors.name = "Name must be at least 2 characters";
     if (!validateEmail(email)) errors.email = "Invalid email address";
     if (!validatePassword(password)) errors.password = "Password must be at least 8 characters";
     if (password !== confirmPassword) errors.confirmPassword = "Passwords do not match";
     if (!agreeTerms) errors.terms = "You must agree to the terms";
-    if (role === "student" && !rollNumber) errors.rollNumber = "Roll number is required for students";
-
-    const roleNeedsDepartment = role === "student" || role === "department";
-    if (roleNeedsDepartment) {
-      if (departmentsLoadError) {
-        errors.department = "Unable to load departments from the database. Check your Supabase setup/key and try again.";
-      } else if (!departmentsLoading && departments.length === 0) {
-        errors.department = "No departments exist yet. Click 'Add default departments' or sign up as Admin first.";
-      } else if (!departmentId) {
-        errors.department = role === "student" ? "Department is required for students" : "Department is required for department staff";
+    if (role === "student") {
+      if (!rollNumber) {
+        errors.rollNumber = "Roll number is required for students";
+      } else if (!ROLL_REGEX.test(rollNumber)) {
+        errors.rollNumber = "Format must be FA23-BCS-035 (semester·year-dept-number)";
       }
     }
-
+    const roleNeedsDepartment = role === "student" || role === "department";
+    if (roleNeedsDepartment) {
+      if (departmentsLoadError) errors.department = "Unable to load departments from the database.";
+      else if (!departmentsLoading && departments.length === 0) errors.department = "No departments available. Contact admin.";
+      else if (!departmentId) errors.department = role === "student" ? "Department is required for students" : "Department is required for staff";
+    }
     setFormErrors(errors);
     return Object.keys(errors).length === 0;
   };
 
   const handleSignup = async (e) => {
     e.preventDefault();
-    setError("");
-    setSuccess("");
-
+    setError(""); setSuccess("");
     if (!validateForm()) return;
-
     setLoading(true);
     let navigating = false;
-
     try {
       const additionalData = {};
-      
-      // Map department data if applicable
       if (role === "student" || role === "department") {
         const selectedDept = departments.find(d => d.id === departmentId);
         additionalData.department_id = departmentId;
         additionalData.department_name = selectedDept ? selectedDept.name : "";
-        
-        if (role === "student") {
-          additionalData.roll_number = rollNumber;
-          additionalData.session = "2023-2027"; // Default session
-        }
+        if (role === "student") { additionalData.roll_number = rollNumber; additionalData.session = "2023-2027"; }
       }
-
       const result = await signupUser(email, password, name, role, additionalData);
-
       if (result.success) {
-        if (result.needsEmailConfirmation) {
-          setSuccess("✓ Registration successful! Please verify your institutional email.");
-          return;
-        }
-
-        setSuccess("✓ Welcome to the Smart Clearance System! Redirecting...");
+        if (result.needsEmailConfirmation) { setSuccess("Registration successful! Please verify your institutional email."); return; }
+        setSuccess("Welcome to the Smart Clearance System! Redirecting...");
         navigating = true;
-        
-        // Use the role from either the metadata we just sent or the result user
         const finalRole = result.user?.user_metadata?.role || role;
-        
-        setTimeout(() => {
-          router.replace(getDashboardPathForRole(finalRole));
-        }, 800);
-        return;
+        setTimeout(() => { router.replace(getDashboardPathForRole(finalRole)); }, 800);
       } else {
-        setError(result.error || "Execution failed. Please verify credentials.");
+        setError(result.error || "Registration failed. Please verify your details.");
       }
     } catch (err) {
       setError("A database exception occurred. Contact system administrator.");
-      console.warn("Signup error:", err);
     } finally {
       if (!navigating) setLoading(false);
     }
   };
 
+  const renderDeptSelect = () => (
+    <div className="lp-field">
+      <label className="lp-label">Department</label>
+      <div className={`lp-input-wrap ${formErrors.department ? "lp-input-error" : ""}`}>
+        <select
+          value={departmentId}
+          onChange={(e) => { setDepartmentId(e.target.value); setFormErrors({ ...formErrors, department: "" }); }}
+          disabled={loading || departmentsLoading || departments.length === 0}
+          className="lp-input lp-select"
+        >
+          {departmentsLoading ? <option value="">Loading departments...</option>
+            : departments.length === 0 ? <option value="">No departments available</option>
+            : <>
+                <option value="">Select Department</option>
+                {departments.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
+              </>
+          }
+        </select>
+      </div>
+      {formErrors.department && <div className="lp-field-error">{formErrors.department}</div>}
+      {!departmentsLoading && departments.length === 0 && !departmentsLoadError && isLocalhost && (
+        <button type="button" className="lp-seed-btn" disabled={seedingDepartments} onClick={() => seedDefaultDepartments({ silent: false })}>
+          {seedingDepartments ? "Adding departments..." : "+ Add default departments"}
+        </button>
+      )}
+      {seedDepartmentsError && <div className="lp-field-error">{seedDepartmentsError}</div>}
+    </div>
+  );
+
   return (
-    <div className="auth-bg-enhanced d-flex align-items-center min-vh-100">
-      <Container className="auth-content-enhanced">
-        <Row className="align-items-center min-vh-100 g-5">
-          {/* Left Side - Illustration */}
-          <Col lg={6} className="auth-illustration-enhanced d-none d-lg-flex">
-            <div>
-              <h1 className="fw-bold display-3">Official Enrollment</h1>
-              <p className="lead">Join the official Smart Clearance & Degree Issuance portal of the University.</p>
+    <div className="lp-root">
+      <div className="lp-blob lp-blob-1" />
+      <div className="lp-blob lp-blob-2" />
 
-              <ul className="feature-list mt-4">
-                <li>Automated Departmental Verification</li>
-                <li>Instant Digital Degree Issuance</li>
-                <li>Encrypted Student Data Management</li>
-              </ul>
+      <div className="lp-split">
+        {/* LEFT PANEL */}
+        <div className="lp-left">
+          <div className="lp-left-inner">
+            <Link href="/" className="lp-back">← Back to home</Link>
+            <div className="lp-left-badge">🎓 Official Academic Portal</div>
+            <h1 className="lp-left-title">
+              Join the<br />
+              <span className="lp-left-gradient">Smart Clearance</span><br />
+              System
+            </h1>
+            <p className="lp-left-desc">
+              Register your institutional identity and get instant access to
+              clearance management and degree issuance.
+            </p>
+            <div className="lp-features">
+              <div className="lp-feature-item">
+                <div className="lp-feature-icon">🔄</div>
+                <div>
+                  <div className="lp-feature-title">Automated Verification</div>
+                  <div className="lp-feature-sub">Multi-department clearance tracking</div>
+                </div>
+              </div>
+              <div className="lp-feature-item">
+                <div className="lp-feature-icon">📄</div>
+                <div>
+                  <div className="lp-feature-title">Digital Degrees</div>
+                  <div className="lp-feature-sub">Instantly issued & verifiable</div>
+                </div>
+              </div>
+              <div className="lp-feature-item">
+                <div className="lp-feature-icon">🛡️</div>
+                <div>
+                  <div className="lp-feature-title">Encrypted Data</div>
+                  <div className="lp-feature-sub">Your records are fully secured</div>
+                </div>
+              </div>
             </div>
-          </Col>
+          </div>
+        </div>
 
-          {/* Right Side - Signup Form */}
-          <Col lg={6} md={10} sm={12} className="mx-auto">
-            <div className="auth-card-enhanced p-5 shadow-lg">
-              {/* Header */}
-              <div className="auth-header-enhanced mb-4">
-                <div className="display-1 mb-3">🎓</div>
-                <h2 className="fw-bold">Create Profile</h2>
-                <p className="text-muted">Register your institutional identity</p>
+        {/* RIGHT PANEL */}
+        <div className="lp-right" style={{ flex: "0 0 560px" }}>
+          <div className="lp-card" style={{ maxWidth: 500 }}>
+            <div className="lp-card-accent" />
+
+            <div className="lp-card-header">
+              <div className="lp-card-icon">✨</div>
+              <h2 className="lp-card-title">Create Account</h2>
+              <p className="lp-card-sub">Register your institutional identity</p>
+            </div>
+
+            {error && (
+              <div className="lp-alert lp-alert-error">
+                <span>⚠️</span> {error}
+                <button className="lp-alert-close" onClick={() => setError("")}>×</button>
+              </div>
+            )}
+            {success && (
+              <div className="lp-alert lp-alert-success">
+                <span>✓</span> {success}
+              </div>
+            )}
+
+            <form onSubmit={handleSignup} className="lp-form">
+              {/* Full Name */}
+              <div className="lp-field">
+                <label className="lp-label">Full Name</label>
+                <div className={`lp-input-wrap ${formErrors.name ? "lp-input-error" : ""}`}>
+                  <span className="lp-input-icon">👤</span>
+                  <input type="text" placeholder="Your full name" value={name}
+                    onChange={(e) => { setName(e.target.value); setFormErrors({ ...formErrors, name: "" }); }}
+                    disabled={loading} className="lp-input" />
+                </div>
+                {formErrors.name && <div className="lp-field-error">{formErrors.name}</div>}
               </div>
 
-              {/* Error Alert */}
-              {error && (
-                <Alert className="alert-enhanced alert-danger-enhanced mb-4" onClose={() => setError("")} dismissible>
-                  <span>⚠️</span> {error}
-                </Alert>
-              )}
-
-              {/* Success Alert */}
-              {success && (
-                <Alert className="alert-enhanced alert-success-enhanced mb-4">
-                  <span>✓</span> {success}
-                </Alert>
-              )}
-
-              {/* Signup Form */}
-              <Form onSubmit={handleSignup}>
-                {/* Name Field */}
-                <div className="form-group-enhanced">
-                  <Form.Label className="form-label-enhanced">Full Name</Form.Label>
-                  <InputGroup className="input-group-enhanced">
-                    <InputGroup.Text>👤</InputGroup.Text>
-                    <Form.Control
-                      type="text"
-                      placeholder="Your full name"
-                      value={name}
-                      onChange={(e) => {
-                        setName(e.target.value);
-                        if (formErrors.name) setFormErrors({ ...formErrors, name: "" });
-                      }}
-                      className={`input-enhanced ${formErrors.name ? "is-invalid" : ""}`}
-                      disabled={loading}
-                    />
-                  </InputGroup>
-                  {formErrors.name && <div className="form-error-enhanced">⚠️ {formErrors.name}</div>}
+              {/* Email */}
+              <div className="lp-field">
+                <label className="lp-label">Email Address</label>
+                <div className={`lp-input-wrap ${formErrors.email || emailCheck.status === "taken" ? "lp-input-error" : emailCheck.status === "available" ? "lp-input-ok" : ""}`}>
+                  <span className="lp-input-icon">✉️</span>
+                  <input type="email" placeholder="you@university.edu" value={email}
+                    onChange={(e) => { setEmail(e.target.value); setFormErrors({ ...formErrors, email: "" }); }}
+                    disabled={loading} className="lp-input" />
+                  {emailCheck.status === "checking" && <Spinner animation="border" size="sm" style={{ color: "var(--text-muted)", flexShrink: 0 }} />}
+                  {emailCheck.status === "available" && <span style={{ color: "#059669", fontSize: "1rem", flexShrink: 0 }}>✅</span>}
+                  {emailCheck.status === "taken" && <span style={{ color: "#DC2626", fontSize: "1rem", flexShrink: 0 }}>❌</span>}
                 </div>
+                {emailCheck.status === "taken" && (
+                  <div className="lp-field-error">
+                    Email already registered.{" "}
+                    <button type="button" onClick={() => router.push("/login")} className="lp-inline-link">Login instead →</button>
+                  </div>
+                )}
+                {emailCheck.status === "available" && <div className="lp-field-ok">✓ Email is available</div>}
+                {formErrors.email && <div className="lp-field-error">{formErrors.email}</div>}
+              </div>
 
-                {/* Email Field */}
-                <div className="form-group-enhanced">
-                  <Form.Label className="form-label-enhanced">Email Address</Form.Label>
-                  <InputGroup className="input-group-enhanced">
-                    <InputGroup.Text>📧</InputGroup.Text>
-                    <Form.Control
-                      type="email"
-                      placeholder="you@university.edu"
-                      value={email}
-                      onChange={(e) => {
-                        setEmail(e.target.value);
-                        if (formErrors.email) setFormErrors({ ...formErrors, email: "" });
-                      }}
-                      className={`input-enhanced ${
-                        emailCheck.status === "taken" || formErrors.email ? "is-invalid" :
-                        emailCheck.status === "available" ? "is-valid" : ""
-                      }`}
-                      disabled={loading}
-                    />
-                    {/* Real-time status indicator */}
-                    {emailCheck.status === "checking" && (
-                      <InputGroup.Text style={{ background: "transparent", border: "none", color: "#6c757d" }}>
-                        <Spinner animation="border" size="sm" />
-                      </InputGroup.Text>
-                    )}
-                    {emailCheck.status === "available" && (
-                      <InputGroup.Text style={{ background: "transparent", border: "none", color: "#198754" }}>
-                        <span style={{ fontSize: "1rem" }}>✅</span>
-                      </InputGroup.Text>
-                    )}
-                    {emailCheck.status === "taken" && (
-                      <InputGroup.Text style={{ background: "transparent", border: "none", color: "#dc3545" }}>
-                        <span style={{ fontSize: "1rem" }}>❌</span>
-                      </InputGroup.Text>
-                    )}
-                  </InputGroup>
-                  {emailCheck.status === "taken" && (
-                    <div style={{ color: "#dc3545", fontSize: "0.85rem", marginTop: "6px", display: "flex", alignItems: "center", gap: "6px" }}>
-                      ⚠️ This email is already registered.{" "}
-                      <button
-                        type="button"
-                        onClick={() => router.push("/login")}
-                        style={{ background: "none", border: "none", color: "#4f46e5", cursor: "pointer", textDecoration: "underline", fontSize: "0.85rem", padding: 0 }}
-                      >
-                        Login instead →
-                      </button>
-                    </div>
-                  )}
-                  {emailCheck.status === "available" && (
-                    <div style={{ color: "#198754", fontSize: "0.85rem", marginTop: "6px" }}>✓ Email is available</div>
-                  )}
-                  {formErrors.email && <div className="form-error-enhanced">⚠️ {formErrors.email}</div>}
-                </div>
-
-                {/* Account Type Field */}
-                <div className="form-group-enhanced">
-                  <Form.Label className="form-label-enhanced">Account Type</Form.Label>
-                  <Form.Select
-                    value={role}
-                    onChange={(e) => {
-                      setRole(e.target.value);
-                      if (formErrors.role) setFormErrors({ ...formErrors, role: "" });
-                    }}
-                    className="select-enhanced"
-                    disabled={loading}
-                  >
+              {/* Account Type */}
+              <div className="lp-field">
+                <label className="lp-label">Account Type</label>
+                <div className="lp-input-wrap">
+                  <select value={role} onChange={(e) => { setRole(e.target.value); }} disabled={loading} className="lp-input lp-select">
                     <option value="student">👨‍🎓 Student</option>
                     <option value="department">🏢 Department Staff</option>
                     <option value="admin">🔐 Administrator</option>
                     <option value="examiner">📋 Examiner</option>
-                  </Form.Select>
-                  {formErrors.role && <div className="form-error-enhanced">⚠️ {formErrors.role}</div>}
+                  </select>
                 </div>
+              </div>
 
-                {/* Student-specific fields */}
-                {role === "student" && (
-                  <>
-                    <div className="form-group-enhanced">
-                      <Form.Label className="form-label-enhanced">Roll Number</Form.Label>
-                      <Form.Control
+              {/* Student: Roll Number + Department */}
+              {role === "student" && (
+                <>
+                  <div className="lp-field">
+                    <label className="lp-label">Roll Number</label>
+                    <div className={`lp-input-wrap ${formErrors.rollNumber ? "lp-input-error" : ""}`}>
+                      <span className="lp-input-icon">🪪</span>
+                      <input
                         type="text"
-                        placeholder="e.g., CS-2022-001"
+                        placeholder="e.g., FA23-BCS-035"
                         value={rollNumber}
                         onChange={(e) => {
-                          setRollNumber(e.target.value);
-                          if (formErrors.rollNumber) setFormErrors({ ...formErrors, rollNumber: "" });
+                          const formatted = formatRollNumber(e.target.value);
+                          setRollNumber(formatted);
+                          setFormErrors({ ...formErrors, rollNumber: "" });
                         }}
-                        className={`input-enhanced ${formErrors.rollNumber ? "is-invalid" : ""}`}
+                        maxLength={13}
                         disabled={loading}
+                        className="lp-input"
+                        autoCapitalize="characters"
+                        spellCheck={false}
                       />
-                      {formErrors.rollNumber && <div className="form-error-enhanced">⚠️ {formErrors.rollNumber}</div>}
                     </div>
+                    {formErrors.rollNumber && <div className="lp-field-error">{formErrors.rollNumber}</div>}
+                  </div>
+                  {renderDeptSelect()}
+                </>
+              )}
 
-                    <div className="form-group-enhanced">
-                      <Form.Label className="form-label-enhanced">Department</Form.Label>
-                      <Form.Select
-                        value={departmentId}
-                        onChange={(e) => {
-                          setDepartmentId(e.target.value);
-                          if (formErrors.department) setFormErrors({ ...formErrors, department: "" });
-                        }}
-                        className="select-enhanced"
-                        disabled={loading || departmentsLoading || departments.length === 0}
-                      >
-                        {departmentsLoading ? (
-                          <option value="">Loading departments...</option>
-                        ) : departments.length === 0 ? (
-                          <option value="">No departments available</option>
-                        ) : (
-                          <>
-                            <option value="">Select Department</option>
-                            {departments.map((d) => (
-                              <option key={d.id} value={d.id}>
-                                {d.name}
-                              </option>
-                            ))}
-                          </>
-                        )}
-                      </Form.Select>
-                      {formErrors.department && <div className="form-error-enhanced">⚠️ {formErrors.department}</div>}
-                      {!departmentsLoading && departments.length === 0 && !departmentsLoadError && isLocalhost && (
-                        <div style={{ marginTop: "10px" }}>
-                          <Button
-                            type="button"
-                            size="sm"
-                            variant="outline-primary"
-                            disabled={seedingDepartments}
-                            onClick={() => seedDefaultDepartments({ silent: false })}
-                            style={{ width: "100%" }}
-                          >
-                            {seedingDepartments ? "Adding..." : "Add default departments"}
-                          </Button>
-                          {seedDepartmentsError && <div className="form-error-enhanced" style={{ marginTop: "8px" }}>⚠️ {seedDepartmentsError}</div>}
-                        </div>
-                      )}
+              {/* Department staff: Department only */}
+              {role === "department" && renderDeptSelect()}
+
+              {/* Password */}
+              <div className="lp-field">
+                <label className="lp-label">Password</label>
+                <div className={`lp-input-wrap ${formErrors.password ? "lp-input-error" : ""}`}>
+                  <span className="lp-input-icon">🔑</span>
+                  <input type={showPassword ? "text" : "password"} placeholder="Create a strong password" value={password}
+                    onChange={(e) => { setPassword(e.target.value); setFormErrors({ ...formErrors, password: "" }); }}
+                    disabled={loading} className="lp-input" />
+                  <button type="button" className="lp-eye-btn" onClick={() => setShowPassword(!showPassword)}>
+                    {showPassword ? <EyeSlashIcon style={{ width: 18, height: 18 }} /> : <EyeIcon style={{ width: 18, height: 18 }} />}
+                  </button>
+                </div>
+                {password && (
+                  <div className="lp-strength-bar-wrap">
+                    <div className="lp-strength-bar">
+                      <div className="lp-strength-fill" style={{ width: `${pwdStrength.strength}%`, background: pwdStrength.color }} />
                     </div>
-                  </>
-                )}
-
-                {/* Department staff-specific fields */}
-                {role === "department" && (
-                  <div className="form-group-enhanced">
-                    <Form.Label className="form-label-enhanced">Department</Form.Label>
-                    <Form.Select
-                      value={departmentId}
-                      onChange={(e) => {
-                        setDepartmentId(e.target.value);
-                        if (formErrors.department) setFormErrors({ ...formErrors, department: "" });
-                      }}
-                      className="select-enhanced"
-                      disabled={loading || departmentsLoading || departments.length === 0}
-                    >
-                      {departmentsLoading ? (
-                        <option value="">Loading departments...</option>
-                      ) : departments.length === 0 ? (
-                        <option value="">No departments available</option>
-                      ) : (
-                        <>
-                          <option value="">Select Department</option>
-                          {departments.map((d) => (
-                            <option key={d.id} value={d.id}>
-                              {d.name}
-                            </option>
-                          ))}
-                        </>
-                      )}
-                    </Form.Select>
-                    {formErrors.department && <div className="form-error-enhanced">⚠️ {formErrors.department}</div>}
-                    {!departmentsLoading && departments.length === 0 && !departmentsLoadError && isLocalhost && (
-                      <div style={{ marginTop: "10px" }}>
-                        <Button
-                          type="button"
-                          size="sm"
-                          variant="outline-primary"
-                          disabled={seedingDepartments}
-                          onClick={() => seedDefaultDepartments({ silent: false })}
-                          style={{ width: "100%" }}
-                        >
-                          {seedingDepartments ? "Adding..." : "Add default departments"}
-                        </Button>
-                        {seedDepartmentsError && <div className="form-error-enhanced" style={{ marginTop: "8px" }}>⚠️ {seedDepartmentsError}</div>}
-                      </div>
-                    )}
+                    <span className="lp-strength-label" style={{ color: pwdStrength.color }}>
+                      {pwdStrength.label}
+                    </span>
                   </div>
                 )}
+                {formErrors.password && <div className="lp-field-error">{formErrors.password}</div>}
+              </div>
 
-                {/* Password Field */}
-                <div className="form-group-enhanced">
-                  <Form.Label className="form-label-enhanced">Password</Form.Label>
-                  <InputGroup className="input-group-enhanced">
-                    <InputGroup.Text><LockClosedIcon className="text-secondary" style={{ width: '20px', height: '20px' }} /></InputGroup.Text>
-                    <Form.Control
-                      type={showPassword ? "text" : "password"}
-                      placeholder="Create a strong password"
-                      value={password}
-                      onChange={(e) => {
-                        setPassword(e.target.value);
-                        if (formErrors.password) setFormErrors({ ...formErrors, password: "" });
-                      }}
-                      className={`input-enhanced ${formErrors.password ? "is-invalid" : ""}`}
-                      disabled={loading}
-                    />
-                    <Button
-                      variant="light"
-                      className="btn-icon-enhanced"
-                      onClick={() => setShowPassword(!showPassword)}
-                      type="button"
-                    >
-                      {showPassword ? <EyeSlashIcon style={{ width: '20px', height: '20px', color: '#6c757d' }} /> : <EyeIcon style={{ width: '20px', height: '20px', color: '#6c757d' }} />}
-                    </Button>
-                  </InputGroup>
-                  {password && (
-                    <div style={{ marginTop: "8px" }}>
-                      <div className="password-strength-bar">
-                        <div className={`password-strength-fill ${passwordStrength.color}`}></div>
-                      </div>
-                      <div className="strength-label" style={{ color: passwordStrength.color === "strength-weak" ? "#dc2626" : passwordStrength.color === "strength-fair" ? "#f59e0b" : passwordStrength.color === "strength-good" ? "#3b82f6" : "#10b981" }}>
-                        Strength: {passwordStrength.label}
-                      </div>
-                    </div>
-                  )}
-                  {formErrors.password && <div className="form-error-enhanced">⚠️ {formErrors.password}</div>}
+              {/* Confirm Password */}
+              <div className="lp-field">
+                <label className="lp-label">Confirm Password</label>
+                <div className={`lp-input-wrap ${formErrors.confirmPassword ? "lp-input-error" : ""}`}>
+                  <span className="lp-input-icon">🔒</span>
+                  <input type={showConfirmPassword ? "text" : "password"} placeholder="Re-enter your password" value={confirmPassword}
+                    onChange={(e) => { setConfirmPassword(e.target.value); setFormErrors({ ...formErrors, confirmPassword: "" }); }}
+                    disabled={loading} className="lp-input" />
+                  <button type="button" className="lp-eye-btn" onClick={() => setShowConfirmPassword(!showConfirmPassword)}>
+                    {showConfirmPassword ? <EyeSlashIcon style={{ width: 18, height: 18 }} /> : <EyeIcon style={{ width: 18, height: 18 }} />}
+                  </button>
                 </div>
+                {formErrors.confirmPassword && <div className="lp-field-error">{formErrors.confirmPassword}</div>}
+              </div>
 
-                {/* Confirm Password Field */}
-                <div className="form-group-enhanced">
-                  <Form.Label className="form-label-enhanced">Confirm Password</Form.Label>
-                  <InputGroup className="input-group-enhanced">
-                    <InputGroup.Text><LockClosedIcon className="text-secondary" style={{ width: '20px', height: '20px' }} /></InputGroup.Text>
-                    <Form.Control
-                      type={showConfirmPassword ? "text" : "password"}
-                      placeholder="Re-enter your password"
-                      value={confirmPassword}
-                      onChange={(e) => {
-                        setConfirmPassword(e.target.value);
-                        if (formErrors.confirmPassword) setFormErrors({ ...formErrors, confirmPassword: "" });
-                      }}
-                      className={`input-enhanced ${formErrors.confirmPassword ? "is-invalid" : ""}`}
-                      disabled={loading}
-                    />
-                    <Button
-                      variant="light"
-                      className="btn-icon-enhanced"
-                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                      type="button"
-                    >
-                      {showConfirmPassword ? <EyeSlashIcon style={{ width: '20px', height: '20px', color: '#6c757d' }} /> : <EyeIcon style={{ width: '20px', height: '20px', color: '#6c757d' }} />}
-                    </Button>
-                  </InputGroup>
-                  {formErrors.confirmPassword && <div className="form-error-enhanced">⚠️ {formErrors.confirmPassword}</div>}
-                </div>
+              {/* Terms */}
+              <div className="lp-field">
+                <label className="lp-check">
+                  <input type="checkbox" checked={agreeTerms} onChange={(e) => setAgreeTerms(e.target.checked)} />
+                  <span>I agree to the <a href="#" className="lp-link">Terms of Service</a> and <a href="#" className="lp-link">Privacy Policy</a></span>
+                </label>
+                {formErrors.terms && <div className="lp-field-error">{formErrors.terms}</div>}
+              </div>
 
-                {/* Terms Agreement */}
-                <div className="form-group-enhanced">
-                  <Form.Check
-                    type="checkbox"
-                    id="agreeTerms"
-                    label={
-                      <>
-                        I agree to the <a href="#" className="link-enhanced">Terms of Service</a> and <a href="#" className="link-enhanced">Privacy Policy</a>
-                      </>
-                    }
-                    checked={agreeTerms}
-                    onChange={(e) => setAgreeTerms(e.target.checked)}
-                    className="form-check-enhanced"
-                  />
-                  {formErrors.terms && <div className="form-error-enhanced">⚠️ {formErrors.terms}</div>}
-                </div>
+              {/* Submit */}
+              <button type="submit" disabled={loading} className="lp-btn-primary">
+                {loading ? (
+                  <span className="lp-spinner">
+                    <svg viewBox="0 0 24 24" fill="none" className="lp-spin" width="18" height="18">
+                      <circle cx="12" cy="12" r="10" stroke="rgba(255,255,255,0.3)" strokeWidth="3" />
+                      <path d="M12 2a10 10 0 0 1 10 10" stroke="white" strokeWidth="3" strokeLinecap="round" />
+                    </svg>
+                    Creating Account...
+                  </span>
+                ) : "Create Account →"}
+              </button>
 
-                {/* Signup Button */}
-                <Button
-                  type="submit"
-                  size="lg"
-                  className="btn-auth-enhanced btn-primary-enhanced w-100 mb-3"
-                  disabled={loading}
-                >
-                  {loading ? (
-                    <>
-                      <Spinner animation="border" size="sm" className="me-2" />
-                      Creating Account...
-                    </>
-                  ) : (
-                    <>
-                      ➜ Create Account
-                    </>
-                  )}
-                </Button>
-
-                {/* Divider */}
-                <div className="divider-enhanced">
-                  <span>Already have an account?</span>
-                </div>
-
-                {/* Sign In Link */}
-                <Button
-                  type="button"
-                  size="lg"
-                  className="btn-auth-enhanced btn-secondary-enhanced w-100"
-                  onClick={() => router.push("/login")}
-                >
-                  Sign In Instead
-                </Button>
-              </Form>
-            </div>
-          </Col>
-        </Row>
-      </Container>
+              <div className="lp-divider"><span>Already have an account?</span></div>
+              <button type="button" className="lp-btn-secondary" onClick={() => router.push("/login")}>
+                Sign In Instead
+              </button>
+            </form>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

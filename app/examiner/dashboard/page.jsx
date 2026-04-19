@@ -1,24 +1,37 @@
 "use client";
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback, useMemo } from "react";
 import {
-  Container, Row, Col, Card, Badge, Button,
-  Alert, Spinner, Modal, Form, Table,
+  Row, Col, Card, Badge, Button,
+  Alert, Spinner, Modal, Form, Container
 } from "react-bootstrap";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import ExaminerLayout from "@/components/layout/ExaminerLayout";
 import { useAuth } from "@/lib/useAuth";
 import { supabase } from "@/lib/supabaseClient";
-import { getClearedStudents, approveFinal, issueDegree } from "@/lib/clearanceService";
+import { getClearedStudents, getIssuedDegrees, approveFinal, issueDegree } from "@/lib/clearanceService";
 
-/* ================================================================
-   EXAMINER DASHBOARD — Full Workflow
-   1. View fully-cleared students (all depts approved, degree not issued)
-   2. Review a student's department-by-department clearance
-   3. Approve the final clearance
-   4. Issue the degree
-================================================================ */
+// ── Config ────────────────────────────────────────────────────────────────────
+const STAT_CARDS = (stats) => [
+  { label: "Pending Review", sub: "New Verifications", value: stats.pendingReview, icon: "⚖️", gradient: "linear-gradient(135deg,#6366F1,#4F46E5)", glow: "rgba(99,102,241,0.22)" },
+  { label: "Ready to Issue", sub: "Examiner Approved", value: stats.readyToIssue, icon: "📋", gradient: "linear-gradient(135deg,#8B5CF6,#7C3AED)", glow: "rgba(139,92,246,0.22)" },
+  { label: "Degrees Issued", sub: "Final Completion",  value: stats.issued,      icon: "🎓", gradient: "linear-gradient(135deg,#059669,#10b981)", glow: "rgba(5,150,105,0.22)" },
+  { label: "Active Pipeline", sub: "Total Capacity",   value: stats.total,       icon: "📊", gradient: "linear-gradient(135deg,#0062FF,#6366F1)", glow: "rgba(0,98,255,0.22)" },
+];
 
-/* ── tiny helpers ────────────────────────────────────────────── */
+const TABS = [
+  { id: "pending", label: "Pending Review", icon: "🕒" },
+  { id: "ready",   label: "Ready to Issue",  icon: "📜" },
+  { id: "issued",  label: "Issued Degrees", icon: "💎" },
+];
+
+const AVATAR_GRADS = [
+  "linear-gradient(135deg,#6366F1,#4F46E5)",
+  "linear-gradient(135deg,#059669,#10B981)",
+  "linear-gradient(135deg,#D97706,#F59E0B)",
+  "linear-gradient(135deg,#7C3AED,#8B5CF6)",
+];
+
+// ── tiny helpers ──────────────────────────────────────────────
 function initials(name = "") {
   return name.split(" ").slice(0, 2).map((w) => w[0]).join("").toUpperCase() || "?";
 }
@@ -33,44 +46,27 @@ function timeAgo(dateStr) {
   return `${Math.floor(hrs / 24)}d ago`;
 }
 
-/* ── stat card component ──────────────────────────────────────── */
-function StatCard({ icon, label, value, gradient, delay = 0 }) {
-  return (
-    <Col lg={3} sm={6}>
-      <div
-        className="ex-stat-card"
-        style={{ background: gradient, animationDelay: `${delay}ms` }}
-      >
-        <div className="ex-stat-icon">{icon}</div>
-        <div className="ex-stat-value">{value}</div>
-        <div className="ex-stat-label">{label}</div>
-        <div className="ex-stat-orb" />
-      </div>
-    </Col>
-  );
-}
-
 /* ================================================================
    MAIN COMPONENT
-================================================================ */
+ ================================================================ */
 export default function ExaminerDashboard() {
   const { profile, loading: authLoading } = useAuth();
 
   /* ── state ─────────────────────────────────────────────── */
   const [loading, setLoading] = useState(true);
-  const [cleared, setCleared] = useState([]);       // fully-cleared students
+  const [activeTab, setActiveTab] = useState("pending");
+  const [clearedStudents, setClearedStudents] = useState([]); 
+  const [issuedDegrees, setIssuedDegrees] = useState([]);     
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [search, setSearch] = useState("");
-  const [actionLoading, setActionLoading] = useState(null); // id of row being acted on
-  const [issuedCount, setIssuedCount] = useState(0);
+  const [actionLoading, setActionLoading] = useState(null);
 
-  // Review modal
+  // Modals
   const [showReview, setShowReview] = useState(false);
   const [reviewStudent, setReviewStudent] = useState(null);
   const [comments, setComments] = useState("");
 
-  // Issue degree modal
   const [showIssue, setShowIssue] = useState(false);
   const [issueStudent, setIssueStudent] = useState(null);
   const [degreeTitle, setDegreeTitle] = useState("");
@@ -82,58 +78,49 @@ export default function ExaminerDashboard() {
       if (!silent) setLoading(true);
       setError("");
 
-      const result = await getClearedStudents();
-      if (!result.success) throw new Error(result.error);
+      const [resCleared, resIssued] = await Promise.all([
+        getClearedStudents(),
+        getIssuedDegrees()
+      ]);
 
-      setCleared(result.data || []);
+      if (!resCleared.success) throw new Error(resCleared.error);
+      if (!resIssued.success) throw new Error(resIssued.error);
 
-      // Also fetch issued count for stats
-      const { count } = await supabase
-        .from("clearance_requests")
-        .select("id", { count: "exact", head: true })
-        .eq("degree_issued", true);
-      setIssuedCount(count || 0);
+      setClearedStudents(resCleared.data || []);
+      setIssuedDegrees(resIssued.data || []);
 
     } catch (e) {
-      console.error("Dashboard fetch:", e);
-      setError(e.message || "Failed to load data");
+      console.error("Examiner Dashboard fetch:", e);
+      setError(e.message || "Failed to load dashboard data");
     } finally {
       setLoading(false);
     }
   }, []);
 
-  /* ── mount + real-time ──────────────────────────────────── */
+  /* ── real-time ──────────────────────────────────── */
   useEffect(() => {
     if (!authLoading && profile) {
       fetchData();
       const ch = supabase
-        .channel("examiner-live")
+        .channel("examiner-live-hub")
         .on("postgres_changes", { event: "*", schema: "public", table: "clearance_requests" }, () => fetchData(true))
-        .on("postgres_changes", { event: "*", schema: "public", table: "clearance_status" }, () => fetchData(true))
+        .on("postgres_changes", { event: "*", schema: "public", table: "degrees" }, () => fetchData(true))
         .subscribe();
       return () => supabase.removeChannel(ch);
     }
   }, [authLoading, profile, fetchData]);
 
   /* ── actions ────────────────────────────────────────────── */
-
-  // Open review modal
-  const handleOpenReview = (student) => {
-    setReviewStudent(student);
-    setComments("");
-    setShowReview(true);
-  };
-
-  // Approve final clearance
   const handleApproveFinal = async () => {
     if (!reviewStudent) return;
     setActionLoading(reviewStudent.id);
     try {
       const result = await approveFinal(reviewStudent.id, comments);
       if (!result.success) throw new Error(result.error);
-      setSuccess(`✅ Clearance approved for ${reviewStudent.studentName}`);
+      setSuccess(`Clearance approved for ${reviewStudent.studentName}`);
       setShowReview(false);
       await fetchData(true);
+      setActiveTab("ready");
     } catch (e) {
       setError(e.message || "Approval failed");
     } finally {
@@ -141,15 +128,6 @@ export default function ExaminerDashboard() {
     }
   };
 
-  // Open issue degree modal
-  const handleOpenIssue = (student) => {
-    setIssueStudent(student);
-    setDegreeTitle("");
-    setIssueComments("");
-    setShowIssue(true);
-  };
-
-  // Issue degree
   const handleIssueDegree = async () => {
     if (!issueStudent) return;
     setActionLoading(issueStudent.id);
@@ -157,9 +135,10 @@ export default function ExaminerDashboard() {
       const title = degreeTitle.trim() || "Official Degree";
       const result = await issueDegree(issueStudent.id, issueStudent.studentId, title, issueComments);
       if (!result.success) throw new Error(result.error);
-      setSuccess(`🎓 Degree issued to ${issueStudent.studentName}!`);
+      setSuccess(`Degree issued to ${issueStudent.studentName}!`);
       setShowIssue(false);
       await fetchData(true);
+      setActiveTab("issued");
     } catch (e) {
       setError(e.message || "Degree issuance failed");
     } finally {
@@ -167,435 +146,330 @@ export default function ExaminerDashboard() {
     }
   };
 
-  /* ── filtered list ──────────────────────────────────────── */
-  const filtered = cleared.filter(
-    (s) =>
+  /* ── data partitioning ──────────────────────────────────── */
+  const stats = useMemo(() => ({
+    pendingReview: clearedStudents.filter(s => !s.isCleared || (s.isCleared && s.overallStatus !== "approved")).length,
+    readyToIssue:  clearedStudents.filter(s => s.isCleared && s.overallStatus === "approved").length,
+    issued:        issuedDegrees.length,
+    total:         clearedStudents.length + issuedDegrees.length,
+  }), [clearedStudents, issuedDegrees]);
+
+  const currentList = useMemo(() => {
+    let list = [];
+    if (activeTab === "pending") {
+      list = clearedStudents.filter(s => !s.isCleared || (s.isCleared && s.overallStatus !== "approved"));
+    } else if (activeTab === "ready") {
+      list = clearedStudents.filter(s => s.isCleared && s.overallStatus === "approved");
+    } else {
+      list = issuedDegrees;
+    }
+    
+    return list.filter(s => 
       s.studentName.toLowerCase().includes(search.toLowerCase()) ||
       s.studentEmail.toLowerCase().includes(search.toLowerCase())
-  );
+    );
+  }, [activeTab, clearedStudents, issuedDegrees, search]);
 
   /* ── render ─────────────────────────────────────────────── */
   return (
     <ProtectedRoute requiredRoles="examiner">
       <ExaminerLayout>
-        {/* ── Scoped Styles ─────────────────────────────── */}
-        <style>{`
-          @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
-
-          .ex-page {
-            font-family: 'Inter', -apple-system, sans-serif;
-            background: linear-gradient(180deg, #f0f2f9 0%, #e8ebf5 100%);
-            min-height: 100vh;
-            padding: 1.5rem;
+        <style jsx global>{`
+          @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
           }
-
-          /* ── Hero ──────────────────────────────────── */
+          @keyframes scaleIn {
+            from { opacity: 0; transform: scale(0.95); }
+            to { opacity: 1; transform: scale(1); }
+          }
+          @keyframes shimmer {
+            0% { background-position: -200% 0; }
+            100% { background-position: 200% 0; }
+          }
+          
           .ex-hero {
             background: linear-gradient(135deg, #1e1b4b 0%, #312e81 40%, #4338ca 100%);
-            border-radius: 28px;
-            padding: 2.5rem 2.8rem;
-            color: #fff;
-            position: relative;
-            overflow: hidden;
-            box-shadow: 0 20px 60px rgba(67,56,202,0.35);
+            border-radius: 24px; padding: 2.5rem; color: #fff;
+            position: relative; overflow: hidden;
+            box-shadow: 0 20px 50px rgba(67,56,202,0.3);
             margin-bottom: 2rem;
-          }
-          .ex-hero::before {
-            content: '';
-            position: absolute; top: -80px; right: -80px;
-            width: 350px; height: 350px;
-            background: radial-gradient(circle, rgba(255,255,255,0.08) 0%, transparent 70%);
-            border-radius: 50%;
+            animation: scaleIn 0.6s cubic-bezier(0.16, 1, 0.3, 1);
           }
           .ex-hero::after {
-            content: '';
-            position: absolute; bottom: -100px; left: 30%;
-            width: 280px; height: 280px;
-            background: radial-gradient(circle, rgba(165,180,252,0.1) 0%, transparent 70%);
-            border-radius: 50%;
+            content: ""; position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.05), transparent);
+            background-size: 200% 100%;
+            animation: shimmer 8s infinite linear;
+            pointer-events: none;
           }
-          .ex-hero-badge {
-            background: rgba(255,255,255,0.14);
-            border-radius: 99px;
-            padding: 0.3rem 1rem;
-            font-size: 0.7rem;
-            font-weight: 700;
-            letter-spacing: 1.5px;
-            text-transform: uppercase;
-            display: inline-block;
-            margin-bottom: 0.8rem;
+          .ex-hero-title { font-weight: 900; font-size: 2.2rem; margin-bottom: 0.5rem; line-height: 1.2; }
+          .ex-hero-sub { opacity: 0.8; font-size: 0.95rem; max-width: 500px; }
+          .ex-badge-pill {
+            background: rgba(255,255,255,0.15); border-radius: 50px;
+            padding: 0.3rem 1rem; font-size: 0.7rem; font-weight: 800;
+            letter-spacing: 1.5px; text-transform: uppercase;
+            display: inline-block; margin-bottom: 0.8rem;
+            backdrop-filter: blur(4px);
           }
-          .ex-hero h1 {
-            font-size: 2.4rem;
-            font-weight: 900;
-            line-height: 1.15;
-            margin-bottom: 0.6rem;
+          
+          .ex-stats-grid { 
+            display: grid; 
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); 
+            gap: 1.5rem; 
+            margin-bottom: 2rem; 
           }
-          .ex-hero h1 span { color: #a5b4fc; }
-          .ex-hero-desc {
-            opacity: 0.72;
-            max-width: 500px;
-            line-height: 1.7;
-            font-size: 0.92rem;
-          }
-          .ex-hero-glass {
-            background: rgba(255,255,255,0.1);
-            backdrop-filter: blur(12px);
-            border-radius: 18px;
-            padding: 1rem 1.5rem;
-            text-align: center;
-          }
-          .ex-hero-glass .num { font-size: 2.2rem; font-weight: 900; }
-          .ex-hero-glass .lbl { font-size: 0.68rem; opacity: 0.7; letter-spacing: 1px; text-transform: uppercase; }
-
-          /* ── Stat Cards ────────────────────────────── */
           .ex-stat-card {
-            border-radius: 22px;
-            padding: 1.5rem 1.7rem;
-            color: #fff;
-            position: relative;
+            background: #fff; border-radius: 20px; padding: 1.5rem;
+            border: 1px solid #f1f5f9; box-shadow: 0 4px 12px rgba(0,0,0,0.03);
+            transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+            animation: fadeInUp 0.6s ease-out backwards;
+          }
+          .ex-stat-card:nth-child(1) { animation-delay: 0.1s; }
+          .ex-stat-card:nth-child(2) { animation-delay: 0.2s; }
+          .ex-stat-card:nth-child(3) { animation-delay: 0.3s; }
+          .ex-stat-card:nth-child(4) { animation-delay: 0.4s; }
+          
+          .ex-stat-card:hover { 
+            transform: translateY(-8px) scale(1.02); 
+            box-shadow: 0 20px 40px rgba(0,0,0,0.08); 
+            border-color: #e2e8f0;
+          }
+          .ex-stat-icon { 
+            width: 48px; height: 48px; border-radius: 14px; 
+            display: flex; align-items: center; justify-content: center; 
+            font-size: 1.4rem; margin-bottom: 1.2rem; color: #fff;
+            transition: transform 0.3s ease;
+          }
+          .ex-stat-card:hover .ex-stat-icon { transform: rotate(10deg); }
+          
+          .ex-stat-val { font-size: 2.4rem; font-weight: 900; color: #0f172a; line-height: 1; }
+          .ex-stat-lbl { font-weight: 700; color: #1e293b; font-size: 0.95rem; margin-top: 0.4rem; }
+          .ex-stat-sub { color: #94a3b8; font-size: 0.8rem; }
+
+          .ex-pipeline { 
+            background: #fff; border-radius: 28px; 
+            border: 1px solid #f1f5f9; 
+            box-shadow: 0 10px 40px rgba(0,0,0,0.04); 
             overflow: hidden;
-            box-shadow: 0 8px 32px rgba(0,0,0,0.18);
-            animation: exFadeUp 0.5s ease both;
-            transition: transform 0.22s;
+            animation: fadeInUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.5s backwards;
           }
-          .ex-stat-card:hover { transform: translateY(-4px); }
-          .ex-stat-icon { font-size: 2rem; margin-bottom: 0.3rem; }
-          .ex-stat-value { font-size: 2.4rem; font-weight: 900; line-height: 1; }
-          .ex-stat-label {
-            font-size: 0.72rem; font-weight: 600;
-            letter-spacing: 1px; opacity: 0.85;
-            text-transform: uppercase; margin-top: 0.25rem;
+          .ex-tabs-header { 
+            padding: 1.5rem 2rem; 
+            border-bottom: 1px solid #f1f5f9; 
+            display: flex; align-items: center; justify-content: space-between; 
+            flex-wrap: wrap; gap: 1.5rem; 
+            background: #ffffff;
           }
-          .ex-stat-orb {
-            position: absolute; bottom: -20px; right: -20px;
-            width: 110px; height: 110px;
-            background: rgba(255,255,255,0.12); border-radius: 50%;
+          .ex-tabs-list { 
+            display: flex; background: #f1f5f9; padding: 6px; 
+            border-radius: 100px; gap: 6px; 
           }
-          @keyframes exFadeUp {
-            from { opacity: 0; transform: translateY(24px); }
-            to   { opacity: 1; transform: translateY(0); }
+          .ex-tab-btn {
+            border: none; padding: 0.6rem 1.4rem; border-radius: 100px; 
+            font-weight: 700; font-size: 0.85rem;
+            background: transparent; color: #64748b; 
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); 
+            display: flex; align-items: center; gap: 0.6rem;
           }
+          .ex-tab-btn:hover { color: #1e293b; background: rgba(0,0,0,0.03); }
+          .ex-tab-btn--active { 
+            background: #4338ca !important; color: #fff !important; 
+            box-shadow: 0 4px 15px rgba(67,56,202,0.3); 
+          }
+          
+          .ex-search-container { position: relative; width: 100%; max-width: 320px; }
+          .ex-search-box { 
+            width: 100%; border: 2px solid #f1f5f9; border-radius: 16px; 
+            padding: 0.75rem 1.2rem 0.75rem 2.8rem; font-size: 0.9rem; 
+            outline: none; transition: all 0.3s; 
+            background: #f8fafc; 
+          }
+          .ex-search-box:focus { border-color: #4338ca; background: #fff; box-shadow: 0 0 0 4px rgba(67,56,202,0.1); }
+          .ex-search-icon { position: absolute; left: 1.1rem; top: 50%; transform: translateY(-50%); color: #94a3b8; pointer-events: none; }
 
-          /* ── Table Card ────────────────────────────── */
-          .ex-table-card {
-            border: none;
-            border-radius: 28px;
-            overflow: hidden;
-            box-shadow: 0 4px 24px rgba(0,0,0,0.06);
+          .ex-table thead th { 
+            background: #f8fafc; color: #64748b; 
+            font-size: 0.75rem; font-weight: 800; 
+            text-transform: uppercase; letter-spacing: 1.2px; 
+            padding: 1.2rem; border-bottom: 1px solid #f1f5f9; 
           }
-          .ex-table-header {
-            padding: 1.4rem 1.8rem;
-            border-bottom: 1px solid #f1f5f9;
-            display: flex; align-items: center; gap: 1rem; flex-wrap: wrap;
-            background: #fff;
+          .ex-table td { padding: 1.4rem 1.2rem; vertical-align: middle; border-bottom: 1px solid #f8fafc; transition: all 0.2s; }
+          .ex-table tr { animation: fadeInUp 0.5s ease-out backwards; }
+          .ex-table tr:hover td { background: #fdfdff; }
+          
+          .ex-avatar { 
+            width: 46px; height: 46px; border-radius: 14px; 
+            display: flex; align-items: center; justify-content: center; 
+            color: #fff; font-weight: 800; font-size: 1.1rem;
+            transition: transform 0.3s ease;
           }
-          .ex-table-header h4 { font-weight: 800; color: #1e1b4b; margin: 0; }
-          .ex-table-header p { color: #94a3b8; font-size: 0.82rem; margin: 0; }
-          .ex-search {
-            border: 2px solid #e2e8f0;
-            border-radius: 14px;
-            padding: 0.6rem 1.1rem;
-            font-size: 0.88rem;
-            outline: none;
-            transition: border 0.2s;
-            width: 100%;
-            max-width: 260px;
-            background: #fafbff;
-            font-family: inherit;
+          .ex-table tr:hover .ex-avatar { transform: scale(1.1); }
+          
+          .ex-btn-modern {
+            border: none; border-radius: 14px; padding: 0.7rem 1.5rem; 
+            font-weight: 700; font-size: 0.85rem; transition: all 0.3s;
+            display: inline-flex; align-items: center; gap: 0.6rem;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.05);
           }
-          .ex-search:focus { border-color: #4338ca; }
+          .ex-btn-modern:hover { transform: translateY(-3px); box-shadow: 0 8px 20px rgba(0,0,0,0.12); }
+          .ex-btn-modern:active { transform: translateY(-1px); }
 
-          /* ── Table ─────────────────────────────────── */
-          .ex-tbl { width: 100%; border-collapse: collapse; }
-          .ex-tbl thead th {
-            background: #f8fafc;
-            font-size: 0.68rem;
-            letter-spacing: 1.2px;
-            text-transform: uppercase;
-            font-weight: 700;
-            color: #64748b;
-            padding: 0.9rem 1.2rem;
-            border: none;
-          }
-          .ex-tbl tbody tr {
-            transition: background 0.15s;
-            border-bottom: 1px solid #f1f5f9;
-          }
-          .ex-tbl tbody tr:hover { background: #f5f3ff; }
-          .ex-tbl td { padding: 1rem 1.2rem; vertical-align: middle; border: none; }
+          .ex-btn-primary { background: linear-gradient(135deg,#4338ca,#6366f1); color:#fff; }
+          .ex-btn-success { background: linear-gradient(135deg,#059669,#10b981); color:#fff; }
 
-          /* ── Avatar ────────────────────────────────── */
-          .ex-av {
-            width: 44px; height: 44px; border-radius: 14px;
-            display: flex; align-items: center; justify-content: center;
-            font-weight: 800; font-size: 0.95rem;
-            background: linear-gradient(135deg, #c7d2fe, #818cf8);
-            color: #312e81; flex-shrink: 0;
+          .ex-modal .modal-content { border-radius: 28px; border: none; box-shadow: 0 30px 60px -12px rgba(0,0,0,0.3); }
+          .ex-modal-head { background: #1e1b4b; color: #fff; padding: 1.8rem; border: none; }
+          .ex-modal-head .btn-close { filter: invert(1) grayscale(100%) brightness(200%); opacity: 0.8; }
+          
+          .dept-pill { 
+            background: #fff; padding: 1rem; border-radius: 18px; 
+            margin-bottom: 0.8rem; display: flex; justify-content: space-between; 
+            align-items: center; border: 1px solid #f1f5f9;
+            transition: all 0.3s;
           }
+          .dept-pill:hover { border-color: #cbd5e1; transform: translateX(5px); }
 
-          /* ── Buttons ───────────────────────────────── */
-          .btn-ex-review {
-            background: linear-gradient(135deg, #4338ca, #6366f1);
-            color: #fff; border: none; border-radius: 11px;
-            padding: 0.4rem 1rem; font-size: 0.8rem; font-weight: 700;
-            cursor: pointer; transition: all 0.18s; font-family: inherit;
-          }
-          .btn-ex-review:hover { opacity: 0.85; transform: scale(1.04); box-shadow: 0 4px 14px rgba(67,56,202,0.3); }
-
-          .btn-ex-issue {
-            background: linear-gradient(135deg, #059669, #10b981);
-            color: #fff; border: none; border-radius: 11px;
-            padding: 0.4rem 1rem; font-size: 0.8rem; font-weight: 700;
-            cursor: pointer; transition: all 0.18s; font-family: inherit;
-          }
-          .btn-ex-issue:hover { opacity: 0.85; transform: scale(1.04); box-shadow: 0 4px 14px rgba(5,150,105,0.3); }
-
-          /* ── Dept pills in modal ───────────────────── */
-          .dept-row {
-            display: flex; align-items: center; justify-content: space-between;
-            padding: 0.7rem 1rem;
-            border-radius: 12px;
-            background: #f8fafc;
-            margin-bottom: 0.5rem;
-            transition: background 0.15s;
-          }
-          .dept-row:hover { background: #f0f4ff; }
-          .dept-name { font-weight: 600; font-size: 0.88rem; color: #1e293b; }
-          .dept-badge-ok {
-            background: #dcfce7; color: #166534;
-            border-radius: 99px; padding: 0.22rem 0.8rem;
-            font-size: 0.72rem; font-weight: 700;
-          }
-
-          /* ── Empty ─────────────────────────────────── */
-          .ex-empty { padding: 4rem 2rem; text-align: center; color: #94a3b8; }
-          .ex-empty .icon { font-size: 4rem; margin-bottom: 1rem; opacity: 0.45; }
-          .ex-empty h5 { font-weight: 700; color: #475569; }
-
-          /* ── Footer ────────────────────────────────── */
-          .ex-table-footer {
-            padding: 0.9rem 1.8rem;
-            border-top: 1px solid #f1f5f9;
-            background: #fafbff;
-            display: flex; justify-content: space-between; align-items: center;
-            font-size: 0.78rem; color: #94a3b8;
-          }
-
-          /* ── Modal ─────────────────────────────────── */
-          .ex-modal .modal-content { border: none; border-radius: 24px; overflow: hidden; }
-          .ex-modal-header {
-            background: linear-gradient(135deg, #1e1b4b, #4338ca);
-            color: #fff;
-            padding: 1.5rem 1.8rem;
-          }
-          .ex-modal-header .btn-close { filter: brightness(0) invert(1); }
-          .ex-modal-body { padding: 1.8rem; }
-          .ex-modal-footer { padding: 1rem 1.8rem; border-top: 1px solid #f1f5f9; }
-
-          .issue-modal .modal-content { border: none; border-radius: 24px; overflow: hidden; }
-          .issue-modal-header {
-            background: linear-gradient(135deg, #064e3b, #059669);
-            color: #fff;
-            padding: 1.5rem 1.8rem;
-          }
-          .issue-modal-header .btn-close { filter: brightness(0) invert(1); }
-
-          /* ── Responsive ────────────────────────────── */
           @media (max-width: 768px) {
-            .ex-hero { padding: 1.5rem; }
-            .ex-hero h1 { font-size: 1.6rem; }
-            .ex-table-header { flex-direction: column; align-items: stretch; }
-            .ex-search { max-width: 100%; }
+            .ex-hero { padding: 1.5rem; text-align: center; }
+            .ex-hero-sub { margin: 0 auto; }
+            .ex-tabs-header { justify-content: center; }
+            .ex-search-container { max-width: 100%; order: -1; }
+            .ex-stat-val { font-size: 2rem; }
           }
         `}</style>
 
-        <div className="ex-page">
-
-          {/* ═══ HERO ═══════════════════════════════════ */}
+        <Container fluid className="py-4">
           <div className="ex-hero">
-            <div style={{ position: "relative", zIndex: 2 }}>
-              <Row className="align-items-center g-4">
-                <Col md={7}>
-                  <div className="ex-hero-badge">🏛️ Examination Authority</div>
-                  <h1>
-                    Degree Issuance<br /><span>Control Center</span>
-                  </h1>
-                  <p className="ex-hero-desc">
-                    Final verification gateway — review fully-cleared students,
-                    approve clearances, and issue official degrees.
-                  </p>
-                </Col>
-                <Col md={5} className="text-md-end">
-                  <div style={{ display: "flex", flexDirection: "column", gap: "0.8rem", alignItems: "flex-end" }}>
-                    <div className="ex-hero-glass">
-                      <div className="num">{cleared.length}</div>
-                      <div className="lbl">Ready for Review</div>
-                    </div>
-                    <Button
-                      onClick={() => fetchData()}
-                      disabled={loading}
-                      style={{
-                        background: "rgba(255,255,255,0.14)", border: "2px solid rgba(255,255,255,0.35)",
-                        color: "#fff", borderRadius: "12px", padding: "0.55rem 1.4rem",
-                        fontWeight: 700, backdropFilter: "blur(8px)",
-                      }}
-                    >
-                      {loading ? <Spinner size="sm" /> : "↻ Refresh"}
-                    </Button>
-                  </div>
-                </Col>
-              </Row>
+            <div style={{ position: "absolute", top: -50, right: -50, width: 200, height: 200, borderRadius: "50%", background: "rgba(255,255,255,0.06)" }} />
+            <div style={{ position: "relative", zIndex: 1 }}>
+              <span className="ex-badge-pill">🏛️ Examination Authority</span>
+              <h1 className="ex-hero-title">Degree Issuance <br />Control Center</h1>
+              <p className="ex-hero-sub">Final gateway for academic verification. Review clearances, approve students, and manage official degree records.</p>
             </div>
+            <button className="ex-btn-modern ex-btn-primary" 
+                    onClick={() => fetchData()} disabled={loading}
+                    style={{ position: "absolute", top: "1.5rem", right: "1.5rem", background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.2)" }}>
+              {loading ? <Spinner size="sm" /> : "↺"} Refresh
+            </button>
           </div>
 
-          {/* ═══ ALERTS ═════════════════════════════════ */}
-          {error && (
-            <Alert variant="danger" className="border-0 shadow-sm mb-3" dismissible onClose={() => setError("")}
-              style={{ borderRadius: "16px" }}>
-              ⚠️ {error}
-            </Alert>
-          )}
-          {success && (
-            <Alert variant="success" className="border-0 shadow-sm mb-3" dismissible onClose={() => setSuccess("")}
-              style={{ borderRadius: "16px" }}>
-              {success}
-            </Alert>
-          )}
+          {error && <Alert variant="danger" className="rounded-4 border-0 shadow-sm mb-4" dismissible onClose={() => setError("")}>⚠️ {error}</Alert>}
+          {success && <Alert variant="success" className="rounded-4 border-0 shadow-sm mb-4" dismissible onClose={() => setSuccess("")}>✅ {success}</Alert>}
 
-          {/* ═══ STAT CARDS ═════════════════════════════ */}
-          <Row className="g-4 mb-4">
-            <StatCard icon="⚖️" label="Ready for Review" value={cleared.length}
-              gradient="linear-gradient(135deg,#4338ca,#7c3aed)" delay={0} />
-            <StatCard icon="🎓" label="Degrees Issued" value={issuedCount}
-              gradient="linear-gradient(135deg,#059669,#10b981)" delay={80} />
-            <StatCard icon="📑" label="Pending Approval" value={cleared.filter(s => s.overallStatus !== "approved").length}
-              gradient="linear-gradient(135deg,#d97706,#f59e0b)" delay={160} />
-            <StatCard icon="✅" label="Pre-Approved" value={cleared.filter(s => s.overallStatus === "approved").length}
-              gradient="linear-gradient(135deg,#0891b2,#06b6d4)" delay={240} />
-          </Row>
-
-          {/* ═══ CLEARED STUDENTS TABLE ══════════════════ */}
-          <Card className="ex-table-card">
-            <div className="ex-table-header">
-              <div style={{ flex: 1, minWidth: "200px" }}>
-                <h4>🎓 Fully Cleared Students</h4>
-                <p>Students who have been approved by all departments — awaiting final review & degree issuance</p>
+          <div className="ex-stats-grid">
+            {STAT_CARDS(stats).map((s, i) => (
+              <div key={i} className="ex-stat-card">
+                <div className="ex-stat-icon" style={{ background: s.gradient, boxShadow: `0 8px 16px ${s.glow}` }}>{s.icon}</div>
+                <div className="ex-stat-val">{s.value}</div>
+                <div className="ex-stat-lbl">{s.label}</div>
+                <div className="ex-stat-sub">{s.sub}</div>
               </div>
-              <input
-                className="ex-search"
-                placeholder="🔍 Search student or email…"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-              />
+            ))}
+          </div>
+
+          <div className="ex-pipeline">
+            <div className="ex-tabs-header">
+              <div className="ex-tabs-list">
+                {TABS.map(t => (
+                  <button key={t.id} onClick={() => setActiveTab(t.id)} className={`ex-tab-btn ${activeTab === t.id ? "ex-tab-btn--active" : ""}`}>
+                    {t.icon} {t.label}
+                  </button>
+                ))}
+              </div>
+              <div className="ex-search-container">
+                <span className="ex-search-icon">🔍</span>
+                <input className="ex-search-box" placeholder="Search student or email..." value={search} onChange={(e) => setSearch(e.target.value)} />
+              </div>
             </div>
 
-            {loading && cleared.length === 0 ? (
+            {loading && currentList.length === 0 ? (
               <div className="text-center py-5">
                 <Spinner animation="grow" variant="primary" />
-                <p className="mt-3 text-muted fw-bold" style={{ fontSize: "0.85rem" }}>
-                  Loading cleared students…
-                </p>
+                <p className="mt-3 text-muted fw-bold">Synchronizing records...</p>
               </div>
-            ) : filtered.length === 0 ? (
-              <div className="ex-empty">
-                <div className="icon">📭</div>
-                <h5>No Fully Cleared Students</h5>
-                <p style={{ fontSize: "0.85rem" }}>
-                  {search
-                    ? "No students match your search."
-                    : "There are currently no students with all departments approved."}
-                </p>
+            ) : currentList.length === 0 ? (
+              <div className="text-center py-5 opacity-50">
+                <div style={{ fontSize: "3rem" }}>🗂️</div>
+                <h5 className="fw-bold mt-2">Queue Empty</h5>
+                <p className="small">No students match the current criteria.</p>
               </div>
             ) : (
-              <div style={{ overflowX: "auto" }}>
-                <table className="ex-tbl">
+              <div className="table-responsive">
+                <table className="ex-table w-100">
                   <thead>
                     <tr>
-                      <th style={{ paddingLeft: "1.5rem" }}>Student</th>
-                      <th>Departments</th>
-                      <th>Submitted</th>
-                      <th style={{ textAlign: "center" }}>Status</th>
-                      <th style={{ textAlign: "right", paddingRight: "1.5rem" }}>Actions</th>
+                      <th style={{ paddingLeft: "1.8rem" }}>Student Profile</th>
+                      <th>Work Status</th>
+                      <th>Last Sync</th>
+                      <th className="text-end" style={{ paddingRight: "1.8rem" }}>Action</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {filtered.map((s) => {
-                      const isApproved = s.overallStatus === "approved";
-                      const isActing = actionLoading === s.id;
+                    {currentList.map((s, idx) => {
+                      const grad = AVATAR_GRADS[idx % AVATAR_GRADS.length];
                       return (
-                        <tr key={s.id}>
-                          {/* Student info */}
-                          <td style={{ paddingLeft: "1.5rem" }}>
-                            <div style={{ display: "flex", alignItems: "center", gap: "0.85rem" }}>
-                              <div className="ex-av">{initials(s.studentName)}</div>
+                        <tr key={s.id} style={{ animationDelay: `${idx * 0.05}s` }}>
+                          <td style={{ paddingLeft: "1.8rem" }}>
+                            <div className="d-flex align-items-center gap-3">
+                              <div className="ex-avatar" style={{ background: grad, boxShadow: "0 4px 10px rgba(0,0,0,0.1)" }}>{initials(s.studentName)}</div>
                               <div>
-                                <div style={{ fontWeight: 700, fontSize: "0.92rem", color: "#1e293b" }}>
-                                  {s.studentName}
-                                </div>
-                                <div style={{ fontSize: "0.76rem", color: "#94a3b8" }}>
-                                  {s.studentEmail}
-                                </div>
+                                <div style={{ fontWeight: 800, color: "#1e293b", fontSize: "0.95rem" }}>{s.studentName}</div>
+                                <div style={{ color: "#94a3b8", fontSize: "0.75rem" }}>{s.studentEmail}</div>
                               </div>
                             </div>
                           </td>
-
-                          {/* Department count */}
                           <td>
-                            <Badge pill style={{
-                              background: "#dcfce7", color: "#166534",
-                              fontSize: "0.78rem", fontWeight: 700,
-                            }}>
-                              ✅ {s.totalDepts}/{s.totalDepts} Cleared
-                            </Badge>
-                          </td>
-
-                          {/* Submitted date */}
-                          <td style={{ fontSize: "0.84rem", color: "#64748b" }}>
-                            {s.submittedAt ? new Date(s.submittedAt).toLocaleDateString("en-PK") : "—"}
-                            <div style={{ fontSize: "0.7rem", color: "#a1a1aa" }}>{timeAgo(s.submittedAt)}</div>
-                          </td>
-
-                          {/* Status */}
-                          <td style={{ textAlign: "center" }}>
-                            {isApproved ? (
-                              <Badge pill style={{
-                                background: "#dbeafe", color: "#1e40af",
-                                fontSize: "0.76rem", fontWeight: 700, padding: "0.3rem 0.9rem",
-                              }}>
-                                ✅ Approved — Issue Degree
+                            {activeTab === "issued" ? (
+                              <Badge bg="" className="text-success border border-success border-opacity-25 rounded-pill px-3 py-2" style={{ background: "rgba(16,185,129,0.08)", fontSize: "0.7rem", fontWeight: 800 }}>
+                                💎 {s.degreeTitle?.toUpperCase() || "DEGREE ISSUED"}
                               </Badge>
                             ) : (
-                              <Badge pill style={{
-                                background: "#fef3c7", color: "#92400e",
-                                fontSize: "0.76rem", fontWeight: 700, padding: "0.3rem 0.9rem",
-                              }}>
-                                ⏳ Awaiting Review
-                              </Badge>
+                              <div className="d-flex flex-column gap-1">
+                                <div className="d-flex align-items-center gap-2">
+                                  <Badge bg="" className={`text-${s.isDisputed ? "danger" : s.overallStatus === "approved" ? "primary" : s.isCleared ? "success" : "warning"} border border-${s.isDisputed ? "danger" : s.overallStatus === "approved" ? "primary" : s.isCleared ? "success" : "warning"} border-opacity-25 rounded-pill px-2 py-1`} 
+                                         style={{ 
+                                           background: s.isDisputed ? "rgba(239,68,68,0.08)" : s.overallStatus === "approved" ? "rgba(67,56,202,0.08)" : s.isCleared ? "rgba(16,185,129,0.08)" : "rgba(217,119,6,0.08)", 
+                                           fontSize: "0.65rem", fontWeight: 800 
+                                         }}>
+                                    {s.isDisputed ? "🚩 DISPUTED" : s.overallStatus === "approved" ? "⚖️ VETTED" : s.isCleared ? "✓ DEPTS CLEARED" : "⏳ IN PROGRESS"}
+                                  </Badge>
+
+                                  <span style={{ fontSize: "0.75rem", fontWeight: 700, color: "#64748b" }}>
+                                    {s.clearedCount}/{s.totalDepts}
+                                  </span>
+                                </div>
+                                <div className="progress" style={{ height: "4px", width: "100px", borderRadius: "10px", background: "#f1f5f9" }}>
+                                  <div className="progress-bar" role="progressbar" 
+                                       style={{ 
+                                         width: `${(s.clearedCount / s.totalDepts) * 100}%`,
+                                         background: s.isDisputed ? "#ef4444" : "linear-gradient(90deg, #4338ca, #6366f1)",
+                                         borderRadius: "10px"
+                                       }} 
+                                  />
+                                </div>
+                              </div>
                             )}
                           </td>
 
-                          {/* Action Buttons */}
-                          <td style={{ textAlign: "right", paddingRight: "1.5rem" }}>
-                            <div style={{ display: "flex", gap: "0.5rem", justifyContent: "flex-end" }}>
-                              {!isApproved ? (
-                                <button
-                                  className="btn-ex-review"
-                                  onClick={() => handleOpenReview(s)}
-                                  disabled={isActing}
-                                >
-                                  {isActing ? <Spinner size="sm" /> : "📋 Review"}
-                                </button>
-                              ) : null}
-
-                              <button
-                                className="btn-ex-issue"
-                                onClick={() => handleOpenIssue(s)}
-                                disabled={isActing}
-                              >
-                                {isActing ? <Spinner size="sm" /> : "🎓 Issue Degree"}
+                          <td>
+                            <div style={{ fontWeight: 600, fontSize: "0.85rem", color: "#64748b" }}>{new Date(s.issuedAt || s.submittedAt).toLocaleDateString()}</div>
+                            <div style={{ fontSize: "0.7rem", color: "#cbd5e1" }}>{timeAgo(s.issuedAt || s.submittedAt)}</div>
+                          </td>
+                          <td className="text-end" style={{ paddingRight: "1.8rem" }}>
+                            {activeTab === "pending" && (
+                              <button className="ex-btn-modern ex-btn-primary" onClick={() => { setReviewStudent(s); setComments(""); setShowReview(true); }}>
+                                Review & Approve
                               </button>
-                            </div>
+                            )}
+                            {activeTab === "ready" && (
+                              <button className="ex-btn-modern ex-btn-success" onClick={() => { setIssueStudent(s); setDegreeTitle(""); setIssueComments(""); setShowIssue(true); }}>
+                                Issue Degree
+                              </button>
+                            )}
+                            {activeTab === "issued" && (
+                              <Badge bg="light" className="text-muted rounded-pill px-3 py-2 border">COMPLETED</Badge>
+                            )}
                           </td>
                         </tr>
                       );
@@ -604,180 +478,77 @@ export default function ExaminerDashboard() {
                 </table>
               </div>
             )}
-
-            {filtered.length > 0 && (
-              <div className="ex-table-footer">
-                <span>
-                  Showing <strong style={{ color: "#475569" }}>{filtered.length}</strong> of {cleared.length} cleared students
-                </span>
-                <span style={{ color: "#818cf8", fontWeight: 600 }}>
-                  ● Real-time sync active
-                </span>
-              </div>
-            )}
-          </Card>
-        </div>
+          </div>
+        </Container>
 
         {/* ═══ REVIEW MODAL ═════════════════════════════ */}
-        <Modal show={showReview} onHide={() => setShowReview(false)} size="lg" centered className="ex-modal">
-          <Modal.Header closeButton className="ex-modal-header">
-            <Modal.Title style={{ fontWeight: 800, fontSize: "1.2rem" }}>
-              📋 Final Review — {reviewStudent?.studentName}
-            </Modal.Title>
-          </Modal.Header>
-          <Modal.Body className="ex-modal-body">
-            {reviewStudent && (
-              <>
-                {/* Student info card */}
-                <div style={{
-                  background: "linear-gradient(135deg, #ede9fe, #f0f4ff)",
-                  borderRadius: "16px", padding: "1.2rem 1.5rem",
-                  marginBottom: "1.5rem",
-                  display: "flex", alignItems: "center", gap: "1rem",
-                }}>
-                  <div className="ex-av" style={{ width: 52, height: 52, fontSize: "1.1rem" }}>
-                    {initials(reviewStudent.studentName)}
-                  </div>
-                  <div>
-                    <div style={{ fontWeight: 800, fontSize: "1rem", color: "#1e1b4b" }}>
-                      {reviewStudent.studentName}
-                    </div>
-                    <div style={{ fontSize: "0.82rem", color: "#6366f1" }}>
-                      {reviewStudent.studentEmail}
-                    </div>
-                    <div style={{ fontSize: "0.75rem", color: "#94a3b8", marginTop: "0.15rem" }}>
-                      Submitted: {new Date(reviewStudent.submittedAt).toLocaleString("en-PK")}
-                    </div>
+        <Modal show={showReview} onHide={() => setShowReview(false)} centered size="lg" className="ex-modal">
+          <div className="ex-modal-head">
+            <Modal.Header closeButton>
+              <Modal.Title className="ex-modal-title">📋 Final Verification Process</Modal.Title>
+            </Modal.Header>
+          </div>
+          <Modal.Body className="p-4">
+            <div className="p-3 rounded-4 mb-4" style={{ background: "#f8fafc", border: "1px solid #e2e8f0" }}>
+              <div className="d-flex align-items-center gap-3">
+                <div className="ex-avatar" style={{ background: "#312e81", width: 50, height: 50 }}>{reviewStudent ? initials(reviewStudent.studentName) : "?"}</div>
+                <div>
+                  <h5 className="fw-bold m-0">{reviewStudent?.studentName}</h5>
+                  <p className="text-muted small m-0">{reviewStudent?.studentEmail}</p>
+                </div>
+              </div>
+            </div>
+            
+            <h6 className="fw-bold mb-3 small text-uppercase letter-spacing-1">Departmental Clearances</h6>
+            <div className="mb-4">
+              {reviewStudent?.departmentStatuses?.map((d, i) => (
+                <div key={i} className="dept-pill">
+                  <span>{d.deptName}</span>
+                  <div className="d-flex align-items-center gap-2">
+                    {d.remarks && <span className="small text-muted">{d.remarks}</span>}
+                    <span className="ok" style={{ background: "#dcfce7", color: "#15803d", padding: "0.2rem 0.6rem", borderRadius: "50px", fontSize: "0.65rem", fontWeight: 800 }}>APPROVED</span>
                   </div>
                 </div>
+              ))}
+            </div>
 
-                {/* Department-by-department clearances */}
-                <h6 style={{ fontWeight: 700, marginBottom: "0.75rem", color: "#1e1b4b" }}>
-                  Department Clearance Status
-                </h6>
-                <div style={{ marginBottom: "1.5rem" }}>
-                  {reviewStudent.departmentStatuses.map((d, i) => (
-                    <div className="dept-row" key={i}>
-                      <div className="dept-name">{d.deptName}</div>
-                      <div style={{ display: "flex", alignItems: "center", gap: "0.6rem" }}>
-                        {d.remarks && (
-                          <span style={{ fontSize: "0.72rem", color: "#64748b", maxWidth: "200px", textAlign: "right" }}>
-                            {d.remarks}
-                          </span>
-                        )}
-                        <span className="dept-badge-ok">✅ Approved</span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-
-                {/* Examiner comments */}
-                <Form.Group className="mb-3">
-                  <Form.Label style={{ fontWeight: 700, fontSize: "0.88rem", color: "#1e1b4b" }}>
-                    Examiner Remarks (optional)
-                  </Form.Label>
-                  <Form.Control
-                    as="textarea"
-                    rows={3}
-                    value={comments}
-                    onChange={(e) => setComments(e.target.value)}
-                    placeholder="Add any notes before approving the final clearance…"
-                    style={{ borderRadius: "12px", border: "2px solid #e2e8f0" }}
-                  />
-                </Form.Group>
-              </>
-            )}
+            <Form.Group>
+              <Form.Label className="fw-bold small">Examiner Remarks (Optional)</Form.Label>
+              <Form.Control as="textarea" rows={3} className="rounded-3" value={comments} onChange={(e) => setComments(e.target.value)} placeholder="Final notes before approval..." />
+            </Form.Group>
           </Modal.Body>
-          <Modal.Footer className="ex-modal-footer">
-            <Button variant="light" onClick={() => setShowReview(false)} style={{ borderRadius: "10px" }}>
-              Cancel
-            </Button>
-            <Button
-              onClick={handleApproveFinal}
-              disabled={actionLoading === reviewStudent?.id}
-              style={{
-                background: "linear-gradient(135deg, #4338ca, #6366f1)",
-                border: "none", borderRadius: "10px", fontWeight: 700,
-                padding: "0.5rem 1.5rem",
-              }}
-            >
-              {actionLoading === reviewStudent?.id ? (
-                <><Spinner size="sm" className="me-2" /> Approving…</>
-              ) : (
-                "✅ Approve Final Clearance"
-              )}
+          <Modal.Footer className="border-0 p-4 pt-0">
+            <Button variant="light" className="rounded-3 fw-bold" onClick={() => setShowReview(false)}>Cancel</Button>
+            <Button className="ex-btn-modern ex-btn-primary" onClick={handleApproveFinal} disabled={actionLoading}>
+              {actionLoading ? <Spinner size="sm" /> : "Approve Final Clearance"}
             </Button>
           </Modal.Footer>
         </Modal>
 
         {/* ═══ ISSUE DEGREE MODAL ═══════════════════════ */}
-        <Modal show={showIssue} onHide={() => setShowIssue(false)} centered className="issue-modal">
-          <Modal.Header closeButton className="issue-modal-header">
-            <Modal.Title style={{ fontWeight: 800, fontSize: "1.15rem" }}>
-              🎓 Issue Degree — {issueStudent?.studentName}
-            </Modal.Title>
-          </Modal.Header>
-          <Modal.Body style={{ padding: "1.8rem" }}>
-            {issueStudent && (
-              <>
-                <Alert variant="info" style={{ borderRadius: "12px", border: "none", background: "#eff6ff" }}>
-                  <strong>Student:</strong> {issueStudent.studentName}<br />
-                  <strong>Email:</strong> {issueStudent.studentEmail}<br />
-                  <strong>Departments Cleared:</strong> {issueStudent.totalDepts}/{issueStudent.totalDepts}
-                </Alert>
-
-                <Form.Group className="mb-3">
-                  <Form.Label style={{ fontWeight: 700, fontSize: "0.88rem" }}>
-                    Degree Title
-                  </Form.Label>
-                  <Form.Control
-                    type="text"
-                    value={degreeTitle}
-                    onChange={(e) => setDegreeTitle(e.target.value)}
-                    placeholder="e.g. Bachelor of Science in Computer Science"
-                    style={{ borderRadius: "12px", border: "2px solid #e2e8f0" }}
-                  />
-                </Form.Group>
-
-                <Form.Group className="mb-3">
-                  <Form.Label style={{ fontWeight: 700, fontSize: "0.88rem" }}>
-                    Final Remarks (optional)
-                  </Form.Label>
-                  <Form.Control
-                    as="textarea"
-                    rows={3}
-                    value={issueComments}
-                    onChange={(e) => setIssueComments(e.target.value)}
-                    placeholder="Any final notes for this degree issuance…"
-                    style={{ borderRadius: "12px", border: "2px solid #e2e8f0" }}
-                  />
-                </Form.Group>
-
-                <Alert variant="warning" style={{ borderRadius: "12px", border: "none", fontSize: "0.82rem" }}>
-                  ⚠️ <strong>This action is final.</strong> Once a degree is issued, the student&apos;s clearance will be
-                  marked as completed and a degree record will be permanently created.
-                </Alert>
-              </>
-            )}
+        <Modal show={showIssue} onHide={() => setShowIssue(false)} centered className="ex-modal">
+          <div className="ex-modal-head" style={{ background: "#064e3b" }}>
+            <Modal.Header closeButton>
+              <Modal.Title className="ex-modal-title">🎓 Degree Issuance Confirmation</Modal.Title>
+            </Modal.Header>
+          </div>
+          <Modal.Body className="p-4">
+            <Alert variant="success" className="rounded-4 border-0 opacity-75 small mb-4">
+              This student has been verified. You are now issuing the final degree record.
+            </Alert>
+            <Form.Group className="mb-4">
+              <Form.Label className="fw-bold small">Degree Official Title</Form.Label>
+              <Form.Control type="text" className="rounded-3" value={degreeTitle} onChange={(e) => setDegreeTitle(e.target.value)} placeholder="e.g. BS Computer Science" />
+            </Form.Group>
+            <Form.Group>
+              <Form.Label className="fw-bold small">Final Remarks</Form.Label>
+              <Form.Control as="textarea" rows={2} className="rounded-3" value={issueComments} onChange={(e) => setIssueComments(e.target.value)} placeholder="Closing notes..." />
+            </Form.Group>
           </Modal.Body>
-          <Modal.Footer style={{ padding: "1rem 1.8rem", borderTop: "1px solid #f1f5f9" }}>
-            <Button variant="light" onClick={() => setShowIssue(false)} style={{ borderRadius: "10px" }}>
-              Cancel
-            </Button>
-            <Button
-              onClick={handleIssueDegree}
-              disabled={actionLoading === issueStudent?.id}
-              style={{
-                background: "linear-gradient(135deg, #059669, #10b981)",
-                border: "none", borderRadius: "10px", fontWeight: 700,
-                padding: "0.5rem 1.5rem",
-              }}
-            >
-              {actionLoading === issueStudent?.id ? (
-                <><Spinner size="sm" className="me-2" /> Issuing…</>
-              ) : (
-                "🎓 Confirm & Issue Degree"
-              )}
+          <Modal.Footer className="border-0 p-4 pt-0">
+            <Button variant="light" className="rounded-3 fw-bold" onClick={() => setShowIssue(false)}>Cancel</Button>
+            <Button className="ex-btn-modern ex-btn-success" onClick={handleIssueDegree} disabled={actionLoading}>
+              {actionLoading ? <Spinner size="sm" /> : "Confirm & Issue Degree"}
             </Button>
           </Modal.Footer>
         </Modal>

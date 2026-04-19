@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { logoutUser } from "@/lib/authService";
 import { useAuth } from "@/lib/useAuth";
 import AIChatbot from "@/components/chatbot/AIChatbot";
+import ThemeToggle from "@/components/layout/ThemeToggle";
 import "../../styles/dashboard-premium.css";
 
 export default function AdminLayout({ children }) {
@@ -46,6 +47,9 @@ export default function AdminLayout({ children }) {
               >
                 Identity
               </Nav.Link>
+              <div className="d-flex align-items-center ms-3 me-2">
+                <ThemeToggle />
+              </div>
               <Button 
                 className="btn-premium btn-premium-primary ms-lg-3"
                 size="sm"

@@ -1,10 +1,10 @@
 "use client";
 import React, { useEffect, useState } from "react";
-import { Container, Row, Col, Form, Button, Alert, Spinner, InputGroup } from "react-bootstrap";
 import { useRouter } from "next/navigation";
 import { loginUser, validateEmail } from "@/lib/authService";
 import { getDashboardPathForRole } from "@/lib/roleRouting";
-import { EyeIcon, EyeSlashIcon, EnvelopeIcon, LockClosedIcon } from "@heroicons/react/24/outline";
+import { EyeIcon, EyeSlashIcon } from "@heroicons/react/24/outline";
+import Link from "next/link";
 import "../../styles/auth-enhanced.css";
 
 export default function LoginPage() {
@@ -18,7 +18,6 @@ export default function LoginPage() {
   const [rememberMe, setRememberMe] = useState(false);
   const [formErrors, setFormErrors] = useState({});
 
-  // Load remembered email
   useEffect(() => {
     const remembered = localStorage.getItem("rememberedEmail");
     if (remembered) {
@@ -29,19 +28,10 @@ export default function LoginPage() {
 
   const validateForm = () => {
     const errors = {};
-
-    if (!email.trim()) {
-      errors.email = "Email is required";
-    } else if (!validateEmail(email)) {
-      errors.email = "Invalid email address";
-    }
-
-    if (!password) {
-      errors.password = "Password is required";
-    } else if (password.length < 6) {
-      errors.password = "Password is too short";
-    }
-
+    if (!email.trim()) errors.email = "Email is required";
+    else if (!validateEmail(email)) errors.email = "Invalid email address";
+    if (!password) errors.password = "Password is required";
+    else if (password.length < 6) errors.password = "Password is too short";
     setFormErrors(errors);
     return Object.keys(errors).length === 0;
   };
@@ -50,7 +40,6 @@ export default function LoginPage() {
     e.preventDefault();
     setError("");
     setSuccess("");
-
     if (!validateForm()) return;
 
     setLoading(true);
@@ -58,204 +47,171 @@ export default function LoginPage() {
 
     try {
       const result = await loginUser(email, password);
-
       if (result.success) {
-        setSuccess("✓ Login successful! Redirecting...");
-
-        if (rememberMe) {
-          localStorage.setItem("rememberedEmail", email);
-        } else {
-          localStorage.removeItem("rememberedEmail");
-        }
-
+        setSuccess("Login successful! Redirecting...");
+        if (rememberMe) localStorage.setItem("rememberedEmail", email);
+        else localStorage.removeItem("rememberedEmail");
         navigating = true;
-        
-        // Use the role from Auth metadata for instantaneous routing
         const userRole = result.user?.user_metadata?.role;
-        
-        setTimeout(() => {
-          router.replace(getDashboardPathForRole(userRole));
-        }, 800);
-        return;
+        setTimeout(() => { router.replace(getDashboardPathForRole(userRole)); }, 800);
       } else {
-        let errorMsg = result.error || "Login failed. Please try again.";
-
-        if (errorMsg.includes("rate limit") || errorMsg.includes("too many requests")) {
-          errorMsg = "⏱️ Too many login attempts. Please wait a few minutes before trying again.";
-        } else if (errorMsg.includes("Invalid login credentials")) {
-          errorMsg = "❌ Invalid email or password. Please check and try again.";
-        } else if (errorMsg.includes("Email not confirmed")) {
-          errorMsg = "📧 Please confirm your email before logging in.";
-        }
-
-        setError(errorMsg);
+        let msg = result.error || "Login failed. Please try again.";
+        if (msg.includes("rate limit") || msg.includes("too many")) msg = "Too many attempts. Please wait a few minutes.";
+        else if (msg.includes("Invalid login credentials")) msg = "Invalid email or password. Please check and try again.";
+        else if (msg.includes("Email not confirmed")) msg = "Please confirm your email before logging in.";
+        setError(msg);
       }
     } catch (err) {
-      let errorMsg = "An unexpected error occurred. Please try again.";
-
-      if (err.message.includes("rate limit")) {
-        errorMsg = "⏱️ Too many login attempts. Please wait a few minutes before trying again.";
-      }
-
-      setError(errorMsg);
-      console.warn("Login warning:", err?.message || err);
+      setError("An unexpected error occurred. Please try again.");
     } finally {
       if (!navigating) setLoading(false);
     }
   };
 
   return (
-    <div className="auth-bg-enhanced d-flex align-items-center min-vh-100">
-      <Container className="auth-content-enhanced">
-        <Row className="align-items-center min-vh-100 g-5">
-          {/* Left Side - Illustration */}
-          <Col lg={6} className="auth-illustration-enhanced d-none d-lg-flex">
-            <div>
-              <h1 className="fw-bold display-3">Institutional Login</h1>
-              <p className="lead">Authorized access only for students and departmental staff members.</p>
+    <div className="lp-root">
+      {/* Animated blobs */}
+      <div className="lp-blob lp-blob-1" />
+      <div className="lp-blob lp-blob-2" />
 
-              <ul className="feature-list mt-4">
-                <li>Authenticated Database Synchronization</li>
-                <li>Secure Role-Based Communication</li>
-                <li>Official Degree Verification Portal</li>
-              </ul>
+      {/* Split layout */}
+      <div className="lp-split">
+        {/* LEFT PANEL */}
+        <div className="lp-left">
+          <div className="lp-left-inner">
+            <Link href="/" className="lp-back">← Back to home</Link>
+            <div className="lp-left-badge">🎓 Official Academic Portal</div>
+            <h1 className="lp-left-title">
+              Secure &<br />
+              <span className="lp-left-gradient">Smart Access</span>
+            </h1>
+            <p className="lp-left-desc">
+              One platform for clearance, degree issuance, and academic lifecycle management.
+            </p>
+            <div className="lp-features">
+              <div className="lp-feature-item">
+                <div className="lp-feature-icon">⚡</div>
+                <div>
+                  <div className="lp-feature-title">Instant Clearance</div>
+                  <div className="lp-feature-sub">Real-time multi-department status</div>
+                </div>
+              </div>
+              <div className="lp-feature-item">
+                <div className="lp-feature-icon">🔒</div>
+                <div>
+                  <div className="lp-feature-title">Bank-Grade Security</div>
+                  <div className="lp-feature-sub">Encrypted & role-based access</div>
+                </div>
+              </div>
+              <div className="lp-feature-item">
+                <div className="lp-feature-icon">📄</div>
+                <div>
+                  <div className="lp-feature-title">Digital Degrees</div>
+                  <div className="lp-feature-sub">Instantly verifiable certificates</div>
+                </div>
+              </div>
             </div>
-          </Col>
+          </div>
+        </div>
 
-          {/* Right Side - Login Form */}
-          <Col lg={6} md={10} sm={12} className="mx-auto">
-            <div className="auth-card-enhanced p-5 shadow-lg">
-              {/* Header */}
-              <div className="auth-header-enhanced mb-4">
-                <div className="display-1 mb-3">🛡️</div>
-                <h2 className="fw-bold">Secure Access</h2>
-                <p className="text-muted">Smart Student Clearance & Degree Issuance</p>
+        {/* RIGHT PANEL - Form */}
+        <div className="lp-right">
+          <div className="lp-card">
+            {/* Card top accent */}
+            <div className="lp-card-accent" />
+
+            <div className="lp-card-header">
+              <div className="lp-card-icon">🛡️</div>
+              <h2 className="lp-card-title">Welcome back</h2>
+              <p className="lp-card-sub">Sign in to your institutional account</p>
+            </div>
+
+            {/* Alerts */}
+            {error && (
+              <div className="lp-alert lp-alert-error">
+                <span>⚠️</span> {error}
+                <button className="lp-alert-close" onClick={() => setError("")}>×</button>
+              </div>
+            )}
+            {success && (
+              <div className="lp-alert lp-alert-success">
+                <span>✓</span> {success}
+              </div>
+            )}
+
+            <form onSubmit={handleLogin} className="lp-form">
+              {/* Email */}
+              <div className="lp-field">
+                <label className="lp-label">Email Address</label>
+                <div className={`lp-input-wrap ${formErrors.email ? "lp-input-error" : ""}`}>
+                  <span className="lp-input-icon">✉️</span>
+                  <input
+                    type="email"
+                    placeholder="you@university.edu"
+                    value={email}
+                    onChange={(e) => { setEmail(e.target.value); setFormErrors({ ...formErrors, email: "" }); }}
+                    disabled={loading}
+                    className="lp-input"
+                  />
+                </div>
+                {formErrors.email && <div className="lp-field-error">{formErrors.email}</div>}
               </div>
 
-              {/* Error Alert */}
-              {error && (
-                <Alert className="alert-enhanced alert-danger-enhanced mb-4" onClose={() => setError("")} dismissible>
-                  <span>⚠️</span> {error}
-                </Alert>
-              )}
-
-              {/* Success Alert */}
-              {success && (
-                <Alert className="alert-enhanced alert-success-enhanced mb-4">
-                  <span>✓</span> {success}
-                </Alert>
-              )}
-
-              {/* Login Form */}
-              <Form onSubmit={handleLogin}>
-                {/* Email Field */}
-                <div className="form-group-enhanced">
-                  <Form.Label className="form-label-enhanced">Email Address</Form.Label>
-                  <InputGroup className="input-group-enhanced">
-                    <InputGroup.Text><EnvelopeIcon className="text-secondary" style={{ width: '20px', height: '20px' }} /></InputGroup.Text>
-                    <Form.Control
-                      type="email"
-                      placeholder="you@university.edu"
-                      value={email}
-                      onChange={(e) => {
-                        setEmail(e.target.value);
-                        if (formErrors.email) setFormErrors({ ...formErrors, email: "" });
-                      }}
-                      className={`input-enhanced ${formErrors.email ? "is-invalid" : ""}`}
-                      disabled={loading}
-                    />
-                  </InputGroup>
-                  {formErrors.email && (
-                    <div className="form-error-enhanced">⚠️ {formErrors.email}</div>
-                  )}
+              {/* Password */}
+              <div className="lp-field">
+                <label className="lp-label">Password</label>
+                <div className={`lp-input-wrap ${formErrors.password ? "lp-input-error" : ""}`}>
+                  <span className="lp-input-icon">🔑</span>
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    placeholder="Enter your password"
+                    value={password}
+                    onChange={(e) => { setPassword(e.target.value); setFormErrors({ ...formErrors, password: "" }); }}
+                    disabled={loading}
+                    className="lp-input"
+                  />
+                  <button type="button" className="lp-eye-btn" onClick={() => setShowPassword(!showPassword)}>
+                    {showPassword
+                      ? <EyeSlashIcon style={{ width: 18, height: 18 }} />
+                      : <EyeIcon style={{ width: 18, height: 18 }} />}
+                  </button>
                 </div>
+                {formErrors.password && <div className="lp-field-error">{formErrors.password}</div>}
+              </div>
 
-                {/* Password Field */}
-                <div className="form-group-enhanced">
-                  <Form.Label className="form-label-enhanced">Password</Form.Label>
-                  <InputGroup className="input-group-enhanced">
-                    <InputGroup.Text><LockClosedIcon className="text-secondary" style={{ width: '20px', height: '20px' }} /></InputGroup.Text>
-                    <Form.Control
-                      type={showPassword ? "text" : "password"}
-                      placeholder="Enter your password"
-                      value={password}
-                      onChange={(e) => {
-                        setPassword(e.target.value);
-                        if (formErrors.password) setFormErrors({ ...formErrors, password: "" });
-                      }}
-                      className={`input-enhanced ${formErrors.password ? "is-invalid" : ""}`}
-                      disabled={loading}
-                    />
-                    <Button
-                      variant="light"
-                      className="btn-icon-enhanced"
-                      onClick={() => setShowPassword(!showPassword)}
-                      type="button"
-                      aria-label={showPassword ? "Hide password" : "Show password"}
-                    >
-                      {showPassword ? <EyeSlashIcon style={{ width: '20px', height: '20px', color: '#6c757d' }} /> : <EyeIcon style={{ width: '20px', height: '20px', color: '#6c757d' }} />}
-                    </Button>
-                  </InputGroup>
-                  {formErrors.password && (
-                    <div className="form-error-enhanced">⚠️ {formErrors.password}</div>
-                  )}
-                </div>
+              {/* Remember + Forgot */}
+              <div className="lp-row">
+                <label className="lp-check">
+                  <input type="checkbox" checked={rememberMe} onChange={(e) => setRememberMe(e.target.checked)} />
+                  <span>Remember me</span>
+                </label>
+                <a href="#" className="lp-link">Forgot password?</a>
+              </div>
 
-                {/* Remember Me & Forgot Password */}
-                <Row className="mb-4">
-                  <Col xs={6}>
-                    <Form.Check
-                      type="checkbox"
-                      id="rememberMe"
-                      label="Remember me"
-                      checked={rememberMe}
-                      onChange={(e) => setRememberMe(e.target.checked)}
-                      className="form-check-enhanced fw-500"
-                    />
-                  </Col>
-                  <Col xs={6} className="text-end">
-                    <a href="#" className="link-enhanced">Forgot password?</a>
-                  </Col>
-                </Row>
+              {/* Submit */}
+              <button type="submit" disabled={loading} className="lp-btn-primary">
+                {loading ? (
+                  <span className="lp-spinner">
+                    <svg viewBox="0 0 24 24" fill="none" className="lp-spin" width="18" height="18">
+                      <circle cx="12" cy="12" r="10" stroke="rgba(255,255,255,0.3)" strokeWidth="3" />
+                      <path d="M12 2a10 10 0 0 1 10 10" stroke="white" strokeWidth="3" strokeLinecap="round" />
+                    </svg>
+                    Signing in...
+                  </span>
+                ) : (
+                  <>Sign In →</>
+                )}
+              </button>
 
-                {/* Login Button */}
-                <Button
-                  type="submit"
-                  size="lg"
-                  className="btn-auth-enhanced btn-primary-enhanced w-100 mb-3"
-                  disabled={loading}
-                >
-                  {loading ? (
-                    <>
-                      <Spinner animation="border" size="sm" className="me-2" />
-                      Signing in...
-                    </>
-                  ) : (
-                    <>
-                      ➜ Sign In
-                    </>
-                  )}
-                </Button>
-
-                {/* Divider */}
-                <div className="divider-enhanced">
-                  <span>Don't have an account?</span>
-                </div>
-
-                {/* Sign Up Link */}
-                <Button
-                  type="button"
-                  size="lg"
-                  className="btn-auth-enhanced btn-secondary-enhanced w-100"
-                  onClick={() => router.push("/signup")}
-                >
-                  Create Account Now
-                </Button>
-              </Form>
-            </div>
-          </Col>
-        </Row>
-      </Container>
+              {/* Register link */}
+              <div className="lp-divider"><span>New here?</span></div>
+              <button type="button" className="lp-btn-secondary" onClick={() => router.push("/signup")}>
+                Create an Account
+              </button>
+            </form>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

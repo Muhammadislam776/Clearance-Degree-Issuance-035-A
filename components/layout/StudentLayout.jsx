@@ -1,6 +1,6 @@
 "use client";
 import React from "react";
-import { Container, Row, Col, Navbar, Nav, Button } from "react-bootstrap";
+import { Container, Navbar, Nav, Button } from "react-bootstrap";
 import { useRouter } from "next/navigation";
 import { logoutUser } from "@/lib/authService";
 import { useAuth } from "@/lib/useAuth";

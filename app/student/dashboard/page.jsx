@@ -75,12 +75,12 @@ export default function StudentDashboard() {
   return (
     <ProtectedRoute requiredRoles="student">
       <StudentLayout>
-        <Container fluid className="py-4 px-md-5" style={{ background: "#f8faff", minHeight: "calc(100vh - 80px)" }}>
+        <Container fluid className="py-4 px-md-5" style={{ background: "#F4F7F9", minHeight: "calc(100vh - 80px)" }}>
           {/* Dashboard Hero */}
           <div 
             className="p-5 mb-5 text-white shadow-lg" 
             style={{ 
-              background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)", 
+              background: "linear-gradient(135deg, #0062FF 0%, #6366F1 60%, #8B5CF6 100%)", 
               borderRadius: "24px",
               position: "relative",
               overflow: "hidden"
@@ -216,7 +216,7 @@ export default function StudentDashboard() {
             .hover-lift { transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1); cursor: pointer; }
             .hover-lift:hover { transform: translateY(-8px); }
             .extra-small { font-size: 0.75rem; }
-            .btn-premium-primary { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; }
+            .btn-premium-primary { background: linear-gradient(135deg, #0062FF, #6366F1); color: white; }
           `}</style>
         </Container>
       </StudentLayout>
