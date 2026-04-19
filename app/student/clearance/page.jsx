@@ -117,8 +117,10 @@ export default function ClearancePage() {
       if (!profile?.student_profile?.id) throw new Error("Student profile not found. Please relogin.");
       
       // Check if there's already an active request
-      if (activeRequest && activeRequest.overall_status !== 'completed') {
-        throw new Error("You already have an active clearance request in progress.");
+      const activeStates = ['pending', 'in_progress', 'completed'];
+      if (activeRequest && activeStates.includes(activeRequest.overall_status)) {
+        const statusMsg = activeRequest.overall_status === 'completed' ? 'already approved' : 'already in progress';
+        throw new Error(`You have a clearance request that is ${statusMsg}. You cannot apply again unless it is rejected.`);
       }
 
       const result = await submitClearanceRequest(
@@ -216,59 +218,77 @@ export default function ClearancePage() {
               <Card.Body>
                 <Tabs id="clearance-tabs" activeKey={activeTab} onSelect={(k) => setActiveTab(k)} className="mb-4">
                   {/* Apply for Clearance Tab */}
-                  <Tab eventKey="apply" title="📝 Apply for Clearance">
-                    {message && (
-                      <Alert variant={message.type} dismissible onClose={() => setMessage("")}>
-                        {message.text}
-                      </Alert>
-                    )}
+                    <Tab eventKey="apply" title="📝 Apply for Clearance">
+                      {message && (
+                        <Alert variant={message.type} dismissible onClose={() => setMessage("")}>
+                          {message.text}
+                        </Alert>
+                      )}
 
-                    <Form onSubmit={handleApplyClearance}>
-                      <Form.Group className="mb-4">
-                        <Form.Label className="fw-bold">Student Name</Form.Label>
-                        <Form.Control
-                          type="text"
-                          value={profile?.name || ""}
-                          disabled
-                          style={{ backgroundColor: "#f5f5f5" }}
-                        />
-                      </Form.Group>
+                      {activeRequest && ['pending', 'in_progress', 'completed'].includes(activeRequest.overall_status) ? (
+                        <div className="py-5 text-center">
+                          <div style={{ fontSize: "4rem", marginBottom: "20px" }}>ℹ️</div>
+                          <h3 className="fw-bold mb-3">Clearance already applied</h3>
+                          <p className="text-muted mx-auto" style={{ maxWidth: "500px", fontSize: "1.1rem" }}>
+                            Your current clearance request is <strong>{activeRequest.overall_status === 'completed' ? 'Approved' : activeRequest.overall_status}</strong>. 
+                            You cannot submit a new application while a request is active or successfully completed.
+                          </p>
+                          <Button 
+                            variant="outline-primary" 
+                            className="mt-3 px-4 py-2 rounded-pill fw-bold"
+                            onClick={() => setActiveTab("status")}
+                          >
+                            View Active Status
+                          </Button>
+                        </div>
+                      ) : (
+                        <Form onSubmit={handleApplyClearance}>
+                          <Form.Group className="mb-4">
+                            <Form.Label className="fw-bold">Student Name</Form.Label>
+                            <Form.Control
+                              type="text"
+                              value={profile?.name || ""}
+                              disabled
+                              style={{ backgroundColor: "#f5f5f5" }}
+                            />
+                          </Form.Group>
 
-                      <Form.Group className="mb-4">
-                        <Form.Label className="fw-bold">Roll Number</Form.Label>
-                        <Form.Control
-                          type="text"
-                          value={profile?.roll_number || ""}
-                          disabled
-                          style={{ backgroundColor: "#f5f5f5" }}
-                        />
-                      </Form.Group>
+                          <Form.Group className="mb-4">
+                            <Form.Label className="fw-bold">Roll Number</Form.Label>
+                            <Form.Control
+                              type="text"
+                              value={profile?.roll_number || ""}
+                              disabled
+                              style={{ backgroundColor: "#f5f5f5" }}
+                            />
+                          </Form.Group>
 
-                      {/* Department dropdown removed since request applies to all implicitly via DB Trigger */}
+                          {/* Department dropdown removed since request applies to all implicitly via DB Trigger */}
 
-                      <Form.Group className="mb-4">
-                        <Form.Label className="fw-bold">Reason for Clearance</Form.Label>
-                        <Form.Control
-                          as="textarea"
-                          rows={4}
-                          name="reason"
-                          value={formData.reason}
-                          onChange={handleInputChange}
-                          placeholder="Explain why you need clearance..."
-                          required
-                        />
-                      </Form.Group>
+                          <Form.Group className="mb-4">
+                            <Form.Label className="fw-bold">Reason for Clearance</Form.Label>
+                            <Form.Control
+                              as="textarea"
+                              rows={4}
+                              name="reason"
+                              value={formData.reason}
+                              onChange={handleInputChange}
+                              placeholder="Explain why you need clearance..."
+                              required
+                            />
+                          </Form.Group>
 
-                      <Button
-                        variant="primary"
-                        type="submit"
-                        disabled={loading}
-                        style={{ background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)", border: "none" }}
-                      >
-                        {loading ? "Submitting..." : "Submit Application"}
-                      </Button>
-                    </Form>
-                  </Tab>
+                          <Button
+                            variant="primary"
+                            type="submit"
+                            disabled={loading}
+                            style={{ background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)", border: "none" }}
+                          >
+                            {loading ? "Submitting..." : "Submit Application"}
+                          </Button>
+                        </Form>
+                      )}
+                    </Tab>
 
                   {/* Upload Documents Tab */}
                   <Tab eventKey="upload" title="📤 Upload Documents">
