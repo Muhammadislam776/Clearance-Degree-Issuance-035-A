@@ -48,11 +48,11 @@ export default function LandingFooter() {
             <div className="contact-links d-flex flex-column gap-3">
               <a href="mailto:support@smartclearance.edu" className="contact-link">
                 <i className="bi bi-envelope-fill me-2"></i>
-                support@smartclearance.edu
+                islamjutt56.i@ail.com
               </a>
               <a href="https://wa.me/1234567890" target="_blank" rel="noopener noreferrer" className="contact-link">
                 <i className="bi bi-whatsapp me-2"></i>
-                +1 (234) 567-890
+                +92319-6590756
               </a>
               <a href="https://instagram.com/smartclearance" target="_blank" rel="noopener noreferrer" className="contact-link">
                 <i className="bi bi-instagram me-2"></i>
