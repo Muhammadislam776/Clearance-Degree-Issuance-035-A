@@ -2,6 +2,7 @@
 import React from "react";
 import Link from "next/link";
 import ThemeToggle from "@/components/layout/ThemeToggle";
+import LandingFooter from "@/components/layout/LandingFooter";
 import "../styles/landing.css";
 
 export default function Home() {
@@ -86,6 +87,9 @@ export default function Home() {
           <div className="pill">📄 Digital Degrees</div>
         </div>
       </div>
+
+      {/* New Footer */}
+      <LandingFooter />
     </div>
   );
 }

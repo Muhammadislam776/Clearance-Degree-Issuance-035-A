@@ -1,9 +1,17 @@
+"use client";
 import React from 'react';
 import { Container, Row, Col } from 'react-bootstrap';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 
 export default function Footer() {
+  const pathname = usePathname();
   const currentYear = new Date().getFullYear();
+
+  // Don't show footer on the home page
+  if (pathname === '/') {
+    return null;
+  }
 
   return (
     <footer className="footer-enhanced mt-auto pt-5 pb-3 bg-dark text-light border-0 footer-dark">
