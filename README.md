@@ -43,7 +43,7 @@ Access:   Apply for clearance, track status, upload documents
 ### 4️⃣ **Department Staff Account**
 ```
 Email:    islamju@gmail.com
-Password: Islam`1234
+Password: Islam`123
 Role:     Department Coordinator
 Access:   Process department clearances, manage reviews
 ```
