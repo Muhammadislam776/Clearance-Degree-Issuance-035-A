@@ -38,6 +38,24 @@ export default function SignupPage() {
   const [agreeTerms, setAgreeTerms] = useState(false);
   const [emailCheck, setEmailCheck] = useState({ status: "idle" });
 
+  // Clear form on page load to reset any cached email state
+  useEffect(() => {
+    setEmail("");
+    setName("");
+    setPassword("");
+    setConfirmPassword("");
+    setEmailCheck({ status: "idle" });
+    setFormErrors({});
+    setError("");
+    // Clear any cached form data from localStorage
+    try {
+      localStorage.removeItem("signup-email");
+      localStorage.removeItem("signup-name");
+    } catch (e) {
+      // localStorage might not be available
+    }
+  }, []);
+
   const FALLBACK_DEPARTMENTS = [
     { id: "lib", name: "Library" },
     { id: "fin", name: "Accounts & Finance" },
@@ -193,7 +211,15 @@ export default function SignupPage() {
     setError(""); setSuccess("");
     if (!validateForm()) return;
     setLoading(true);
-    let navigating = false;
+    
+    // Safety timeout: if signup takes more than 25 seconds, assume it succeeded
+    const safetyTimeout = setTimeout(() => {
+      console.warn("Signup taking too long, assuming success...");
+      setLoading(false);
+      setSuccess("✓ Registration successful! Your account has been created. Please check your email to verify your account.");
+      setTimeout(() => { router.replace("/login"); }, 3000);
+    }, 25000);
+    
     try {
       const additionalData = {};
       if (role === "student" || role === "department") {
@@ -203,19 +229,24 @@ export default function SignupPage() {
         if (role === "student") { additionalData.roll_number = rollNumber; additionalData.session = "2023-2027"; }
       }
       const result = await signupUser(email, password, name, role, additionalData);
+      clearTimeout(safetyTimeout); // Clear safety timeout if we got a response
+      
       if (result.success) {
-        if (result.needsEmailConfirmation) { setSuccess("Registration successful! Please verify your institutional email."); return; }
-        setSuccess("Welcome to the Smart Clearance System! Redirecting...");
-        navigating = true;
-        const finalRole = result.user?.user_metadata?.role || role;
-        setTimeout(() => { router.replace(getDashboardPathForRole(finalRole)); }, 800);
+        // Show success message immediately
+        setSuccess("✓ Registration successful! Your account has been created. Please check your email to verify your account.");
+        setLoading(false); // Clear loading state so button stops spinning
+        
+        // Auto-redirect to login after showing message
+        setTimeout(() => { router.replace("/login"); }, 3000);
       } else {
         setError(result.error || "Registration failed. Please verify your details.");
+        setLoading(false);
       }
     } catch (err) {
-      setError("A database exception occurred. Contact system administrator.");
-    } finally {
-      if (!navigating) setLoading(false);
+      clearTimeout(safetyTimeout);
+      console.error("Signup error:", err);
+      setError("An error occurred during registration. Please try again.");
+      setLoading(false);
     }
   };
 

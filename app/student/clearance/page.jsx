@@ -8,70 +8,222 @@ import { submitClearanceRequest } from "@/lib/clearanceService";
 import { v4 as uuidv4 } from "uuid";
 
 export default function ClearancePage() {
-  const { profile } = useAuth();
+  const { profile, user } = useAuth();
+  const configuredBucket = process.env.NEXT_PUBLIC_SUPABASE_DOCUMENTS_BUCKET || "documents";
+  const candidateBuckets = [configuredBucket, "documents", "student-documents", "clearance-documents"];
   const [activeTab, setActiveTab] = useState("apply");
   const [formData, setFormData] = useState({
     reason: "",
     department: "",
   });
-  const [file, setFile] = useState(null);
+  const [studentCardFile, setStudentCardFile] = useState(null);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
+  const [activeRequest, setActiveRequest] = useState(null);
+  const [departmentStatuses, setDepartmentStatuses] = useState([]);
+  const [progress, setProgress] = useState(0);
+  const [isLiveSync, setIsLiveSync] = useState(false);
+  const [resolvedStudentId, setResolvedStudentId] = useState(null);
+
+  const studentId = resolvedStudentId || profile?.student_id || profile?.student_profile?.id || null;
+
+  const ensureStudentId = useCallback(async () => {
+    const existingId = profile?.student_id || profile?.student_profile?.id || null;
+    if (existingId) {
+      setResolvedStudentId(existingId);
+      return existingId;
+    }
+
+    const authUserId = user?.id || profile?.id || null;
+    if (!authUserId) return null;
+
+    const { data: existingStudent, error: fetchError } = await supabase
+      .from("students")
+      .select("id")
+      .eq("user_id", authUserId)
+      .maybeSingle();
+
+    if (fetchError) {
+      console.warn("Could not fetch student record:", fetchError.message || fetchError);
+    }
+
+    if (existingStudent?.id) {
+      setResolvedStudentId(existingStudent.id);
+      return existingStudent.id;
+    }
+
+    const fallbackRoll = (profile?.roll_number || `TEMP-${String(authUserId).slice(0, 8).toUpperCase()}`).trim();
+    const payload = {
+      user_id: authUserId,
+      name: profile?.name || user?.user_metadata?.name || "Student",
+      email: profile?.email || user?.email || null,
+      roll_number: fallbackRoll,
+      department: profile?.department_name || profile?.department || "N/A",
+      session: "2023-2027",
+    };
+
+    const { data: createdStudent, error: createError } = await supabase
+      .from("students")
+      .insert([payload])
+      .select("id")
+      .single();
+
+    if (createError) {
+      console.warn("Could not auto-create student record:", createError.message || createError);
+      return null;
+    }
+
+    setResolvedStudentId(createdStudent?.id || null);
+    return createdStudent?.id || null;
+  }, [profile, user]);
+
+  useEffect(() => {
+    ensureStudentId();
+  }, [ensureStudentId]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData({ ...formData, [name]: value });
   };
 
-  const handleFileChange = (e) => {
-    setFile(e.target.files[0]);
+  const handleStudentCardChange = (e) => {
+    setStudentCardFile(e.target.files?.[0] || null);
   };
 
-  const [activeRequest, setActiveRequest] = useState(null);
-  const [departmentStatuses, setDepartmentStatuses] = useState([]);
-  const [progress, setProgress] = useState(0);
-  const [isLiveSync, setIsLiveSync] = useState(false);
+  const resolveUploadBucket = useCallback(async () => {
+    const tried = [];
 
-  // Fetch student's current clearance status and progress
+    const tryUploadToBucket = async (bucketName, filePath, file) => {
+      tried.push(bucketName);
+      const { error } = await supabase.storage.from(bucketName).upload(filePath, file, { upsert: false });
+      return error;
+    };
+
+    const uniqueCandidates = [...new Set(candidateBuckets.filter(Boolean))];
+
+    return {
+      uploadWithCandidates: async (filePath, file) => {
+        for (const bucket of uniqueCandidates) {
+          const error = await tryUploadToBucket(bucket, filePath, file);
+          if (!error) return { bucket, error: null };
+
+          const message = String(error?.message || "").toLowerCase();
+          if (!message.includes("bucket") && !message.includes("not found")) {
+            return { bucket, error };
+          }
+        }
+
+        const { data: buckets, error: listError } = await supabase.storage.listBuckets();
+        if (!listError && Array.isArray(buckets) && buckets.length > 0) {
+          const preferred = buckets.find((b) => uniqueCandidates.includes(b.name)) || buckets[0];
+          const retryError = await tryUploadToBucket(preferred.name, filePath, file);
+          if (!retryError) return { bucket: preferred.name, error: null };
+          return { bucket: preferred.name, error: retryError };
+        }
+
+        return {
+          bucket: uniqueCandidates[0] || configuredBucket,
+          error: new Error(
+            `No accessible storage bucket found. Tried: ${tried.join(", ")}. Please create a bucket named "${configuredBucket}" in Supabase Storage.`
+          ),
+        };
+      },
+    };
+  }, [candidateBuckets, configuredBucket]);
+
+  const uploadStudentCardToRequest = useCallback(async (requestId) => {
+    if (!studentCardFile) {
+      throw new Error("Student card is required. Please upload your student card.");
+    }
+    if (!requestId || !studentId) {
+      throw new Error("Missing request context for student card upload.");
+    }
+
+    const fileExt = studentCardFile.name.split(".").pop();
+    const fileName = `${studentId}/student-card-${uuidv4()}.${fileExt}`;
+    const { uploadWithCandidates } = await resolveUploadBucket();
+    const { bucket, error: uploadError } = await uploadWithCandidates(fileName, studentCardFile);
+    if (uploadError) throw new Error("Student card upload failed: " + (uploadError.message || String(uploadError)));
+
+    const {
+      data: { publicUrl },
+    } = supabase.storage.from(bucket).getPublicUrl(fileName);
+
+    const { error: dbError } = await supabase.from("documents").insert([
+      {
+        student_id: studentId,
+        request_id: requestId,
+        file_url: publicUrl,
+        file_type: "student_card",
+      },
+    ]);
+
+    if (dbError) throw new Error("Student card save failed: " + dbError.message);
+
+    setStudentCardFile(null);
+  }, [resolveUploadBucket, studentCardFile, studentId]);
+
   const loadStatus = useCallback(async () => {
-    if (!profile?.student_profile?.id) return;
-    
+    if (!studentId) return;
+
     try {
-      // Fetch the newest active application
       const { data: requestTable, error: reqError } = await supabase
         .from("clearance_requests")
         .select("id, overall_status, created_at, degree_issued")
-        .eq("student_id", profile.student_profile.id)
+        .eq("student_id", studentId)
         .order("created_at", { ascending: false })
         .limit(1)
         .maybeSingle();
-        
-      if (reqError || !requestTable) return;
+
+      if (reqError || !requestTable) {
+        setActiveRequest(null);
+        return;
+      }
       setActiveRequest(requestTable);
 
-      // Fetch department statuses linked to this request
       const { data: statuses, error: statError } = await supabase
         .from("clearance_status")
-        .select("id, status, remarks, updated_at, departments(name)")
+        .select("id, department_id, status, remarks, updated_at, departments(name)")
         .eq("request_id", requestTable.id);
 
-      if (!statError && statuses) {
-        setDepartmentStatuses(statuses);
-        const approvedCount = statuses.filter(s => s.status === 'approved').length;
-        setProgress(statuses.length > 0 ? Math.round((approvedCount / statuses.length) * 100) : 0);
+      const { data: departments, error: departmentsError } = await supabase
+        .from("departments")
+        .select("id, name");
+
+      if (!statError && !departmentsError && statuses && departments) {
+        const statusByDepartmentId = new Map(statuses.map((s) => [s.department_id, s]));
+        const syncedStatuses = departments.map((dept) => {
+          const existingStatus = statusByDepartmentId.get(dept.id);
+          if (existingStatus) return existingStatus;
+
+          return {
+            id: `virtual-${dept.id}`,
+            department_id: dept.id,
+            status: "pending",
+            remarks: null,
+            updated_at: requestTable.created_at,
+            departments: { name: dept.name },
+          };
+        });
+
+        setDepartmentStatuses(syncedStatuses);
+        const approvedCount = syncedStatuses.filter((s) => s.status === "approved" || s.status === "completed").length;
+        setProgress(syncedStatuses.length > 0 ? Math.round((approvedCount / syncedStatuses.length) * 100) : 0);
+      } else {
+        setDepartmentStatuses([]);
+        setProgress(0);
       }
     } catch (err) {
       console.error("Failed to load clearance status:", err);
     }
-  }, [profile?.student_profile?.id]);
+  }, [studentId]);
 
   useEffect(() => {
     loadStatus();
 
-    // REAL-TIME: Listen for departmental approvals or overall status changes
-    if (profile?.student_profile?.id) {
+    if (studentId) {
       const channel = supabase
-        .channel(`student-clearance-${profile.student_profile.id}`)
+        .channel(`student-clearance-${studentId}`)
         .on(
           "postgres_changes",
           {
@@ -80,7 +232,6 @@ export default function ClearancePage() {
             table: "clearance_status",
           },
           () => {
-            console.log("Department update detected - syncing...");
             loadStatus();
           }
         )
@@ -92,21 +243,31 @@ export default function ClearancePage() {
             table: "clearance_requests",
           },
           (payload) => {
-            if (payload.new.student_id === profile.student_profile.id) {
-              console.log("Overall status updated!");
+            if (payload.new.student_id === studentId) {
               loadStatus();
             }
           }
         )
+        .on(
+          "postgres_changes",
+          {
+            event: "*",
+            schema: "public",
+            table: "departments",
+          },
+          () => {
+            loadStatus();
+          }
+        )
         .subscribe((status) => {
-          setIsLiveSync(status === 'SUBSCRIBED');
+          setIsLiveSync(status === "SUBSCRIBED");
         });
 
       return () => {
         supabase.removeChannel(channel);
       };
     }
-  }, [profile?.student_profile?.id, loadStatus]);
+  }, [studentId, loadStatus]);
 
   const handleApplyClearance = async (e) => {
     e.preventDefault();
@@ -114,29 +275,60 @@ export default function ClearancePage() {
     setMessage("");
 
     try {
-      if (!profile?.student_profile?.id) throw new Error("Student profile not found. Please relogin.");
-      
-      // Check if there's already an active request
-      const activeStates = ['pending', 'in_progress', 'completed'];
-      if (activeRequest && activeStates.includes(activeRequest.overall_status)) {
-        const statusMsg = activeRequest.overall_status === 'completed' ? 'already approved' : 'already in progress';
-        throw new Error(`You have a clearance request that is ${statusMsg}. You cannot apply again unless it is rejected.`);
+      if (!profile?.name || !profile?.email || !profile?.roll_number) {
+        throw new Error("Your profile is not fully loaded. Please refresh and try again.");
       }
 
-      const result = await submitClearanceRequest(
-        profile.student_profile.id,
-        "final", 
+      let effectiveStudentId = studentId;
+      if (!effectiveStudentId) {
+        effectiveStudentId = await ensureStudentId();
+      }
+
+      if (!effectiveStudentId) {
+        throw new Error("We couldn't identify your student record. Please refresh your profile or contact support.");
+      }
+
+      if (!formData.reason || formData.reason.trim().length < 5) {
+        throw new Error("Please provide a detailed reason for clearance (min 5 characters).");
+      }
+
+      if (!studentCardFile) {
+        throw new Error("Student card is mandatory. Please upload your student card to continue.");
+      }
+
+      setMessage({ type: "info", text: "Submitting application to all departments..." });
+
+      const submissionResult = await submitClearanceRequest(
+        effectiveStudentId,
+        user?.id,
+        "final",
         formData.reason
       );
 
-      if (!result.success) throw new Error(result.error);
-      
-      setMessage({ type: "success", text: "Clearance request submitted successfully! Departments will now review it." });
+      if (!submissionResult || !submissionResult.success) {
+        throw new Error(submissionResult?.error || "The server could not process your request. Please try again.");
+      }
+
+      const requestId = submissionResult.data?.id || null;
+      let uploadWarning = "";
+      try {
+        await uploadStudentCardToRequest(requestId);
+      } catch (uploadErr) {
+        uploadWarning = uploadErr?.message || "Student card upload failed due to storage configuration.";
+        console.warn("Student card upload skipped:", uploadWarning);
+      }
+
+      setMessage({
+        type: uploadWarning ? "warning" : "success",
+        text: uploadWarning
+          ? `Clearance request submitted, but student card upload failed: ${uploadWarning}`
+          : "Clearance request submitted successfully! Departments will now review it.",
+      });
       setFormData({ reason: "", department: "" });
-      setActiveRequest(result.data);
-      setActiveTab("status"); 
+      setActiveRequest(submissionResult.data);
+      setActiveTab("status");
       setTimeout(() => setMessage(""), 5000);
-      loadStatus(); // Refresh immediately
+      loadStatus();
     } catch (error) {
       console.error("Submission Error:", error);
       setMessage({ type: "danger", text: error.message || "Error submitting request. Please try again." });
@@ -145,209 +337,118 @@ export default function ClearancePage() {
     }
   };
 
-
-
-  const handleUploadDocument = async (e) => {
-    e.preventDefault();
-    if (!file) {
-      setMessage({ type: "warning", text: "Please select a file to upload." });
-      return;
-    }
-
-    setLoading(true);
-    setMessage("");
-
-    try {
-      if (!profile?.student_profile?.id) throw new Error("Student profile error.");
-
-      // 1. Upload to Supabase Storage bucket ('documents' bucket)
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${profile.student_profile.id}/${uuidv4()}.${fileExt}`;
-      
-      const { data: uploadData, error: uploadError } = await supabase.storage
-        .from("documents")
-        .upload(fileName, file);
-
-      if (uploadError) throw new Error("Storage upload failed: " + uploadError.message);
-
-      // 2. Get Public URL
-      const { data: { publicUrl } } = supabase.storage
-        .from("documents")
-        .getPublicUrl(fileName);
-
-      // 3. Save reference in documents table
-      const { error: dbError } = await supabase
-        .from("documents")
-        .insert([{
-          student_id: profile.student_profile.id,
-          file_url: publicUrl,
-          file_type: fileExt
-        }]);
-
-      if (dbError) throw dbError;
-
-      setMessage({ type: "success", text: "Document uploaded successfully!" });
-      setFile(null);
-      setTimeout(() => setMessage(""), 5000);
-    } catch (error) {
-      setMessage({ type: "danger", text: error.message || "Error uploading document." });
-    } finally {
-      setLoading(false);
-    }
-  };
-
   return (
     <StudentLayout>
       <Container fluid style={{ padding: "20px" }}>
-        {/* Header */}
-        <div style={{ background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)", padding: "30px", borderRadius: "12px", marginBottom: "30px", color: "white", position: "relative" }}>
+        <div
+          style={{
+            background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+            padding: "30px",
+            borderRadius: "18px",
+            marginBottom: "30px",
+            color: "white",
+            position: "relative",
+            boxShadow: "0 18px 40px rgba(76, 81, 191, 0.25)",
+          }}
+        >
           {isLiveSync && (
-            <div className="d-flex align-items-center gap-1 bg-white px-2 py-1 rounded-pill shadow-sm" style={{ fontSize: "0.65rem", position: "absolute", top: "15px", right: "15px", color: "black" }}>
+            <div
+              className="d-flex align-items-center gap-1 bg-white px-2 py-1 rounded-pill shadow-sm"
+              style={{ fontSize: "0.65rem", position: "absolute", top: "15px", right: "15px", color: "black" }}
+            >
               <span className="live-orb"></span>
               <span className="fw-bold">LIVE SYNC ACTIVE</span>
             </div>
           )}
-          <h1 className="fw-bold mb-2">📋 Clearance & Documents</h1>
-          <p>Manage your clearance applications and upload supporting documents</p>
+          <h1 className="fw-bold mb-2">📋 Clearance</h1>
+          <p className="mb-0">Submit and track your clearance application</p>
         </div>
 
-        {/* Tabs */}
         <Row>
           <Col lg={12}>
-            <Card style={{ boxShadow: "0 4px 12px rgba(0,0,0,0.1)", borderRadius: "12px" }}>
+            <Card style={{ boxShadow: "0 4px 12px rgba(0,0,0,0.1)", borderRadius: "18px", border: "none" }}>
               <Card.Body>
                 <Tabs id="clearance-tabs" activeKey={activeTab} onSelect={(k) => setActiveTab(k)} className="mb-4">
-                  {/* Apply for Clearance Tab */}
-                    <Tab eventKey="apply" title="📝 Apply for Clearance">
-                      {message && (
-                        <Alert variant={message.type} dismissible onClose={() => setMessage("")}>
-                          {message.text}
-                        </Alert>
-                      )}
-
-                      {activeRequest && ['pending', 'in_progress', 'completed'].includes(activeRequest.overall_status) ? (
-                        <div className="py-5 text-center">
-                          <div style={{ fontSize: "4rem", marginBottom: "20px" }}>ℹ️</div>
-                          <h3 className="fw-bold mb-3">Clearance already applied</h3>
-                          <p className="text-muted mx-auto" style={{ maxWidth: "500px", fontSize: "1.1rem" }}>
-                            Your current clearance request is <strong>{activeRequest.overall_status === 'completed' ? 'Approved' : activeRequest.overall_status}</strong>. 
-                            You cannot submit a new application while a request is active or successfully completed.
-                          </p>
-                          <Button 
-                            variant="outline-primary" 
-                            className="mt-3 px-4 py-2 rounded-pill fw-bold"
-                            onClick={() => setActiveTab("status")}
-                          >
-                            View Active Status
-                          </Button>
-                        </div>
-                      ) : (
-                        <Form onSubmit={handleApplyClearance}>
-                          <Form.Group className="mb-4">
-                            <Form.Label className="fw-bold">Student Name</Form.Label>
-                            <Form.Control
-                              type="text"
-                              value={profile?.name || ""}
-                              disabled
-                              style={{ backgroundColor: "#f5f5f5" }}
-                            />
-                          </Form.Group>
-
-                          <Form.Group className="mb-4">
-                            <Form.Label className="fw-bold">Roll Number</Form.Label>
-                            <Form.Control
-                              type="text"
-                              value={profile?.roll_number || ""}
-                              disabled
-                              style={{ backgroundColor: "#f5f5f5" }}
-                            />
-                          </Form.Group>
-
-                          {/* Department dropdown removed since request applies to all implicitly via DB Trigger */}
-
-                          <Form.Group className="mb-4">
-                            <Form.Label className="fw-bold">Reason for Clearance</Form.Label>
-                            <Form.Control
-                              as="textarea"
-                              rows={4}
-                              name="reason"
-                              value={formData.reason}
-                              onChange={handleInputChange}
-                              placeholder="Explain why you need clearance..."
-                              required
-                            />
-                          </Form.Group>
-
-                          <Button
-                            variant="primary"
-                            type="submit"
-                            disabled={loading}
-                            style={{ background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)", border: "none" }}
-                          >
-                            {loading ? "Submitting..." : "Submit Application"}
-                          </Button>
-                        </Form>
-                      )}
-                    </Tab>
-
-                  {/* Upload Documents Tab */}
-                  <Tab eventKey="upload" title="📤 Upload Documents">
+                  <Tab eventKey="apply" title="📝 Apply for Clearance">
                     {message && (
-                      <Alert variant={message.type} dismissible onClose={() => setMessage("")}>
+                      <Alert variant={message.type} dismissible onClose={() => setMessage("")}> 
                         {message.text}
                       </Alert>
                     )}
 
-                    <Form onSubmit={handleUploadDocument}>
-                      <Form.Group className="mb-4">
-                        <Form.Label className="fw-bold">Select Document Type</Form.Label>
-                        <Form.Select required>
-                          <option value="">Choose document type...</option>
-                          <option value="transcript">Transcript</option>
-                          <option value="certificate">Certificate</option>
-                          <option value="id">ID Proof</option>
-                          <option value="other">Other</option>
-                        </Form.Select>
-                      </Form.Group>
+                    {activeRequest && ["pending", "in_progress", "completed"].includes(activeRequest.overall_status) ? (
+                      <div className="py-5 text-center">
+                        <div style={{ fontSize: "4rem", marginBottom: "20px" }}>ℹ️</div>
+                        <h3 className="fw-bold mb-3">Clearance already applied</h3>
+                        <p className="text-muted mx-auto" style={{ maxWidth: "500px", fontSize: "1.1rem" }}>
+                          Your current clearance request is <strong>{activeRequest.overall_status === "completed" ? "Approved" : activeRequest.overall_status}</strong>.
+                          You cannot submit a new application while a request is active or successfully completed.
+                        </p>
+                        <Button
+                          variant="outline-primary"
+                          className="mt-3 px-4 py-2 rounded-pill fw-bold"
+                          onClick={() => setActiveTab("status")}
+                        >
+                          View Active Status
+                        </Button>
+                      </div>
+                    ) : (
+                      <Form onSubmit={handleApplyClearance}>
+                        <Form.Group className="mb-4">
+                          <Form.Label className="fw-bold">Student Name</Form.Label>
+                          <Form.Control type="text" value={profile?.name || ""} disabled style={{ backgroundColor: "#f5f5f5" }} />
+                        </Form.Group>
 
-                      <Form.Group className="mb-4">
-                        <Form.Label className="fw-bold">Upload File</Form.Label>
-                        <div style={{
-                          border: "2px dashed #667eea",
-                          borderRadius: "8px",
-                          padding: "30px",
-                          textAlign: "center",
-                          backgroundColor: "#f8f9ff",
-                          cursor: "pointer",
-                        }}>
+                        <Form.Group className="mb-4">
+                          <Form.Label className="fw-bold">Email</Form.Label>
+                          <Form.Control type="text" value={profile?.email || ""} disabled style={{ backgroundColor: "#f5f5f5" }} />
+                        </Form.Group>
+
+                        <Form.Group className="mb-4">
+                          <Form.Label className="fw-bold">Registration No.</Form.Label>
+                          <Form.Control type="text" value={profile?.roll_number || ""} disabled style={{ backgroundColor: "#f5f5f5" }} />
+                        </Form.Group>
+
+                        <Form.Group className="mb-4">
+                          <Form.Label className="fw-bold">Department</Form.Label>
+                          <Form.Control type="text" value={profile?.department_name || ""} disabled style={{ backgroundColor: "#f5f5f5" }} />
+                        </Form.Group>
+
+                        <Form.Group className="mb-4">
+                          <Form.Label className="fw-bold">Reason for Clearance</Form.Label>
                           <Form.Control
-                            type="file"
-                            accept=".pdf,.doc,.docx,.jpg,.png"
-                            onChange={handleFileChange}
-                            style={{ display: "none" }}
-                            id="file-input"
+                            as="textarea"
+                            rows={4}
+                            name="reason"
+                            value={formData.reason}
+                            onChange={handleInputChange}
+                            placeholder="Explain why you need clearance..."
+                            required
                           />
-                          <label htmlFor="file-input" style={{ cursor: "pointer", marginBottom: "0" }}>
-                            <div style={{ fontSize: "2rem", marginBottom: "10px" }}>📎</div>
-                            <p className="mb-2">Click to upload or drag and drop</p>
-                            <small className="text-muted">PDF, DOC, DOCX, JPG, PNG (max 5MB)</small>
-                          </label>
-                          {file && <p className="mt-3 text-success fw-bold">✓ {file.name}</p>}
-                        </div>
-                      </Form.Group>
+                        </Form.Group>
 
-                      <Button
-                        variant="success"
-                        type="submit"
-                        disabled={loading || !file}
-                        className="w-100 fw-bold"
-                      >
-                        {loading ? "Uploading..." : "Upload Document"}
-                      </Button>
-                    </Form>
+                        <Form.Group className="mb-4">
+                          <Form.Label className="fw-bold">Student Card (required)</Form.Label>
+                          <Form.Control type="file" accept=".jpg,.jpeg,.png,.pdf" onChange={handleStudentCardChange} required />
+                          {studentCardFile && (
+                            <div className="mt-2 text-muted">
+                              Selected: <strong>{studentCardFile.name}</strong>
+                            </div>
+                          )}
+                        </Form.Group>
+
+                        <Button
+                          variant="primary"
+                          type="submit"
+                          disabled={loading}
+                          style={{ background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)", border: "none" }}
+                        >
+                          {loading ? "Submitting..." : "Submit Application"}
+                        </Button>
+                      </Form>
+                    )}
                   </Tab>
 
-                  {/* Status Tab */}
                   <Tab eventKey="status" title="📊 Application Status">
                     {activeRequest ? (
                       <>
@@ -355,12 +456,12 @@ export default function ClearancePage() {
                           <Col lg={12}>
                             <h4 className="fw-bold mb-3">Overall Completion Progress</h4>
                             <div className="progress" style={{ height: "30px", borderRadius: "15px" }}>
-                              <div 
-                                className={`progress-bar progress-bar-striped progress-bar-animated ${progress === 100 ? 'bg-success' : 'bg-primary'}`} 
-                                role="progressbar" 
+                              <div
+                                className={`progress-bar progress-bar-striped progress-bar-animated ${progress === 100 ? "bg-success" : "bg-primary"}`}
+                                role="progressbar"
                                 style={{ width: `${progress}%` }}
-                                aria-valuenow={progress} 
-                                aria-valuemin="0" 
+                                aria-valuenow={progress}
+                                aria-valuemin="0"
                                 aria-valuemax="100"
                               >
                                 {progress}% Completeness
@@ -374,9 +475,9 @@ export default function ClearancePage() {
                           <Card.Header className="bg-light fw-bold">📋 Application Details</Card.Header>
                           <Card.Body>
                             <p><strong>Application ID:</strong> {activeRequest.id}</p>
-                            <p><strong>Status:</strong> <Badge bg={activeRequest.overall_status === 'completed' ? 'success' : 'warning'}>{activeRequest.overall_status}</Badge></p>
+                            <p><strong>Status:</strong> <Badge bg={activeRequest.overall_status === "completed" ? "success" : "warning"}>{activeRequest.overall_status}</Badge></p>
                             <p><strong>Submitted Date:</strong> {new Date(activeRequest.created_at).toLocaleString()}</p>
-                            <p><strong>Degree Issued:</strong> {activeRequest.degree_issued ? '✅ Yes' : '❌ No'}</p>
+                            <p><strong>Degree Issued:</strong> {activeRequest.degree_issued ? "✅ Yes" : "❌ No"}</p>
                           </Card.Body>
                         </Card>
 
@@ -393,11 +494,11 @@ export default function ClearancePage() {
                             </thead>
                             <tbody>
                               {departmentStatuses.length > 0 ? (
-                                departmentStatuses.map(status => (
+                                departmentStatuses.map((status) => (
                                   <tr key={status.id}>
                                     <td className="fw-bold">{status.departments?.name || "Unknown"}</td>
                                     <td>
-                                      <Badge bg={status.status === 'approved' ? 'success' : status.status === 'rejected' ? 'danger' : 'secondary'}>
+                                      <Badge bg={status.status === "approved" ? "success" : status.status === "rejected" ? "danger" : "secondary"}>
                                         {status.status}
                                       </Badge>
                                     </td>
@@ -406,7 +507,9 @@ export default function ClearancePage() {
                                   </tr>
                                 ))
                               ) : (
-                                <tr><td colSpan="4" className="text-center">No department status tracked yet. Wait for system initialization.</td></tr>
+                                <tr>
+                                  <td colSpan="4" className="text-center">No department status tracked yet. Wait for system initialization.</td>
+                                </tr>
                               )}
                             </tbody>
                           </table>

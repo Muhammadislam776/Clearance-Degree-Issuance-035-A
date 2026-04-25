@@ -127,13 +127,82 @@ $$ LANGUAGE plpgsql;
 ## 🔐 Security (RLS)
 
 - **Users**: Public can sign up; users can update own profile.
-- **Admin Policies**: Uses JWT metadata to prevent recursive lookups.
-  ```sql
-  CREATE POLICY "Admin can view all users" ON public.users 
-    FOR SELECT USING (
-      (auth.jwt() ->> 'user_metadata')::jsonb ->> 'role' = 'admin'
-    );
-  ```
+- **Students**: authenticated students must be able to read their own student row so the app can resolve `student_id`.
+- **Clearance requests**: students must be able to insert their own request rows and read their own requests.
+- **Documents**: students must be able to upload/read their own supporting files.
+- **Admin Policies**: uses JWT metadata to prevent recursive lookups.
+
+```sql
+-- USERS
+ALTER TABLE public.users ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Users can read own profile"
+ON public.users
+FOR SELECT
+USING (id = auth.uid());
+
+CREATE POLICY "Users can update own profile"
+ON public.users
+FOR UPDATE
+USING (id = auth.uid())
+WITH CHECK (id = auth.uid());
+
+-- STUDENTS
+ALTER TABLE public.students ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Students can read own student row"
+ON public.students
+FOR SELECT
+USING (user_id = auth.uid());
+
+-- CLEARANCE REQUESTS
+ALTER TABLE public.clearance_requests ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Students can insert own clearance request"
+ON public.clearance_requests
+FOR INSERT
+WITH CHECK (
+  student_id IN (
+    SELECT id FROM public.students WHERE user_id = auth.uid()
+  )
+);
+
+CREATE POLICY "Students can read own clearance requests"
+ON public.clearance_requests
+FOR SELECT
+USING (
+  student_id IN (
+    SELECT id FROM public.students WHERE user_id = auth.uid()
+  )
+);
+
+-- DOCUMENTS
+ALTER TABLE public.documents ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Students can upload own documents"
+ON public.documents
+FOR INSERT
+WITH CHECK (
+  student_id IN (
+    SELECT id FROM public.students WHERE user_id = auth.uid()
+  )
+);
+
+CREATE POLICY "Students can read own documents"
+ON public.documents
+FOR SELECT
+USING (
+  student_id IN (
+    SELECT id FROM public.students WHERE user_id = auth.uid()
+  )
+);
+
+-- Admin view policy example
+CREATE POLICY "Admin can view all users" ON public.users
+  FOR SELECT USING (
+    (auth.jwt() ->> 'user_metadata')::jsonb ->> 'role' = 'admin'
+  );
+```
 
 ---
 

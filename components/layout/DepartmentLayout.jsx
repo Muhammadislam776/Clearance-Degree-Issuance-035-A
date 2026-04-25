@@ -1,21 +1,14 @@
 "use client";
 import React, { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { logoutUser } from "@/lib/authService";
 import { useAuth } from "@/lib/useAuth";
 import { SectionProvider, useSection } from "@/lib/SectionContext";
 import AIChatbot from "@/components/chatbot/AIChatbot";
 import "../../styles/dashboard-premium.css";
 
-const SECTIONS = [
-  { id: "all",                                    name: "Hub Overview",   icon: "📁" },
-  { id: "6d75d78a-2e63-48cc-b60b-667b65b77a28",  name: "Library",        icon: "📚" },
-  { id: "9b62b5d5-bb95-422e-9a7e-af5598765b9c",  name: "Fee / Finance",  icon: "💰" },
-  { id: "e7010ee1-092e-4977-9603-ce4659a742a4",  name: "Hostel Dues",    icon: "🏨" },
-  { id: "7f5ed866-b681-4252-b6e3-3690a5679a4b",  name: "Sports",         icon: "⚽" },
-  { id: "1dda4d6f-d2b9-4fab-9ad1-bab9d426bcea",  name: "Laboratory",     icon: "🧪" },
-  { id: "713729ee-e7c0-474e-9407-8950ba3586f4",  name: "Admin Office",   icon: "🏛️" },
-];
+import { Dropdown, Card } from "react-bootstrap";
+import { supabase } from "@/lib/supabaseClient";
 
 function SidebarItem({ id, name, icon, active, onClick, onClose }) {
   return (
@@ -33,6 +26,64 @@ function SidebarItem({ id, name, icon, active, onClick, onClose }) {
 
 function SidebarContent({ onClose }) {
   const { activeSection, setActiveSection } = useSection();
+  const [dynamicSections, setDynamicSections] = useState([{ id: "all", name: "Hub Overview", icon: "📁" }]);
+
+  useEffect(() => {
+    async function fetchDepts() {
+      try {
+        const { data, error } = await supabase
+          .from("departments")
+          .select("id, name")
+          .order("name");
+        
+        if (error) throw error;
+        
+        const icons = {
+          "Library": "📚",
+          "Fee": "💰",
+          "Finance": "💰",
+          "Hostel": "🏨",
+          "Sports": "⚽",
+          "Laboratory": "🧪",
+          "Lab": "🧪",
+          "Admin": "🏛️",
+          "Examiner": "⚖️"
+        };
+
+        const formatted = data.map(d => ({
+          id: d.id,
+          name: d.name,
+          icon: Object.entries(icons).find(([k]) => d.name.includes(k))?.[1] || "🏢"
+        }));
+
+        setDynamicSections([{ id: "all", name: "Hub Overview", icon: "📁" }, ...formatted]);
+      } catch (e) {
+        console.error("Error fetching sidebar departments:", e);
+      }
+    }
+    fetchDepts();
+
+    // Listen for changes so new departments show up instantly
+    const uniqueId = Math.random().toString(36).substring(7);
+    const channelId = `dept-sidebar-${Date.now()}-${uniqueId}`;
+    const channel = supabase
+      .channel(channelId)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'departments'
+        },
+        () => fetchDepts()
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
+
   return (
     <div style={{ display: "flex", flexDirection: "column", height: "100%", padding: "1.5rem 0" }}>
       <p style={{
@@ -42,7 +93,7 @@ function SidebarContent({ onClose }) {
         Sections
       </p>
       <div style={{ flex: 1 }}>
-        {SECTIONS.map(s => (
+        {dynamicSections.map(s => (
           <SidebarItem
             key={s.id} {...s}
             active={activeSection?.id === s.id}
@@ -68,8 +119,31 @@ function SidebarContent({ onClose }) {
 
 function DepartmentLayoutContent({ children }) {
   const router = useRouter();
+  const pathname = usePathname();
   const { profile } = useAuth();
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [deptInfo, setDeptInfo] = useState(null);
+  const isAcademicPortal = pathname?.startsWith("/academic");
+
+  useEffect(() => {
+    if (profile?.department_id || profile?.department) {
+      const fetchDept = async () => {
+        let query = supabase
+          .from("departments")
+          .select("id, name, focal_person, contact, whatsapp_number, email, is_academic");
+
+        if (profile?.department_id) {
+          query = query.eq("id", profile.department_id);
+        } else {
+          query = query.eq("name", profile.department);
+        }
+
+        const { data } = await query.maybeSingle();
+        if (data) setDeptInfo(data);
+      };
+      fetchDept();
+    }
+  }, [profile?.department, profile?.department_id]);
 
   // Close drawer on ESC
   useEffect(() => {
@@ -104,23 +178,108 @@ function DepartmentLayoutContent({ children }) {
         </button>
 
         {/* Brand */}
-        <div
-          onClick={() => router.push("/department/dashboard")}
+          <div
+          onClick={() => router.push(isAcademicPortal ? "/academic/dashboard" : "/department/dashboard")}
           className="dept-brand"
         >
-          <span className="dept-brand-gradient">Staff Portal</span>
+          <span className="dept-brand-gradient">{isAcademicPortal ? "Academic Portal" : "Staff Portal"}</span>
           <span className="dept-brand-sub d-none d-md-inline">&nbsp;| Hub</span>
         </div>
 
-        {/* Right side */}
+        {/* Right side - Profile Dropdown */}
         <div className="dept-nav-right">
-          <span className="dept-user-label d-none d-sm-flex">
-            <span>Signed in as&nbsp;</span>
-            <strong>{profile?.name || "Staff"}</strong>
-          </span>
-          <button className="dept-signout-btn" onClick={handleLogout}>
-            Sign Out
-          </button>
+          {deptInfo?.is_academic ? (
+            <button
+              onClick={() => router.push(isAcademicPortal ? "/department/dashboard" : "/academic/issuance")}
+              className="btn btn-sm rounded-pill fw-semibold px-3 py-2 me-2"
+              style={{
+                background: isAcademicPortal ? "linear-gradient(135deg, #0f172a 0%, #334155 100%)" : "linear-gradient(135deg, #0062FF 0%, #6366F1 100%)",
+                color: "#fff",
+                border: "none",
+                boxShadow: "0 8px 18px rgba(0,98,255,0.2)",
+                whiteSpace: "nowrap",
+              }}
+            >
+              {isAcademicPortal ? "Back to Department Hub" : "Academic Issuance"}
+            </button>
+          ) : null}
+
+          <Dropdown align="end">
+            <Dropdown.Toggle as="div" style={{ cursor: "pointer" }}>
+              <div className="dept-profile-badge">
+                <div className="dept-avatar">
+                  {profile?.name?.charAt(0) || "S"}
+                </div>
+                <div className="dept-profile-info">
+                  <div className="dept-profile-name">{profile?.name || "Staff Member"}</div>
+                  <div className="dept-profile-details">
+                    <span className="badge-role">{profile?.role?.toUpperCase() || "STAFF"}</span>
+                    <span className="separator"></span>
+                    <span className="dept-name">{profile?.department || "Institutional Portal"}</span>
+                  </div>
+                </div>
+              </div>
+            </Dropdown.Toggle>
+
+            <Dropdown.Menu className="profile-dropdown-menu border-0 shadow-lg mt-2" style={{ width: "320px", borderRadius: "20px", overflow: "hidden" }}>
+              <div className="p-3 text-center" style={{ background: "linear-gradient(135deg, #f8faff 0%, #ffffff 100%)" }}>
+                <div className="dept-avatar mx-auto mb-2" style={{ width: "60px", height: "60px", fontSize: "1.5rem" }}>
+                  {profile?.name?.charAt(0) || "S"}
+                </div>
+                <h6 className="mb-0 fw-bold" style={{ color: "#0F172A" }}>{profile?.name}</h6>
+                <small className="text-muted">{profile?.email}</small>
+              </div>
+
+              <div className="p-3">
+                <Card className="border-0 bg-light p-3" style={{ borderRadius: "15px" }}>
+                  <div className="mb-2">
+                    <small className="text-uppercase fw-bold text-muted" style={{ fontSize: "0.6rem" }}>Department Details</small>
+                    <div className="fw-bold" style={{ color: "#1e293b" }}>{deptInfo?.name || profile?.department || "N/A"}</div>
+                  </div>
+                  
+                  {deptInfo ? (
+                    <div className="dept-mini-info" style={{ fontSize: "0.82rem", color: "#475569" }}>
+                      <div className="d-flex align-items-center mb-1">
+                        <span className="me-2">👤</span> 
+                        <span>Focal: <strong>{deptInfo.focal_person || "N/A"}</strong></span>
+                      </div>
+                      <div className="d-flex align-items-center mb-1">
+                        <span className="me-2">📞</span> 
+                        <span>Contact: <strong>{deptInfo.whatsapp_number || deptInfo.contact || "N/A"}</strong></span>
+                      </div>
+                      <div className="d-flex align-items-center mb-1">
+                        <span className="me-2">✉️</span> 
+                        <span>Email: <strong>{deptInfo.email || "N/A"}</strong></span>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="text-muted small italic">No department sync info available.</div>
+                  )}
+                </Card>
+              </div>
+
+              <div className="px-3 pb-3">
+                <button
+                  onClick={() => router.push("/department/profile")}
+                  className="w-100 btn btn-outline-primary rounded-pill fw-semibold"
+                >
+                  View Department Profile
+                </button>
+              </div>
+
+              <Dropdown.Divider className="my-0" />
+              
+              <div className="p-2">
+                <button 
+                  onClick={handleLogout}
+                  className="w-100 btn btn-link text-danger text-decoration-none d-flex align-items-center justify-content-center py-2"
+                  style={{ fontWeight: 700, fontSize: "0.9rem" }}
+                >
+                  <span className="me-2">🚪</span> Sign Out Account
+                </button>
+              </div>
+            </Dropdown.Menu>
+          </Dropdown>
         </div>
       </nav>
 
@@ -136,7 +295,7 @@ function DepartmentLayoutContent({ children }) {
       <aside className={`dept-drawer ${drawerOpen ? "dept-drawer--open" : ""}`}>
         <div className="dept-drawer-header">
           <span className="dept-brand-gradient" style={{ fontFamily: "'Poppins',sans-serif", fontWeight: 800, fontSize: "1.1rem" }}>
-            Staff Portal
+            {isAcademicPortal ? "Academic Portal" : "Staff Portal"}
           </span>
           <button className="dept-drawer-close" onClick={() => setDrawerOpen(false)}>✕</button>
         </div>
@@ -182,13 +341,59 @@ function DepartmentLayoutContent({ children }) {
         }
         .dept-brand-sub { color: #94A3B8; font-weight: 400; font-size: 0.9rem; }
         .dept-nav-right {
-          display: flex; align-items: center; gap: 0.75rem; margin-left: auto;
+          display: flex; align-items: center; gap: 1.25rem; margin-left: auto;
         }
-        .dept-user-label {
-          font-size: 0.82rem; color: #475569;
-          display: flex; align-items: center; gap: 0.2rem;
+        .dept-profile-badge {
+          display: flex; align-items: center; gap: 0.75rem;
+          padding: 0.4rem; padding-right: 0.75rem;
+          background: #F8FAFC; border: 1px solid #E2E8F0;
+          border-radius: 50px; transition: all 0.2s ease;
         }
-        .dept-user-label strong { color: #0F172A; }
+        .dept-profile-badge:hover {
+          background: #F1F5F9; border-color: #CBD5E1;
+          transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+        }
+        .profile-dropdown-menu {
+          animation: slideDown 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        @keyframes slideDown {
+          from { opacity: 0; transform: translateY(-10px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        .dept-mini-info div {
+          padding: 4px 0;
+          transition: all 0.2s ease;
+        }
+        .dept-mini-info div:hover {
+          transform: translateX(3px);
+          color: #0062FF;
+        }
+        .dept-avatar {
+          width: 36px; height: 36px; border-radius: 50%;
+          background: linear-gradient(135deg, #0062FF, #6366F1);
+          color: white; display: flex; align-items: center; justify-content: center;
+          font-weight: 800; font-size: 0.9rem;
+          box-shadow: 0 4px 10px rgba(0,98,255,0.2);
+          text-transform: uppercase;
+        }
+        .dept-profile-info {
+          display: flex; flex-direction: column; line-height: 1.2;
+        }
+        .dept-profile-name {
+          font-size: 0.82rem; font-weight: 700; color: #0F172A;
+        }
+        .dept-profile-details {
+          display: flex; align-items: center; gap: 0.4rem; font-size: 0.68rem;
+        }
+        .badge-role {
+          color: #6366F1; font-weight: 800; letter-spacing: 0.4px;
+        }
+        .dept-name {
+          color: #64748B; font-weight: 500;
+        }
+        .separator {
+          width: 3px; height: 3px; border-radius: 50%; background: #CBD5E1;
+        }
         .dept-signout-btn {
           background: linear-gradient(135deg, #0062FF, #6366F1);
           color: white; border: none; border-radius: 10px;

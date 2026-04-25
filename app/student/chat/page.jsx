@@ -26,33 +26,42 @@ export default function ChatPage() {
         if (deptError) throw deptError;
         if (!deptData) return;
 
-        // 2. Try to fetch staff info (Optional enhancement)
-        const { data: staffData, error: staffError } = await supabase
+        // 2. Try to fetch staff info
+        const { data: staffData } = await supabase
           .from("staff_directory")
           .select("department_id, whatsapp_number, availability_status, focal_person:user_id(name)")
           .limit(100);
           
-        // Note: Even if staffError exists (e.g. table missing), we continue with deptData
         const enriched = deptData.map(d => {
           const staff = staffData?.find(s => s.department_id === d.id);
-          const defaultWhatsapp = "03196590756"; // Your provided contact
+          const defaultWhatsapp = "03196590756"; 
           
           return {
             ...d,
-            email: staff?.email || d.email || defaultWhatsapp.includes('@') ? defaultWhatsapp : "department@gmail.com", 
-            whatsapp_number: staff?.whatsapp_number || d.whatsapp_number || defaultWhatsapp,
-            status: staff?.availability_status || "available", // Default to available if table missing
-            focal_name: staff?.focal_person?.name || d.focal_person || "Staff Member"
+            email: d.email || "department@gmail.com", 
+            whatsapp_number: d.whatsapp_number || defaultWhatsapp,
+            status: staff?.availability_status || "available", 
+            focal_name: d.focal_person || "Staff Member"
           };
         });
         
         setDepartments(enriched);
       } catch (err) {
         console.warn("Department load warning:", err.message);
-        // Fallback to empty but at least don't crash the sidebar logic
       }
     }
+
     loadDepts();
+
+    // ── REAL-TIME SUBSCRIPTION ──
+    const channel = supabase
+      .channel("dept-sync")
+      .on("postgres_changes", { event: "*", schema: "public", table: "departments" }, () => {
+        loadDepts();
+      })
+      .subscribe();
+
+    return () => supabase.removeChannel(channel);
   }, []);
 
   const handleSelectDept = async (dept) => {
@@ -104,37 +113,70 @@ export default function ChatPage() {
               <div className="p-3 bg-light">
                  <Button 
                    variant={activeTab === 'ai' ? 'primary' : 'outline-primary'} 
-                   className="w-100 mb-3 py-3 d-flex align-items-center justify-content-center gap-2 border-0 shadow-sm"
-                   style={{ borderRadius: "12px", background: activeTab === 'ai' ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' : 'white', color: activeTab === 'ai' ? 'white' : '#667eea' }}
+                   className="w-100 mb-4 py-3 d-flex align-items-center justify-content-center gap-3 border-0 shadow-sm"
+                   style={{ 
+                     borderRadius: "15px", 
+                     background: activeTab === 'ai' ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' : 'white', 
+                     color: activeTab === 'ai' ? 'white' : '#667eea',
+                     fontWeight: "600",
+                     transition: "all 0.3s"
+                   }}
                    onClick={() => { setActiveTab('ai'); setSelectedDepartment(null); }}
                  >
-                   🤖 Talk to AI Assistant
+                   <span style={{ fontSize: "1.2rem" }}>🤖</span> Talk to AI Assistant
                  </Button>
                  
-                 <div className="text-uppercase small fw-bold text-muted mb-2 px-2">Departments</div>
-                 <div style={{ maxHeight: "500px", overflowY: "auto" }}>
-                   {departments.map((dept) => (
-                     <div 
-                       key={dept.id}
-                       onClick={() => handleSelectDept(dept)}
-                       className={`p-3 mb-2 rounded-4 cursor-pointer transition-all ${selectedDepartment?.id === dept.id ? 'bg-white shadow-sm border-start border-primary border-4' : 'hover-bg-white'}`}
-                       style={{ cursor: "pointer", transition: "all 0.2s" }}
-                     >
-                       <div className="d-flex align-items-center gap-3">
-                         <div style={{ width: "45px", height: "45px", borderRadius: "12px", background: "#f0f3ff", color: "#667eea", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: "bold" }}>
-                           {dept.name.charAt(0)}
-                         </div>
-                         <div className="flex-grow-1">
-                           <div className="fw-bold mb-0 small text-truncate" style={{ maxWidth: "150px" }}>{dept.name}</div>
-                           <div className="d-flex align-items-center gap-1">
-                             <span className={`rounded-circle`} style={{ width: "8px", height: "8px", backgroundColor: dept.status === 'available' ? '#198754' : '#6c757d' }}></span>
-                             <span className="text-muted" style={{ fontSize: "0.7rem" }}>{dept.status}</span>
-                           </div>
-                         </div>
-                       </div>
-                     </div>
-                   ))}
-                 </div>
+                  <div className="text-uppercase small fw-bold text-muted mb-3 px-2" style={{ letterSpacing: "1.5px" }}>Departments</div>
+                  <div className="custom-scrollbar" style={{ maxHeight: "600px", overflowY: "auto", paddingRight: "5px" }}>
+                    {departments.map((dept) => (
+                      <div 
+                        key={dept.id}
+                        onClick={() => handleSelectDept(dept)}
+                        className={`p-3 mb-3 rounded-4 cursor-pointer transition-all dept-item ${selectedDepartment?.id === dept.id ? 'active-dept' : ''}`}
+                        style={{ 
+                          cursor: "pointer", 
+                          transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+                          background: selectedDepartment?.id === dept.id ? 'white' : 'rgba(255,255,255,0.7)',
+                          border: selectedDepartment?.id === dept.id ? '2px solid #667eea' : '1px solid #edf2f7',
+                          boxShadow: selectedDepartment?.id === dept.id ? '0 12px 24px rgba(102, 126, 234, 0.2)' : '0 2px 4px rgba(0,0,0,0.02)'
+                        }}
+                      >
+                        <div className="d-flex align-items-center gap-3">
+                          <div className="dept-avatar" style={{ 
+                            minWidth: "56px", 
+                            height: "56px", 
+                            borderRadius: "18px", 
+                            background: selectedDepartment?.id === dept.id ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' : 'white', 
+                            color: selectedDepartment?.id === dept.id ? 'white' : '#667eea', 
+                            display: "flex", 
+                            alignItems: "center", 
+                            justifyContent: "center", 
+                            fontWeight: "800",
+                            fontSize: "1.4rem",
+                            boxShadow: "inset 0 0 0 1px rgba(0,0,0,0.05)"
+                          }}>
+                            {dept.name.charAt(0).toUpperCase()}
+                          </div>
+                          <div className="flex-grow-1">
+                            <div className="fw-bold mb-1 text-dark" style={{ fontSize: "1.1rem", lineHeight: "1.2", letterSpacing: "-0.3px" }}>
+                              {dept.name}
+                            </div>
+                            <div className="d-flex align-items-center gap-2">
+                              <span className={`status-dot ${dept.status === 'available' ? 'bg-success' : 'bg-secondary'}`} 
+                                    style={{ 
+                                      width: "12px", 
+                                      height: "12px", 
+                                      borderRadius: "50%"
+                                    }}></span>
+                              <span className="text-muted fw-bold text-uppercase" style={{ fontSize: "0.8rem", letterSpacing: "1px" }}>
+                                {dept.status}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
               </div>
             </Card>
           </Col>
@@ -214,7 +256,35 @@ export default function ChatPage() {
       <style jsx>{`
         .cursor-pointer { cursor: pointer; }
         .transition-all { transition: all 0.3s ease; }
-        .hover-bg-white:hover { background-color: white !important; transform: translateX(5px); }
+        .dept-item:hover { 
+          transform: translateX(8px);
+          background-color: white !important;
+          box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+        }
+        .active-dept {
+          transform: translateX(10px) scale(1.02);
+        }
+        .status-dot.bg-success {
+          animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+          0% { transform: scale(1); opacity: 1; }
+          50% { transform: scale(1.5); opacity: 0.7; }
+          100% { transform: scale(1); opacity: 1; }
+        }
+        .custom-scrollbar::-webkit-scrollbar {
+          width: 5px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+          background: transparent;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+          background: #e0e0e0;
+          border-radius: 10px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+          background: #d0d0d0;
+        }
         .flex-center { display: flex; flex-direction: column; align-items: center; justify-content: center; }
       `}</style>
     </StudentLayout>

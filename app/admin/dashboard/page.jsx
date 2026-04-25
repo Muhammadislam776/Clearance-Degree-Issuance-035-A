@@ -3,6 +3,7 @@ import React, { useEffect, useState, useCallback, useMemo } from "react";
 import { Container, Row, Col, Card, Table, Button, Badge, Form, Spinner, Alert, Modal } from "react-bootstrap";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import AdminLayout from "@/components/layout/AdminLayout";
+import Charts from "@/components/admin/Charts";
 import { useAuth } from "@/lib/useAuth";
 import { supabase } from "@/lib/supabaseClient";
 import { withTimeout } from "@/lib/authService";
@@ -101,11 +102,36 @@ export default function AdminDashboard() {
     departments: 0,
     examiners: 0,
     clearances: 0,
+    pending: 0,
+    approved: 0,
   });
   
   const [users, setUsers] = useState([]);
   const [selectedUser, setSelectedUser] = useState(null);
   const [showModal, setShowModal] = useState(false);
+
+  const downloadReport = async () => {
+    try {
+      const { data } = await supabase.from("clearance_requests").select("id, overall_status, created_at");
+      if (!data) return;
+
+      const csv = [
+        ["ID", "Status", "Date"],
+        ...data.map(d => [d.id, d.overall_status || "pending", new Date(d.created_at).toLocaleDateString()])
+      ].map(e => e.join(",")).join("\n");
+
+      const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+      const url = window.URL.createObjectURL(blob);
+
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "clearance_report.csv";
+      a.click();
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error("Failed to download report", err);
+    }
+  };
 
   /* ── Data Fetching ───────────────────────────────────────── */
   const fetchDashboardData = useCallback(async () => {
@@ -113,19 +139,24 @@ export default function AdminDashboard() {
       setLoading(true);
       setError("");
 
-      const [studentRes, examinerRes, clearanceRes, usersRes, deptRes] = await Promise.all([
+      const [studentRes, examinerRes, clearanceRes, usersRes, deptRes, allClearanceRes] = await Promise.all([
         supabase.from("users").select("*", { count: "exact", head: true }).eq("role", "student"),
         supabase.from("users").select("*", { count: "exact", head: true }).eq("role", "examiner"),
         supabase.from("clearance_requests").select("*", { count: "exact", head: true }).neq("overall_status", "completed"),
         supabase.from("users").select("*").order("created_at", { ascending: false }).limit(100),
-        supabase.from("departments").select("*", { count: "exact", head: true })
+        supabase.from("departments").select("*", { count: "exact", head: true }),
+        supabase.from("clearance_requests").select("id, overall_status")
       ]);
+
+      const allClearances = allClearanceRes.data || [];
 
       setStats({
         students: studentRes.count || 0,
         departments: deptRes.count || 0,
         examiners: examinerRes.count || 0,
-        clearances: clearanceRes.count || 0
+        clearances: clearanceRes.count || 0,
+        pending: allClearances.filter(c => c.overall_status === "pending" || c.overall_status === "in_progress").length,
+        approved: allClearances.filter(c => c.overall_status === "completed").length
       });
 
       const formatted = (usersRes.data || []).map(u => ({
@@ -193,13 +224,20 @@ export default function AdminDashboard() {
                     <h1 className="display-4 fw-black text-white mb-2">Institutional Ledger</h1>
                     <p className="lead text-white opacity-75 mb-0">Surveillance, configuration, and authoritative control over institutional nodes.</p>
                   </Col>
-                  <Col lg={4} className="text-lg-end mt-4 mt-lg-0">
+                  <Col lg={4} className="text-lg-end mt-4 mt-lg-0 d-flex gap-2 justify-content-lg-end">
                     <Button 
                       className="px-4 py-3 rounded-4 border-0 shadow-lg fw-bold" 
                       style={{ background: "white", color: "#4F46E5" }}
                       onClick={fetchDashboardData}
                     >
-                      ↺ Recalibrate Metrics
+                      ↺ Recalibrate
+                    </Button>
+                    <Button 
+                      className="px-4 py-3 rounded-4 border-0 shadow-lg fw-bold" 
+                      style={{ background: "white", color: "#10B981" }}
+                      onClick={downloadReport}
+                    >
+                      📊 Download Report
                     </Button>
                   </Col>
                 </Row>
@@ -209,35 +247,42 @@ export default function AdminDashboard() {
             {error && <Alert variant="danger" className="border-0 shadow-sm rounded-4 mb-4">{error}</Alert>}
 
             {/* Statistics */}
-            <Row className="g-4 mb-5">
+            <Row className="g-3 mb-5 admin-stat-row">
               {[
                 { label: "Total Students", value: stats.students, icon: "👥", trend: "Live Auditing", color: "#4F46E5" },
                 { label: "Departments", value: stats.departments, icon: "🏛️", trend: "Active Registry", color: "#0D9488" },
-                { label: "Examiners", value: stats.examiners, icon: "👨‍⚖️", trend: "Vetting Authority", color: "#D97706" },
                 { label: "Active Requests", value: stats.clearances, icon: "⏳", trend: "Workflow Pipeline", color: "#7C3AED" },
+                { label: "Pending Reviews", value: stats.pending, icon: "🔍", trend: "Action Required", color: "#D97706" },
+                { label: "Approved Requests", value: stats.approved, icon: "✅", trend: "Completed", color: "#10B981" },
               ].map((stat, i) => (
-                <Col md={6} lg={3} key={i}>
-                  <Card className="border-0 shadow-sm rounded-4 p-3 h-100 admin-stat-card transition-hover">
-                    <Card.Body>
+                <Col md={6} lg={4} xl={3} key={i}>
+                  <Card className="border-0 shadow-sm rounded-4 h-100 admin-stat-card transition-hover">
+                    <Card.Body className="p-3">
                       <div className="d-flex justify-content-between align-items-start mb-3">
                         <div style={{
-                          width: 48, height: 48, borderRadius: 16, 
+                          width: 40, height: 40, borderRadius: 12,
                           background: `${stat.color}10`, color: stat.color,
-                          display: "flex", alignItems: "center", justifyContent: "center", fontSize: "1.5rem"
+                          display: "flex", alignItems: "center", justifyContent: "center", fontSize: "1.15rem"
                         }}>
                           {stat.icon}
                         </div>
-                        <span className="badge rounded-pill" style={{ background: `${stat.color}10`, color: stat.color, fontSize: "0.65rem" }}>
+                        <span className="badge rounded-pill admin-stat-trend" style={{ background: `${stat.color}10`, color: stat.color, fontSize: "0.62rem" }}>
                           {stat.trend}
                         </span>
                       </div>
-                      <h3 className="fw-black mb-0 display-6">{stat.value}</h3>
-                      <p className="text-muted small fw-bold text-uppercase mb-0">{stat.label}</p>
+                      <h3 className="fw-black mb-1 admin-stat-value">{stat.value}</h3>
+                      <p className="text-muted small fw-bold text-uppercase mb-0 admin-stat-label">{stat.label}</p>
                     </Card.Body>
                   </Card>
                 </Col>
               ))}
             </Row>
+
+            {/* Analytics Charts */}
+            <div className="mb-5">
+              <h4 className="fw-bold mb-3">Clearance Analytics</h4>
+              <Charts stats={stats} />
+            </div>
 
             {/* User Management */}
             <Card className="border-0 shadow-sm rounded-5 overflow-hidden">
@@ -345,9 +390,20 @@ export default function AdminDashboard() {
         </div>
 
         <style jsx>{`
+          @keyframes heroRise {
+            from { opacity: 0; transform: translateY(14px); }
+            to { opacity: 1; transform: translateY(0); }
+          }
+
+          @keyframes statRise {
+            from { opacity: 0; transform: translateY(16px) scale(0.985); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+          }
+
           .admin-hero-content {
             background: linear-gradient(135deg, #1e1b4b 0%, #4338ca 100%);
             box-shadow: 0 20px 40px rgba(67, 56, 202, 0.25);
+            animation: heroRise 0.45s ease-out;
           }
           .admin-hero-overlay {
             position: absolute;
@@ -355,10 +411,67 @@ export default function AdminDashboard() {
             background: url("https://www.transparenttextures.com/patterns/carbon-fibre.png");
             opacity: 0.1;
           }
-          .admin-stat-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 12px 24px rgba(0,0,0,0.08) !important;
+
+          .admin-stat-card {
+            border: 1px solid #e2e8f0;
+            background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+            position: relative;
+            overflow: hidden;
+            transition: transform 0.28s ease, box-shadow 0.28s ease, border-color 0.28s ease;
+            animation: statRise 0.45s ease-out backwards;
           }
+
+          .admin-stat-card::before {
+            content: "";
+            position: absolute;
+            inset: 0 0 auto 0;
+            height: 3px;
+            background: linear-gradient(90deg, #4f46e5, #06b6d4);
+            opacity: 0;
+            transition: opacity 0.25s ease;
+          }
+
+          .admin-stat-row > :nth-child(1) .admin-stat-card { animation-delay: 0.03s; }
+          .admin-stat-row > :nth-child(2) .admin-stat-card { animation-delay: 0.08s; }
+          .admin-stat-row > :nth-child(3) .admin-stat-card { animation-delay: 0.13s; }
+          .admin-stat-row > :nth-child(4) .admin-stat-card { animation-delay: 0.18s; }
+          .admin-stat-row > :nth-child(5) .admin-stat-card { animation-delay: 0.23s; }
+
+          .admin-stat-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 16px 28px rgba(30, 41, 59, 0.12) !important;
+            border-color: rgba(79, 70, 229, 0.35);
+          }
+
+          .admin-stat-card:hover::before {
+            opacity: 1;
+          }
+
+          .admin-stat-value {
+            font-size: clamp(1.8rem, 2.5vw, 2.2rem);
+            line-height: 1.05;
+            color: #0f172a;
+            letter-spacing: -0.02em;
+          }
+
+          .admin-stat-label {
+            letter-spacing: 0.04em;
+          }
+
+          .admin-stat-trend {
+            padding: 0.35rem 0.58rem;
+            border: 1px solid rgba(148, 163, 184, 0.2);
+          }
+
+          .admin-hero button {
+            transition: transform 0.25s ease, box-shadow 0.25s ease;
+          }
+
+          .admin-hero button:hover {
+            transform: translateY(-2px) scale(1.01);
+            box-shadow: 0 12px 22px rgba(30, 41, 59, 0.16) !important;
+          }
+
           .admin-table tbody tr:hover {
             background-color: #f8fafc;
             cursor: pointer;

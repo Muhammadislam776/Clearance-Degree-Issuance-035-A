@@ -1,6 +1,6 @@
 "use client";
 import React from "react";
-import { Modal, Button, Badge, Row, Col, Form } from "react-bootstrap";
+import { Modal, Button, Badge, Row, Col, Form, Spinner } from "react-bootstrap";
 
 export default function ReviewModal({ show, onHide, request, onAction }) {
   const [comment, setComment] = React.useState("");
@@ -120,14 +120,14 @@ export default function ReviewModal({ show, onHide, request, onAction }) {
                 onClick={() => handleAction("rejected")}
                 disabled={loading}
               >
-                ❌ Reject Request
+                {loading ? <Spinner size="sm" animation="border" className="me-2" /> : "❌"} Reject Request
               </Button>
               <Button
                 className="flex-grow-1 dept-btn-approve shadow-sm"
                 onClick={() => handleAction("approved")}
                 disabled={loading}
               >
-                ✅ Approve Clearance
+                {loading ? <Spinner size="sm" animation="border" className="me-2" /> : "✅"} Approve Clearance
               </Button>
             </div>
           </>

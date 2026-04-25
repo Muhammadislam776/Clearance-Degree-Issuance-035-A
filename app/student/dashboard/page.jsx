@@ -41,34 +41,32 @@ export default function StudentDashboard() {
   };
 
   useEffect(() => {
-    if (!authLoading && profile?.student_profile?.id) {
-      loadData(profile.student_profile.id);
+    if (!authLoading && profile?.student_id) {
+      loadData(profile.student_id);
 
       // Subscribe for instant updates (Real-time)
       const channel = supabase
-        .channel(`student-dash-${profile.student_profile.id}`)
+        .channel(`student-dash-${profile.student_id}`)
         .on("postgres_changes", {
           event: "*",
           schema: "public",
           table: "clearance_requests",
-          filter: `student_id=eq.${profile.student_profile.id}`,
-        }, () => loadData(profile.student_profile.id))
+          filter: `student_id=eq.${profile.student_id}`,
+        }, () => loadData(profile.student_id))
         .on("postgres_changes", {
           event: "*",
           schema: "public",
           table: "clearance_status"
-          // Unfortunately we can't filter deeply nested records easily in JS client without request_id,
-          // but clicking a dept updates individual request_id anyway.
-        }, () => loadData(profile.student_profile.id))
+        }, () => loadData(profile.student_id))
         .subscribe();
 
       return () => {
         supabase.removeChannel(channel);
       };
-    } else if (!authLoading && !profile?.student_profile?.id) {
+    } else if (!authLoading && !profile?.student_id) {
       setLoading(false);
     }
-  }, [authLoading, profile?.student_profile?.id]);
+  }, [authLoading, profile?.student_id]);
 
   const latest = clearances?.[0];
 
@@ -114,7 +112,7 @@ export default function StudentDashboard() {
             <Alert variant="danger" className="rounded-4 border-0 shadow-sm p-4 text-center">
               <h4 className="fw-bold">Synchronization Error</h4>
               <p>{error}</p>
-              <Button onClick={() => loadData(profile?.student_profile?.id)} variant="outline-danger" className="rounded-pill">Retry Sync</Button>
+              <Button onClick={() => loadData(profile?.student_id)} variant="outline-danger" className="rounded-pill">Retry Sync</Button>
             </Alert>
           ) : clearances.length === 0 ? (
             <Card className="border-0 shadow-sm p-5 text-center mt-4" style={{ borderRadius: "20px" }}>
@@ -140,6 +138,34 @@ export default function StudentDashboard() {
                         {latest.overall_status}
                       </Badge>
                     </div>
+                    
+                    {latest.overall_status === "completed" && (
+                      <div className="mb-4">
+                        <Alert variant="success" className="d-flex justify-content-between align-items-center border-0 shadow-sm rounded-4">
+                          <div>
+                            <strong>Congratulations!</strong> Your clearance is fully approved.
+                          </div>
+                          <Button 
+                            variant="success" 
+                            className="rounded-pill px-4 fw-bold shadow-sm"
+                            onClick={async () => {
+                              try {
+                                const { generateDegreePDF } = await import("@/lib/generateDegree");
+                                generateDegreePDF(
+                                  profile?.name || "Student", 
+                                  profile?.roll_number || "XX-XXXX"
+                                );
+                              } catch(e) {
+                                console.error(e);
+                                alert("Failed to generate PDF.");
+                              }
+                            }}
+                          >
+                            🎓 Download Degree
+                          </Button>
+                        </Alert>
+                      </div>
+                    )}
                     
                     <div className="mb-4">
                       <div className="d-flex justify-content-between mb-2">

@@ -5,7 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import { Card, Button, Table, Modal, Form, Spinner, Alert, Badge } from "react-bootstrap";
 import DepartmentLayout from "@/components/layout/DepartmentLayout";
 import { supabase } from "@/lib/supabaseClient";
-import { updateClearanceTaskStatus } from "@/lib/clearanceService";
+import { updateClearanceTaskStatus, issueDegreeThroughAcademicDept } from "@/lib/clearanceService";
 
 const badgeFor = (status) => {
   switch (status) {
@@ -33,6 +33,10 @@ export default function DepartmentReviewDetailPage() {
   const [task, setTask] = useState(null);
   const [remarks, setRemarks] = useState("");
   const [showReject, setShowReject] = useState(false);
+  const [showIssueDegree, setShowIssueDegree] = useState(false);
+  const [degreeRemarks, setDegreeRemarks] = useState("");
+  const [departmentIsAcademic, setDepartmentIsAcademic] = useState(false);
+  const [allClearanceStatuses, setAllClearanceStatuses] = useState([]);
 
   useEffect(() => {
     if (!taskId) return;
@@ -50,7 +54,7 @@ export default function DepartmentReviewDetailPage() {
           remarks,
           request_id,
           department_id,
-          departments (id, name, code),
+          departments (id, name, code, is_academic),
           clearance_requests (
             id,
             overall_status,
@@ -76,6 +80,23 @@ export default function DepartmentReviewDetailPage() {
 
       setTask(data);
       setRemarks(data?.remarks || "");
+      
+      // Check if this department is academic
+      const isAcademic = !!data?.departments?.is_academic;
+      setDepartmentIsAcademic(isAcademic);
+
+      // Fetch all clearance statuses for this request to check if all are approved
+      if (data?.clearance_requests?.id) {
+        const { data: statusesData, error: statusesError } = await supabase
+          .from("clearance_status")
+          .select("status")
+          .eq("request_id", data.clearance_requests.id);
+        
+        if (!statusesError) {
+          setAllClearanceStatuses(statusesData || []);
+        }
+      }
+
       setLoading(false);
     };
 
@@ -120,6 +141,46 @@ export default function DepartmentReviewDetailPage() {
     setTask((prev) => ({ ...prev, status: "rejected", feedback: remarks }));
     setSubmitting(false);
     setShowReject(false);
+  };
+
+  const handleIssueDegree = async () => {
+    if (!task?.id || !departmentIsAcademic) return;
+    
+    setSubmitting(true);
+    setError("");
+
+    try {
+      const student = task?.clearance_requests?.students;
+      const requestId = task?.clearance_requests?.id;
+      
+      if (!student?.id || !requestId) {
+        throw new Error("Missing student or request information");
+      }
+
+      const res = await issueDegreeThroughAcademicDept(
+        requestId,
+        student.id,
+        task.department_id,
+        "Official Degree Certificate",
+        degreeRemarks
+      );
+
+      if (!res.success) {
+        setError(res.error || "Failed to issue degree");
+        setSubmitting(false);
+        return;
+      }
+
+      // Success - show confirmation and navigate back
+      alert("✓ Degree successfully issued!");
+      setShowIssueDegree(false);
+      setDegreeRemarks("");
+      setSubmitting(false);
+      router.push("/department/review");
+    } catch (err) {
+      setError(err.message || "Error issuing degree");
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -236,13 +297,25 @@ export default function DepartmentReviewDetailPage() {
               />
             </Form.Group>
 
-            <div className="d-flex gap-2">
+            <div className="d-flex gap-2 flex-wrap">
               <Button variant="success" onClick={handleApprove} disabled={!canAct || submitting}>
                 {submitting ? "Saving..." : "Approve"}
               </Button>
               <Button variant="danger" onClick={() => setShowReject(true)} disabled={!canAct || submitting}>
                 Reject
               </Button>
+
+              {/* Degree Issuance Button - Only for Academic Departments when all approved */}
+              {departmentIsAcademic && task?.status === "completed" && allClearanceStatuses.every(s => s.status === "completed" || s.status === "approved") && (
+                <Button 
+                  variant="primary" 
+                  onClick={() => setShowIssueDegree(true)}
+                  disabled={submitting}
+                  style={{ background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)", border: "none" }}
+                >
+                  🎓 Issue Degree
+                </Button>
+              )}
             </div>
           </Card>
 
@@ -266,6 +339,46 @@ export default function DepartmentReviewDetailPage() {
               </Button>
               <Button variant="danger" onClick={handleReject} disabled={submitting || !remarks.trim()}>
                 {submitting ? "Saving..." : "Reject"}
+              </Button>
+            </Modal.Footer>
+          </Modal>
+
+          {/* Degree Issuance Modal */}
+          <Modal show={showIssueDegree} onHide={() => setShowIssueDegree(false)} centered>
+            <Modal.Header closeButton className="border-0 pb-0">
+              <Modal.Title className="fw-bold">🎓 Issue Degree Certificate</Modal.Title>
+            </Modal.Header>
+            <Modal.Body className="p-4">
+              <p className="text-muted mb-3">
+                You are about to issue the degree certificate to <strong>{student?.name}</strong>. All department clearances have been approved.
+              </p>
+              <Form.Group>
+                <Form.Label className="fw-bold mb-2">Additional Remarks (Optional)</Form.Label>
+                <Form.Control
+                  as="textarea"
+                  rows={3}
+                  value={degreeRemarks}
+                  onChange={(e) => setDegreeRemarks(e.target.value)}
+                  placeholder="Add any remarks or notes for the degree record..."
+                  disabled={submitting}
+                />
+              </Form.Group>
+            </Modal.Body>
+            <Modal.Footer className="border-0 pt-0">
+              <Button 
+                variant="secondary" 
+                onClick={() => setShowIssueDegree(false)}
+                disabled={submitting}
+              >
+                Cancel
+              </Button>
+              <Button 
+                variant="success" 
+                onClick={handleIssueDegree}
+                disabled={submitting}
+                className="fw-bold"
+              >
+                {submitting ? "Issuing..." : "Confirm & Issue Degree"}
               </Button>
             </Modal.Footer>
           </Modal>

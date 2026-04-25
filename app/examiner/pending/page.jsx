@@ -4,6 +4,7 @@ import { Container, Row, Col, Card, Table, Button, Badge, Modal, Form, Alert, Sp
 import ExaminerLayout from '@/components/layout/ExaminerLayout';
 import { useAuth } from '@/lib/useAuth';
 import { supabase } from '@/lib/supabaseClient';
+import { approveFinal } from '@/lib/clearanceService';
 
 export default function PendingClearancesPage() {
   const { profile } = useAuth();
@@ -15,11 +16,20 @@ export default function PendingClearancesPage() {
   const [pendingApplications, setPendingApplications] = useState([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [academicDepartment, setAcademicDepartment] = useState(null);
 
   useEffect(() => {
     async function loadApplications() {
       try {
         setLoading(true);
+        const { data: academicDept } = await supabase
+          .from("departments")
+          .select("id, name")
+          .eq("is_academic", true)
+          .maybeSingle();
+
+        setAcademicDepartment(academicDept || null);
+
         // Fetch all clearance requests that don't have degrees yet
         const { data: requests, error } = await supabase
           .from("clearance_requests")
@@ -36,7 +46,8 @@ export default function PendingClearancesPage() {
         const eligibleRequests = (requests || []).filter(req => {
             const hasStatuses = req.clearance_status && req.clearance_status.length > 0;
             const allApproved = hasStatuses && req.clearance_status.every(s => s.status === 'approved');
-            return allApproved;
+          const awaitingExaminer = req.overall_status !== "approved";
+          return allApproved && awaitingExaminer;
         });
 
         setPendingApplications(eligibleRequests);
@@ -65,23 +76,16 @@ export default function PendingClearancesPage() {
     
     try {
       if (verdict === "Approved") {
-        // Issue Degree
-        const { error: insertError } = await supabase.from('degrees').insert([{
-           student_id: selectedApp.students.id,
-           degree_title: `${selectedApp.students.department} Official Degree`,
-           qr_code: `VERIFIED-${selectedApp.id}`
-        }]);
-        if (insertError) throw insertError;
+        if (!academicDepartment?.id) {
+          throw new Error("No academic department is configured by admin. Please set one before examiner approval.");
+        }
 
-        // Mark clearance overall_status as completed
-        const { error: updateError } = await supabase.from('clearance_requests')
-          .update({ overall_status: 'completed', degree_issued: true })
-          .eq('id', selectedApp.id);
-        if (updateError) throw updateError;
+        const result = await approveFinal(selectedApp.id, comments);
+        if (!result.success) throw new Error(result.error || "Failed to approve final review");
       } else {
         // Handle rejection or pending by marking overall status back
         const { error: updateError } = await supabase.from('clearance_requests')
-          .update({ overall_status: 'in_progress' })
+          .update({ overall_status: 'in_progress', notes: comments?.trim() || null })
           .eq('id', selectedApp.id);
         if (updateError) throw updateError;
       }
@@ -89,10 +93,14 @@ export default function PendingClearancesPage() {
       // Update UI 
       setPendingApplications(prev => prev.filter(app => app.id !== selectedApp.id));
       setShowModal(false);
-      alert(`Application has been ${verdict.toLowerCase()}!`);
+      if (verdict === "Approved") {
+        alert(`Application approved by examiner. Sent to ${academicDepartment?.name || "Academic Department"} for final degree issuance.`);
+      } else {
+        alert(`Application has been ${verdict.toLowerCase()}!`);
+      }
     } catch (err) {
        console.error("Failed to submit verdict", err);
-       alert("Error processing degree. Please try again.");
+       alert("Error processing review. Please try again.");
     } finally {
       setSubmitting(false);
     }
@@ -106,6 +114,16 @@ export default function PendingClearancesPage() {
           <h1 className="fw-bold mb-2">⏳ Pending Clearances for Review</h1>
           <p>Review and approve final degree clearances from students</p>
         </div>
+
+        {academicDepartment ? (
+          <Alert variant="info" className="border-0 shadow-sm rounded-4">
+            Final degree issuance authority: <strong>{academicDepartment.name}</strong>. Examiner approval forwards records there.
+          </Alert>
+        ) : (
+          <Alert variant="warning" className="border-0 shadow-sm rounded-4">
+            No academic department is selected by admin. Examiner can review, but final degree issuance cannot proceed until one department is marked academic.
+          </Alert>
+        )}
 
         {/* Summary */}
         <Row className="mb-4">
@@ -190,7 +208,7 @@ export default function PendingClearancesPage() {
                               onClick={() => handleReview(app)}
                               style={{ background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)", border: "none" }}
                             >
-                              Review & Issue
+                              Review Final
                             </Button>
                           </td>
                         </tr>
@@ -251,7 +269,7 @@ export default function PendingClearancesPage() {
                     required
                   >
                     <option value="">Select a verdict...</option>
-                    <option value="Approved">✅ Approve for Degree Issuance</option>
+                    <option value="Approved">✅ Approve and Forward to Academic Department</option>
                     <option value="Rejected">❌ Reject Application</option>
                     <option value="Pending">⏳ Request More Information</option>
                   </Form.Select>
@@ -281,7 +299,7 @@ export default function PendingClearancesPage() {
             disabled={submitting}
             style={{ background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)", border: "none" }}
           >
-            {submitting ? "Processing..." : "Submit & Issue Degree"}
+            {submitting ? "Processing..." : "Submit Review"}
           </Button>
         </Modal.Footer>
       </Modal>

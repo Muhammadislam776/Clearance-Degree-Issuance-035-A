@@ -1,6 +1,7 @@
 "use client";
 import React, { useEffect, useState, useCallback, useMemo } from "react";
-import { Row, Col, Spinner, Alert } from "react-bootstrap";
+import { Row, Col, Spinner, Alert, Card } from "react-bootstrap";
+import { useRouter } from "next/navigation";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import DepartmentLayout from "@/components/layout/DepartmentLayout";
 import { useAuth } from "@/lib/useAuth";
@@ -8,6 +9,7 @@ import { useSection } from "@/lib/SectionContext";
 import { supabase } from "@/lib/supabaseClient";
 import { updateClearanceTaskStatus } from "@/lib/clearanceService";
 import ReviewModal from "@/components/department/ReviewModal";
+import WhatsAppButton from "@/components/WhatsAppButton";
 
 // ── Config ────────────────────────────────────────────────────────────────────
 const STAT_CARDS = (stats) => [
@@ -86,6 +88,7 @@ function RequestCard({ req, idx, isNew, onReview }) {
 
 // ── Main Dashboard ────────────────────────────────────────────────────────────
 function DashboardContent() {
+  const router = useRouter();
   const { profile, loading: authLoading } = useAuth();
   const { activeSection } = useSection();
   const [selectedFilter, setSelectedFilter] = useState("all");
@@ -96,6 +99,7 @@ function DashboardContent() {
   const [selectedRequest, setSelectedRequest] = useState(null);
   const [newRequestPulse, setNewRequestPulse] = useState(null);
   const [stats, setStats] = useState({ total: 0, approved: 0, pending: 0, rejected: 0 });
+  const [deptInfo, setDeptInfo] = useState(null);
 
   const fetchRequests = useCallback(async (silent = false) => {
     try {
@@ -103,6 +107,17 @@ function DashboardContent() {
       setError("");
       const deptId = activeSection?.id;
       if (!deptId) return;
+
+      if (deptId === "all") {
+        setDeptInfo(null);
+      } else {
+        const { data: currentDept } = await supabase
+          .from("departments")
+          .select("id, name, focal_person, contact, whatsapp_number, email, is_academic")
+          .eq("id", deptId)
+          .single();
+        setDeptInfo(currentDept);
+      }
 
       const staffDeptId = profile?.department_id;
       let fmt = [];
@@ -265,6 +280,38 @@ function DashboardContent() {
           </div>
           <h1 className="dept-hero-title">🏛️ Institutional Hub</h1>
           <p className="dept-hero-sub">Manage student clearance across vital segments.</p>
+          {deptInfo && (
+            <div style={{ marginTop: "1.5rem", color: "rgba(255,255,255,0.9)", fontSize: "0.9rem", maxWidth: "320px" }}>
+              <Card className="p-3 shadow-lg border-0" style={{ background: "rgba(255,255,255,0.1)", backdropFilter: "blur(10px)", color: "white" }}>
+                <div>📞 Contact: {deptInfo.whatsapp_number || deptInfo.contact || "N/A"}</div>
+                <div>👤 Focal Person: {deptInfo.focal_person || "N/A"}</div>
+                <div>✉️ Email: {deptInfo.email || "N/A"}</div>
+                {deptInfo.is_academic && <div style={{ fontWeight: "bold", marginTop: "4px" }}>🎓 Academic Department (Final Authority)</div>}
+                {deptInfo.is_academic ? (
+                  <button
+                    onClick={() => router.push(`/academic/issuance?deptId=${deptInfo.id}`)}
+                    className="btn btn-sm fw-semibold mt-2"
+                    style={{
+                      background: "linear-gradient(135deg, #0f172a 0%, #334155 100%)",
+                      color: "#fff",
+                      border: "none",
+                      borderRadius: "999px",
+                      padding: "0.45rem 0.9rem",
+                    }}
+                  >
+                    Final Degree Issuance
+                  </button>
+                ) : null}
+                
+                {(deptInfo.whatsapp_number || deptInfo.contact) && (
+                  <WhatsAppButton 
+                    number={deptInfo.whatsapp_number || deptInfo.contact} 
+                    message={`Hello from the system, tracking clearance...`} 
+                  />
+                )}
+              </Card>
+            </div>
+          )}
         </div>
 
         <button

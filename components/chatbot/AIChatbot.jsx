@@ -27,7 +27,7 @@ const AIChatbot = () => {
     }
   }, [messages, isTyping, isOpen]);
 
-  const handleSend = (e) => {
+  const handleSend = async (e) => {
     e.preventDefault();
     if (!inputText.trim()) return;
 
@@ -36,24 +36,29 @@ const AIChatbot = () => {
     setInputText("");
     setIsTyping(true);
 
-    const checkKnowledgeBase = (query) => {
-       const lower = query.toLowerCase();
-       for (const [key, answer] of Object.entries(FAQ_DATABASE)) {
-          if (lower.includes(key)) {
-             return answer;
-          }
-       }
-       return "I'm still learning! But it sounds like you need help. You can try reaching out to the Admin department directly via the Chat page.";
-    };
+    try {
+      const res = await fetch("/api/ai", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ message: userMsg.text }),
+      });
 
-    // Simulate AI thinking delay
-    setTimeout(() => {
+      const data = await res.json();
+
       setMessages(prev => [
          ...prev, 
-         { id: Date.now() + 1, sender: 'bot', text: checkKnowledgeBase(userMsg.text) }
+         { id: Date.now() + 1, sender: 'bot', text: data.reply }
       ]);
+    } catch (err) {
+      setMessages(prev => [
+         ...prev, 
+         { id: Date.now() + 1, sender: 'bot', text: "I'm offline right now." }
+      ]);
+    } finally {
       setIsTyping(false);
-    }, 1500);
+    }
   };
 
   if (!isOpen) {
