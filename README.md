@@ -24,15 +24,8 @@ Role:     System Administrator
 Access:   Full system management, user management, analytics
 ```
 
-### 2️⃣ **Examiner Account**
-```
-Email:    islamjutt5@gmail.com
-Password: Islam`123
-Role:     Academic Examiner
-Access:   Review clearance requests, approve/reject submissions
-```
 
-### 3️⃣ **Student Account**
+### 2️⃣ **Student Account**
 ```
 Email:    is@gmail.com
 Password: Islam`123
@@ -40,12 +33,19 @@ Role:     Student
 Access:   Apply for clearance, track status, upload documents
 ```
 
-### 4️⃣ **Department Staff Account**
+### 3️⃣ **Department Staff Account**
 ```
 Email:    islamju@gmail.com
 Password: Islam`123
 Role:     Department Coordinator
 Access:   Process department clearances, manage reviews
+```
+### 4️⃣ **Examiner Account**
+```
+Email:    islamjutt5@gmail.com
+Password: Islam`123
+Role:     Academic Examiner
+Access:   Review clearance requests, approve/reject submissions
 ```
 
 ---
