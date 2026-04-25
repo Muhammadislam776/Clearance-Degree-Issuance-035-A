@@ -337,6 +337,9 @@ export default function ClearancePage() {
     }
   };
 
+  const requestStatus = String(activeRequest?.overall_status || "pending").toLowerCase();
+  const statusVariant = requestStatus === "completed" ? "success" : requestStatus === "rejected" ? "danger" : "warning";
+
   return (
     <StudentLayout>
       <Container fluid style={{ padding: "20px" }}>
@@ -429,12 +432,66 @@ export default function ClearancePage() {
 
                         <Form.Group className="mb-4">
                           <Form.Label className="fw-bold">Student Card (required)</Form.Label>
-                          <Form.Control type="file" accept=".jpg,.jpeg,.png,.pdf" onChange={handleStudentCardChange} required />
-                          {studentCardFile && (
-                            <div className="mt-2 text-muted">
-                              Selected: <strong>{studentCardFile.name}</strong>
+                          <div
+                            style={{
+                              border: "1px solid #cbd5e1",
+                              borderRadius: "14px",
+                              padding: "12px",
+                              background: "linear-gradient(180deg, #f8fbff 0%, #eef4ff 100%)",
+                            }}
+                          >
+                            <Form.Control
+                              id="student-card-input"
+                              type="file"
+                              accept=".jpg,.jpeg,.png,.pdf"
+                              onChange={handleStudentCardChange}
+                              required
+                              className="d-none"
+                            />
+
+                            <div className="d-flex flex-wrap align-items-center gap-2">
+                              <label
+                                htmlFor="student-card-input"
+                                className="mb-0"
+                                style={{ cursor: "pointer" }}
+                              >
+                                <span
+                                  className="d-inline-flex align-items-center fw-bold"
+                                  style={{
+                                    background: "linear-gradient(135deg, #3b82f6 0%, #6366f1 100%)",
+                                    color: "#fff",
+                                    borderRadius: "10px",
+                                    padding: "9px 14px",
+                                    boxShadow: "0 8px 18px rgba(59,130,246,0.25)",
+                                  }}
+                                >
+                                  Choose File
+                                </span>
+                              </label>
+
+                              <span
+                                style={{
+                                  color: studentCardFile ? "#0f172a" : "#64748b",
+                                  fontWeight: studentCardFile ? 700 : 500,
+                                  background: "#ffffff",
+                                  border: "1px solid #dbeafe",
+                                  borderRadius: "10px",
+                                  padding: "8px 12px",
+                                  minWidth: "220px",
+                                  maxWidth: "100%",
+                                  overflow: "hidden",
+                                  textOverflow: "ellipsis",
+                                  whiteSpace: "nowrap",
+                                }}
+                              >
+                                {studentCardFile ? studentCardFile.name : "No file selected"}
+                              </span>
                             </div>
-                          )}
+
+                            <div className="mt-2" style={{ color: "#64748b", fontSize: "0.85rem" }}>
+                              Accepted formats: JPG, PNG, PDF
+                            </div>
+                          </div>
                         </Form.Group>
 
                         <Button
@@ -452,32 +509,57 @@ export default function ClearancePage() {
                   <Tab eventKey="status" title="📊 Application Status">
                     {activeRequest ? (
                       <>
-                        <Row className="mb-4 text-center">
-                          <Col lg={12}>
-                            <h4 className="fw-bold mb-3">Overall Completion Progress</h4>
-                            <div className="progress" style={{ height: "30px", borderRadius: "15px" }}>
-                              <div
-                                className={`progress-bar progress-bar-striped progress-bar-animated ${progress === 100 ? "bg-success" : "bg-primary"}`}
-                                role="progressbar"
-                                style={{ width: `${progress}%` }}
-                                aria-valuenow={progress}
-                                aria-valuemin="0"
-                                aria-valuemax="100"
-                              >
-                                {progress}% Completeness
+                        <div className="clearance-progress-wrap mb-4">
+                          <div className="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-3">
+                            <div>
+                              <h4 className="fw-bold mb-1">Overall Completion Progress</h4>
+                              <p className="text-muted mb-0">Live completion based on department review updates.</p>
+                            </div>
+                            <Badge className="progress-badge rounded-pill px-3 py-2">{progress}% Complete</Badge>
+                          </div>
+
+                          <div className="clearance-progress-track" role="progressbar" aria-valuenow={progress} aria-valuemin="0" aria-valuemax="100">
+                            <div className="clearance-progress-fill" style={{ width: `${progress}%` }} />
+                          </div>
+
+                          <div className="d-flex justify-content-between mt-2 small text-muted">
+                            <span>Started</span>
+                            <span>In Review</span>
+                            <span>Completed</span>
+                          </div>
+
+                          {progress === 100 && <h5 className="text-success mt-3 fw-bold mb-0">Ready for Degree Issuance! 🎉</h5>}
+                        </div>
+
+                        <Card className="mb-4 app-details-card">
+                          <Card.Header className="app-details-head">
+                            <div className="d-flex align-items-center gap-2 fw-bold">
+                              <span style={{ fontSize: "1.1rem" }}>📋</span>
+                              <span>Application Details</span>
+                            </div>
+                            <Badge bg={statusVariant} className="text-capitalize rounded-pill px-3 py-2">
+                              {requestStatus.replace("_", " ")}
+                            </Badge>
+                          </Card.Header>
+                          <Card.Body>
+                            <div className="app-details-grid">
+                              <div className="app-detail-item">
+                                <div className="app-detail-label">Application ID</div>
+                                <div className="app-detail-value app-detail-mono">{activeRequest.id}</div>
+                              </div>
+                              <div className="app-detail-item">
+                                <div className="app-detail-label">Submitted Date</div>
+                                <div className="app-detail-value">{new Date(activeRequest.created_at).toLocaleString()}</div>
+                              </div>
+                              <div className="app-detail-item">
+                                <div className="app-detail-label">Current Status</div>
+                                <div className="app-detail-value text-capitalize">{requestStatus.replace("_", " ")}</div>
+                              </div>
+                              <div className="app-detail-item">
+                                <div className="app-detail-label">Degree Issued</div>
+                                <div className="app-detail-value">{activeRequest.degree_issued ? "✅ Yes" : "❌ No"}</div>
                               </div>
                             </div>
-                            {progress === 100 && <h5 className="text-success mt-2 fw-bold">Ready for Degree Issuance! 🎉</h5>}
-                          </Col>
-                        </Row>
-
-                        <Card className="mb-4">
-                          <Card.Header className="bg-light fw-bold">📋 Application Details</Card.Header>
-                          <Card.Body>
-                            <p><strong>Application ID:</strong> {activeRequest.id}</p>
-                            <p><strong>Status:</strong> <Badge bg={activeRequest.overall_status === "completed" ? "success" : "warning"}>{activeRequest.overall_status}</Badge></p>
-                            <p><strong>Submitted Date:</strong> {new Date(activeRequest.created_at).toLocaleString()}</p>
-                            <p><strong>Degree Issued:</strong> {activeRequest.degree_issued ? "✅ Yes" : "❌ No"}</p>
                           </Card.Body>
                         </Card>
 
@@ -527,6 +609,89 @@ export default function ClearancePage() {
             </Card>
           </Col>
         </Row>
+
+        <style jsx>{`
+          .clearance-progress-wrap {
+            background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+            border: 1px solid #dbeafe;
+            border-radius: 16px;
+            padding: 1rem;
+            box-shadow: 0 12px 24px rgba(30, 64, 175, 0.08);
+          }
+
+          .progress-badge {
+            background: linear-gradient(135deg, #2563eb 0%, #6366f1 100%);
+            color: #fff;
+            font-weight: 700;
+            border: none;
+          }
+
+          .clearance-progress-track {
+            height: 14px;
+            border-radius: 999px;
+            background: #e5e7eb;
+            overflow: hidden;
+          }
+
+          .clearance-progress-fill {
+            height: 100%;
+            border-radius: 999px;
+            background: linear-gradient(90deg, #0ea5e9 0%, #2563eb 45%, #6366f1 100%);
+            box-shadow: 0 0 14px rgba(37, 99, 235, 0.35);
+            transition: width 0.45s ease;
+          }
+
+          .app-details-card {
+            border: 1px solid #dbeafe;
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 12px 24px rgba(30, 64, 175, 0.08);
+          }
+
+          .app-details-head {
+            background: linear-gradient(90deg, #eff6ff 0%, #f8fafc 100%);
+            border-bottom: 1px solid #dbeafe;
+            padding: 0.85rem 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 0.6rem;
+          }
+
+          .app-details-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 0.75rem;
+          }
+
+          .app-detail-item {
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 0.75rem 0.85rem;
+            background: #fff;
+          }
+
+          .app-detail-label {
+            font-size: 0.78rem;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            color: #64748b;
+            font-weight: 700;
+            margin-bottom: 0.2rem;
+          }
+
+          .app-detail-value {
+            color: #0f172a;
+            font-weight: 700;
+          }
+
+          .app-detail-mono {
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+            word-break: break-word;
+            font-size: 0.92rem;
+          }
+        `}</style>
       </Container>
     </StudentLayout>
   );
