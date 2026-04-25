@@ -138,21 +138,6 @@ The system is built using a modern **Serverless Architecture**:
 
 ---
 
-### ❓ Viva Voice: Common Q&A
-
-**Q: How does your system handle security between roles?**
-> "We use **Role-Based Access Control (RBAC)** combined with **Supabase RLS**. Every database query is checked against the user's JWT token to ensure they have the 'department', 'examiner', or 'admin' role required to see that information."
-
-**Q: What happens if a student loses internet while applying?**
-> "The system uses **Atomic Operations**. Either the whole application is saved, or nothing is. This prevents 'partial' or 'broken' requests from entering the database."
-
-**Q: Why use a Chatbot instead of a simple FAQ page?**
-> "The **AI Assistant** provides a more interactive experience and can handle specific keywords to give direct advice, making it faster than searching through a long FAQ list."
-
-**Q: How do you handle large file uploads?**
-> "Files are uploaded directly to **Supabase Storage Buckets**. We store only the 'File URL' in the database. This keeps our main database lightweight and fast while allowing us to store GBs of student documents."
-
----
 
 ## 🚀 Getting Started (Setup Guide)
 
