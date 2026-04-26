@@ -207,17 +207,17 @@ export default function ExaminerDashboard() {
             }
 
             .ex-stat-card {
-              background: #fff;
+              background: linear-gradient(180deg, rgba(15,23,42,0.96) 0%, rgba(30,41,59,0.96) 100%);
               border-radius: 22px;
               padding: 1.35rem;
-              border: 1px solid #eef2ff;
+              border: 1px solid rgba(148,163,184,0.14);
               transition: transform 0.25s ease, box-shadow 0.25s ease;
               animation: exFadeUp 0.5s ease-out backwards;
             }
 
             .ex-stat-card:hover {
               transform: translateY(-6px);
-              box-shadow: 0 18px 38px rgba(15, 23, 42, 0.08);
+              box-shadow: 0 18px 38px rgba(15, 23, 42, 0.28);
             }
 
             .ex-stat-icon {
@@ -233,15 +233,15 @@ export default function ExaminerDashboard() {
               animation: exGlow 3s infinite ease-in-out;
             }
 
-            .ex-stat-value { font-size: 2.2rem; font-weight: 900; color: #0f172a; line-height: 1; }
-            .ex-stat-label { margin-top: 0.3rem; font-weight: 800; color: #1e293b; }
+            .ex-stat-value { font-size: 2.2rem; font-weight: 900; color: #f8fafc; line-height: 1; }
+            .ex-stat-label { margin-top: 0.3rem; font-weight: 800; color: #e2e8f0; }
             .ex-stat-sub { color: #94a3b8; font-size: 0.82rem; }
 
             .ex-panel {
-              background: #fff;
+              background: linear-gradient(180deg, rgba(15,23,42,0.96) 0%, rgba(17,24,39,0.96) 100%);
               border-radius: 28px;
-              border: 1px solid #eef2ff;
-              box-shadow: 0 12px 36px rgba(15, 23, 42, 0.05);
+              border: 1px solid rgba(148,163,184,0.14);
+              box-shadow: 0 12px 36px rgba(15, 23, 42, 0.2);
               overflow: hidden;
             }
 
@@ -252,8 +252,8 @@ export default function ExaminerDashboard() {
               justify-content: space-between;
               align-items: center;
               padding: 1.3rem 1.4rem;
-              border-bottom: 1px solid #eef2ff;
-              background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+              border-bottom: 1px solid rgba(148,163,184,0.14);
+              background: linear-gradient(180deg, rgba(15,23,42,0.98) 0%, rgba(30,41,59,0.94) 100%);
             }
 
             .ex-tabs {
@@ -261,7 +261,8 @@ export default function ExaminerDashboard() {
               gap: 0.45rem;
               padding: 0.35rem;
               border-radius: 999px;
-              background: #f1f5f9;
+              background: rgba(15,23,42,0.8);
+              border: 1px solid rgba(148,163,184,0.14);
               flex-wrap: wrap;
             }
 
@@ -271,23 +272,25 @@ export default function ExaminerDashboard() {
               padding: 0.68rem 1rem;
               font-weight: 800;
               font-size: 0.86rem;
-              color: #64748b;
+              color: #cbd5e1;
               background: transparent;
               transition: all 0.2s ease;
             }
 
-            .ex-tab-btn:hover { background: rgba(255,255,255,0.8); color: #0f172a; }
+            .ex-tab-btn:hover { background: rgba(96,165,250,0.14); color: #f8fafc; }
             .ex-tab-btn--active { background: linear-gradient(135deg, #4338ca 0%, #6366f1 100%); color: #fff !important; box-shadow: 0 8px 18px rgba(67,56,202,0.22); }
 
             .ex-search-wrap { position: relative; }
             .ex-search {
               min-width: min(100%, 320px);
-              border: 1px solid #e2e8f0;
+              border: 1px solid rgba(148,163,184,0.2);
               border-radius: 16px;
-              background: #fff;
+              background: rgba(15,23,42,0.85);
+              color: #f8fafc;
               padding: 0.9rem 1rem 0.9rem 2.8rem;
-              box-shadow: inset 0 1px 1px rgba(15,23,42,0.04);
+              box-shadow: inset 0 1px 1px rgba(15,23,42,0.2);
             }
+            .ex-search::placeholder { color: #94a3b8; }
             .ex-search-icon { position: absolute; left: 1rem; top: 50%; transform: translateY(-50%); color: #94a3b8; }
 
             .ex-grid {
@@ -298,10 +301,10 @@ export default function ExaminerDashboard() {
             }
 
             .ex-card {
-              border: 1px solid #eef2ff;
+              border: 1px solid rgba(148,163,184,0.14);
               border-radius: 22px;
               padding: 1.2rem;
-              background: #fff;
+              background: linear-gradient(180deg, rgba(15,23,42,0.95) 0%, rgba(30,41,59,0.95) 100%);
               transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
               height: 100%;
               animation: exFadeUp 0.45s ease-out backwards;
@@ -309,8 +312,8 @@ export default function ExaminerDashboard() {
 
             .ex-card:hover {
               transform: translateY(-5px);
-              border-color: #c7d2fe;
-              box-shadow: 0 18px 34px rgba(15, 23, 42, 0.08);
+              border-color: rgba(96,165,250,0.34);
+              box-shadow: 0 18px 34px rgba(15, 23, 42, 0.24);
             }
 
             .ex-card-top { display: flex; justify-content: space-between; gap: 1rem; align-items: flex-start; }
@@ -329,8 +332,8 @@ export default function ExaminerDashboard() {
             }
 
             .ex-muted { color: #94a3b8; }
-            .ex-name { font-size: 1.02rem; font-weight: 900; color: #0f172a; }
-            .ex-email { font-size: 0.82rem; color: #64748b; word-break: break-word; }
+            .ex-name { font-size: 1.02rem; font-weight: 900; color: #f8fafc; }
+            .ex-email { font-size: 0.82rem; color: #cbd5e1; word-break: break-word; }
 
             .ex-progress {
               height: 8px;
@@ -360,11 +363,27 @@ export default function ExaminerDashboard() {
             .ex-empty {
               text-align: center;
               padding: 4rem 1rem;
-              color: #64748b;
+              color: #cbd5e1;
             }
 
-            .ex-modal .modal-content { border: none; border-radius: 28px; overflow: hidden; box-shadow: 0 32px 70px rgba(15, 23, 42, 0.28); }
+            .ex-soft-badge {
+              background: rgba(15,23,42,0.78) !important;
+              border: 1px solid rgba(148,163,184,0.2) !important;
+              color: #e2e8f0 !important;
+            }
+
+            .ex-modal .modal-content { border: 1px solid rgba(148,163,184,0.2); border-radius: 28px; overflow: hidden; box-shadow: 0 32px 70px rgba(15, 23, 42, 0.45); background: linear-gradient(180deg, rgba(15,23,42,0.98) 0%, rgba(30,41,59,0.98) 100%); color: #e2e8f0; }
             .ex-modal-head { background: linear-gradient(135deg, #111827 0%, #312e81 100%); color: #fff; border: none; }
+            .ex-modal .btn-close { filter: invert(1) brightness(2); }
+            .ex-review-card { background: rgba(15,23,42,0.8) !important; border: 1px solid rgba(148,163,184,0.16) !important; }
+            .ex-modal .text-muted { color: #94a3b8 !important; }
+            .ex-modal .border-bottom { border-color: rgba(148,163,184,0.16) !important; }
+            .ex-modal textarea.form-control {
+              background: rgba(15,23,42,0.85);
+              border: 1px solid rgba(148,163,184,0.2);
+              color: #f8fafc;
+            }
+            .ex-modal textarea.form-control::placeholder { color: #94a3b8; }
 
             @media (max-width: 768px) {
               .ex-hero { padding: 1.4rem; }
@@ -463,7 +482,7 @@ export default function ExaminerDashboard() {
                           </div>
                         </div>
 
-                        <Badge bg="light" text="dark" className="rounded-pill border px-3 py-2">
+                        <Badge className="rounded-pill px-3 py-2 ex-soft-badge">
                           {activeTab === "issued" ? "Ledger" : `${student.clearedCount || 0}/${student.totalDepts || 0}`}
                         </Badge>
                       </div>
@@ -495,7 +514,7 @@ export default function ExaminerDashboard() {
                                 Review & Approve
                               </Button>
                             ) : (
-                              <Badge bg="light" text="dark" className="rounded-pill px-3 py-2 border">Sent to Academic Department</Badge>
+                              <Badge className="rounded-pill px-3 py-2 ex-soft-badge">Sent to Academic Department</Badge>
                             )}
                           </div>
                         </>
@@ -505,7 +524,7 @@ export default function ExaminerDashboard() {
                             <span className="ex-muted">Degree title</span>
                             <strong>{student.degreeTitle || "Official Degree"}</strong>
                           </div>
-                          <Badge bg="light" text="dark" className="rounded-pill border px-3 py-2">QR: {student.qrCode || "N/A"}</Badge>
+                          <Badge className="rounded-pill px-3 py-2 ex-soft-badge">QR: {student.qrCode || "N/A"}</Badge>
                         </div>
                       )}
                     </Card>
@@ -522,7 +541,7 @@ export default function ExaminerDashboard() {
               </Modal.Header>
             </div>
             <Modal.Body className="p-4">
-              <Card className="border-0 bg-light rounded-4 p-3 mb-4">
+              <Card className="border-0 rounded-4 p-3 mb-4 ex-review-card">
                 <div className="d-flex align-items-center gap-3">
                   <div className="ex-avatar" style={{ background: "linear-gradient(135deg,#111827,#4338ca)" }}>{initials(reviewStudent?.studentName)}</div>
                   <div>

@@ -164,7 +164,13 @@ function DepartmentLayoutContent({ children }) {
   };
 
   return (
-    <div style={{ background: "#F4F7F9", minHeight: "100vh" }}>
+    <div
+      style={{
+        background:
+          "radial-gradient(1100px 460px at 12% -8%, rgba(37,99,235,0.18), rgba(37,99,235,0) 58%), radial-gradient(900px 420px at 88% 8%, rgba(139,92,246,0.18), rgba(139,92,246,0) 56%), linear-gradient(180deg, #0b1220 0%, #111827 100%)",
+        minHeight: "100vh",
+      }}
+    >
 
       {/* ── Navbar ────────────────────────────────────────────────────── */}
       <nav className="dept-navbar">
@@ -174,7 +180,9 @@ function DepartmentLayoutContent({ children }) {
           onClick={() => setDrawerOpen(true)}
           aria-label="Open menu"
         >
-          <span /><span /><span />
+          <span className="dept-hamburger-icon" aria-hidden="true">
+            <span /><span /><span />
+          </span>
         </button>
 
         {/* Brand */}
@@ -221,24 +229,24 @@ function DepartmentLayoutContent({ children }) {
               </div>
             </Dropdown.Toggle>
 
-            <Dropdown.Menu className="profile-dropdown-menu border-0 shadow-lg mt-2" style={{ width: "320px", borderRadius: "20px", overflow: "hidden" }}>
-              <div className="p-3 text-center" style={{ background: "linear-gradient(135deg, #f8faff 0%, #ffffff 100%)" }}>
+            <Dropdown.Menu className="profile-dropdown-menu border-0 shadow-lg mt-2 dept-dropdown-menu" style={{ width: "320px", borderRadius: "20px", overflow: "hidden" }}>
+              <div className="p-3 text-center dept-dropdown-head">
                 <div className="dept-avatar mx-auto mb-2" style={{ width: "60px", height: "60px", fontSize: "1.5rem" }}>
                   {profile?.name?.charAt(0) || "S"}
                 </div>
-                <h6 className="mb-0 fw-bold" style={{ color: "#0F172A" }}>{profile?.name}</h6>
-                <small className="text-muted">{profile?.email}</small>
+                <h6 className="mb-0 fw-bold dept-dropdown-name">{profile?.name}</h6>
+                <small className="dept-dropdown-email">{profile?.email}</small>
               </div>
 
               <div className="p-3">
-                <Card className="border-0 bg-light p-3" style={{ borderRadius: "15px" }}>
+                <Card className="border-0 p-3 dept-dropdown-card" style={{ borderRadius: "15px" }}>
                   <div className="mb-2">
-                    <small className="text-uppercase fw-bold text-muted" style={{ fontSize: "0.6rem" }}>Department Details</small>
-                    <div className="fw-bold" style={{ color: "#1e293b" }}>{deptInfo?.name || profile?.department || "N/A"}</div>
+                    <small className="text-uppercase fw-bold dept-dropdown-kicker" style={{ fontSize: "0.6rem" }}>Department Details</small>
+                    <div className="fw-bold dept-dropdown-value">{deptInfo?.name || profile?.department || "N/A"}</div>
                   </div>
                   
                   {deptInfo ? (
-                    <div className="dept-mini-info" style={{ fontSize: "0.82rem", color: "#475569" }}>
+                    <div className="dept-mini-info dept-mini-info--dark" style={{ fontSize: "0.82rem" }}>
                       <div className="d-flex align-items-center mb-1">
                         <span className="me-2">👤</span> 
                         <span>Focal: <strong>{deptInfo.focal_person || "N/A"}</strong></span>
@@ -253,7 +261,7 @@ function DepartmentLayoutContent({ children }) {
                       </div>
                     </div>
                   ) : (
-                    <div className="text-muted small italic">No department sync info available.</div>
+                    <div className="dept-dropdown-empty small italic">No department sync info available.</div>
                   )}
                 </Card>
               </div>
@@ -323,11 +331,12 @@ function DepartmentLayoutContent({ children }) {
         /* ── Navbar ── */
         .dept-navbar {
           position: sticky; top: 0; z-index: 1000;
-          background: white;
-          border-bottom: 1px solid #E2E8F0;
+          background: rgba(15,23,42,0.92);
+          border-bottom: 1px solid rgba(148,163,184,0.14);
           padding: 0.75rem 1.5rem;
           display: flex; align-items: center; gap: 0.75rem;
-          box-shadow: 0 1px 8px rgba(0,0,0,0.05);
+          box-shadow: 0 10px 24px rgba(15,23,42,0.18);
+          backdrop-filter: blur(12px);
         }
         .dept-brand {
           font-family: 'Poppins', sans-serif; font-weight: 800;
@@ -335,7 +344,7 @@ function DepartmentLayoutContent({ children }) {
           flex: 1; white-space: nowrap;
         }
         .dept-brand-gradient {
-          background: linear-gradient(135deg,#0062FF,#6366F1);
+          background: linear-gradient(135deg,#60A5FA,#A78BFA);
           -webkit-background-clip: text; -webkit-text-fill-color: transparent;
           background-clip: text;
         }
@@ -346,12 +355,12 @@ function DepartmentLayoutContent({ children }) {
         .dept-profile-badge {
           display: flex; align-items: center; gap: 0.75rem;
           padding: 0.4rem; padding-right: 0.75rem;
-          background: #F8FAFC; border: 1px solid #E2E8F0;
+          background: rgba(15,23,42,0.72); border: 1px solid rgba(148,163,184,0.16);
           border-radius: 50px; transition: all 0.2s ease;
         }
         .dept-profile-badge:hover {
-          background: #F1F5F9; border-color: #CBD5E1;
-          transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+          background: rgba(30,41,59,0.86); border-color: rgba(96,165,250,0.38);
+          transform: translateY(-1px); box-shadow: 0 8px 20px rgba(15,23,42,0.22);
         }
         .profile-dropdown-menu {
           animation: slideDown 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -366,7 +375,7 @@ function DepartmentLayoutContent({ children }) {
         }
         .dept-mini-info div:hover {
           transform: translateX(3px);
-          color: #0062FF;
+          color: #93c5fd;
         }
         .dept-avatar {
           width: 36px; height: 36px; border-radius: 50%;
@@ -380,16 +389,16 @@ function DepartmentLayoutContent({ children }) {
           display: flex; flex-direction: column; line-height: 1.2;
         }
         .dept-profile-name {
-          font-size: 0.82rem; font-weight: 700; color: #0F172A;
+          font-size: 0.82rem; font-weight: 700; color: #F8FAFC;
         }
         .dept-profile-details {
           display: flex; align-items: center; gap: 0.4rem; font-size: 0.68rem;
         }
         .badge-role {
-          color: #6366F1; font-weight: 800; letter-spacing: 0.4px;
+          color: #93C5FD; font-weight: 800; letter-spacing: 0.4px;
         }
         .dept-name {
-          color: #64748B; font-weight: 500;
+          color: #CBD5E1; font-weight: 500;
         }
         .separator {
           width: 3px; height: 3px; border-radius: 50%; background: #CBD5E1;
@@ -405,57 +414,103 @@ function DepartmentLayoutContent({ children }) {
           transform: translateY(-1px); box-shadow: 0 6px 18px rgba(0,98,255,0.38);
         }
 
-        /* ── Hamburger ── */
+        /* ── Hamburger (mobile/tablet only) ── */
         .dept-hamburger {
-          display: none; flex-direction: column; justify-content: center;
-          gap: 5px; background: none; border: none; cursor: pointer;
-          padding: 6px; border-radius: 8px;
-          transition: background 0.2s ease; flex-shrink: 0;
+          display: none !important;
+          align-items: center;
+          justify-content: center;
+          width: 40px;
+          height: 40px;
+          background: linear-gradient(135deg, rgba(37,99,235,0.22), rgba(124,58,237,0.22));
+          border: 1px solid rgba(148,163,184,0.22);
+          border-radius: 12px;
+          cursor: pointer;
+          box-shadow: 0 8px 20px rgba(15,23,42,0.2);
+          transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+          flex-shrink: 0;
         }
-        .dept-hamburger:hover { background: rgba(0,98,255,0.08); }
-        .dept-hamburger span {
-          display: block; width: 22px; height: 2px;
-          background: #0062FF; border-radius: 2px;
-          transition: all 0.3s ease;
+        .dept-hamburger:hover {
+          transform: translateY(-1px);
+          border-color: rgba(96,165,250,0.45);
+          box-shadow: 0 12px 24px rgba(15,23,42,0.26);
+        }
+        .dept-hamburger-icon {
+          display: flex;
+          flex-direction: column;
+          gap: 4px;
+        }
+        .dept-hamburger-icon span {
+          display: block;
+          width: 16px;
+          height: 2px;
+          border-radius: 2px;
+          background: #DBEAFE;
+          transition: width 0.2s ease;
+        }
+        .dept-hamburger-icon span:nth-child(2) {
+          width: 12px;
+        }
+        .dept-hamburger:hover .dept-hamburger-icon span:nth-child(2) {
+          width: 16px;
         }
 
         /* ── Overlay ── */
         .dept-overlay {
-          position: fixed; inset: 0; background: rgba(15,23,42,0.45);
-          z-index: 1200; backdrop-filter: blur(3px);
+          position: fixed;
+          inset: 0;
+          background: rgba(15,23,42,0.45);
+          z-index: 1200;
+          backdrop-filter: blur(3px);
           animation: fadeOverlay 0.25s ease;
         }
         @keyframes fadeOverlay { from { opacity:0; } to { opacity:1; } }
 
         /* ── Drawer ── */
         .dept-drawer {
-          position: fixed; top: 0; left: 0; bottom: 0;
-          width: 280px; background: white;
-          z-index: 1300; transform: translateX(-100%);
+          position: fixed;
+          top: 0;
+          left: 0;
+          bottom: 0;
+          width: 280px;
+          background: rgba(15,23,42,0.96);
+          z-index: 1300;
+          transform: translateX(-100%);
           transition: transform 0.32s cubic-bezier(0.4,0,0.2,1);
-          box-shadow: 4px 0 30px rgba(0,0,0,0.12);
-          border-right: 1px solid #E2E8F0;
+          box-shadow: 4px 0 30px rgba(0,0,0,0.28);
+          border-right: 1px solid rgba(148,163,184,0.14);
           overflow-y: auto;
-          display: flex; flex-direction: column;
+          display: flex;
+          flex-direction: column;
         }
         .dept-drawer--open { transform: translateX(0); }
         .dept-drawer-header {
-          display: flex; align-items: center; justify-content: space-between;
-          padding: 1rem 1.25rem; border-bottom: 1px solid #E2E8F0;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          padding: 1rem 1.25rem;
+          border-bottom: 1px solid rgba(148,163,184,0.14);
         }
         .dept-drawer-close {
-          background: rgba(0,0,0,0.05); border: none; border-radius: 8px;
-          width: 32px; height: 32px; font-size: 0.9rem; cursor: pointer;
-          color: #475569; display: flex; align-items: center; justify-content: center;
+          background: rgba(255,255,255,0.06);
+          border: none;
+          border-radius: 8px;
+          width: 32px;
+          height: 32px;
+          font-size: 0.9rem;
+          cursor: pointer;
+          color: #CBD5E1;
+          display: flex;
+          align-items: center;
+          justify-content: center;
           transition: all 0.2s ease;
         }
-        .dept-drawer-close:hover { background: rgba(220,38,38,0.1); color: #DC2626; }
+        .dept-drawer-close:hover { background: rgba(220,38,38,0.14); color: #FCA5A5; }
 
         /* ── Desktop Sidebar ── */
         .dept-sidebar-desktop {
           width: 260px; flex-shrink: 0;
-          background: white;
-          border-right: 1px solid #E2E8F0;
+          background: rgba(15,23,42,0.94);
+          border-right: 1px solid rgba(148,163,184,0.14);
           min-height: calc(100vh - 58px);
           position: sticky; top: 58px;
           overflow-y: auto;
@@ -472,18 +527,18 @@ function DepartmentLayoutContent({ children }) {
           padding: 0.7rem 1.1rem; margin: 0.15rem 0.5rem;
           border-radius: 12px; cursor: pointer; font-weight: 600;
           font-size: 0.875rem; transition: all 0.2s ease;
-          color: #475569; border-left: 3px solid transparent;
+          color: #CBD5E1; border-left: 3px solid transparent;
         }
-        .dept-sidebar-item:hover { background: rgba(0,98,255,0.05); color: #0062FF; }
+        .dept-sidebar-item:hover { background: rgba(96,165,250,0.1); color: #DBEAFE; }
         .dept-sidebar-item--active {
-          background: linear-gradient(135deg, rgba(0,98,255,0.1), rgba(99,102,241,0.1));
-          color: #0062FF; border-left-color: #0062FF;
-          box-shadow: 0 2px 10px rgba(0,98,255,0.08);
+          background: linear-gradient(135deg, rgba(37,99,235,0.22), rgba(124,58,237,0.2));
+          color: #EFF6FF; border-left-color: #60A5FA;
+          box-shadow: 0 2px 10px rgba(37,99,235,0.12);
         }
         .dept-sidebar-icon {
           width: 34px; height: 34px; border-radius: 10px;
           display: flex; align-items: center; justify-content: center;
-          font-size: 1rem; flex-shrink: 0; background: #F4F7F9;
+          font-size: 1rem; flex-shrink: 0; background: rgba(255,255,255,0.06);
           transition: all 0.2s ease;
         }
         .dept-sidebar-icon--active {
@@ -491,9 +546,37 @@ function DepartmentLayoutContent({ children }) {
           box-shadow: 0 4px 10px rgba(0,98,255,0.3);
         }
 
+        .dept-dropdown-menu {
+          background: linear-gradient(180deg, rgba(15,23,42,0.98) 0%, rgba(30,41,59,0.98) 100%);
+          border: 1px solid rgba(148,163,184,0.16);
+          color: #E2E8F0;
+        }
+        .dept-dropdown-head {
+          background: linear-gradient(135deg, rgba(37,99,235,0.18) 0%, rgba(124,58,237,0.18) 100%);
+        }
+        .dept-dropdown-name,
+        .dept-dropdown-value {
+          color: #F8FAFC;
+        }
+        .dept-dropdown-email,
+        .dept-dropdown-kicker,
+        .dept-dropdown-empty {
+          color: #CBD5E1;
+        }
+        .dept-dropdown-card {
+          background: rgba(15,23,42,0.9) !important;
+          border: 1px solid rgba(148,163,184,0.12) !important;
+        }
+        .dept-mini-info--dark {
+          color: #CBD5E1;
+        }
+        .dept-mini-info--dark strong {
+          color: #F8FAFC;
+        }
+
         /* ── Responsive breakpoints ── */
         @media (max-width: 991px) {
-          .dept-hamburger { display: flex; }
+          .dept-hamburger { display: inline-flex !important; }
           .dept-sidebar-desktop { display: none; }
           .dept-main { padding: 1.25rem 1rem; }
         }

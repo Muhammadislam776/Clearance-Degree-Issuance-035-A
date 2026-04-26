@@ -2,8 +2,9 @@
 import React, { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import ExaminerLayout from "@/components/layout/ExaminerLayout";
-import { Card, Table, Button } from "react-bootstrap";
+import { Card, Table, Button, Badge } from "react-bootstrap";
 import { supabase } from "@/lib/supabaseClient";
+import { approveFinal } from "@/lib/clearanceService";
 
 export default function PendingClearance() {
   const { id } = useParams();
@@ -39,23 +40,15 @@ export default function PendingClearance() {
     fetchData();
   }, [id]);
 
-  const approveDegree = async () => {
-    try {
-      const { data, error } = await supabase
-        .from("clearance_requests")
-        .update({ 
-          degree_issued: true,
-          overall_status: 'completed',
-          completion_date: new Date().toISOString()
-        })
-        .eq("id", id)
-        .select()
-        .single();
+  const allApproved = departmentStatuses.length > 0 && departmentStatuses.every((s) => s.status === "approved");
 
-      if (error) throw error;
-      
-      setRequest(data);
-      alert("Clearance Finalized & Degree Issued! 🎓");
+  const approveRequest = async () => {
+    try {
+      const result = await approveFinal(id, "Examiner approved after all departmental clearances.");
+      if (!result.success) throw new Error(result.error);
+
+      setRequest((prev) => prev ? { ...prev, overall_status: "approved" } : prev);
+      alert("Clearance approved by examiner and sent to the academic department.");
     } catch (err) {
       alert("Error: " + err.message);
     }
@@ -98,8 +91,11 @@ export default function PendingClearance() {
       </Card>
 
       {!request.degree_issued && (
-        <Button variant="success" onClick={approveDegree}>Issue Degree</Button>
+        <Button variant="success" onClick={approveRequest} disabled={!allApproved}>
+          Approve for Academic Issuance
+        </Button>
       )}
+      {!allApproved && <p className="text-muted mt-3 mb-0">All departments must approve before examiner approval is allowed.</p>}
       {request.degree_issued && <p className="text-success">Degree Already Issued ✅</p>}
     </ExaminerLayout>
   );

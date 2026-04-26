@@ -32,23 +32,6 @@
   --bs-body-color: var(--text-main);
 }
 
-[data-theme="dark"] {
-  --primary: #3B82F6;
-  --secondary: #F8FAFC;
-  --bg-body: #0B1120;
-  --bg-card: #1E293B;
-  --text-main: #F8FAFC;
-  --text-muted: #94A3B8;
-  --border-color: #334155;
-  
-  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.5);
-  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.4);
-  --shadow-hover: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
-
-  --bs-body-bg: var(--bg-body);
-  --bs-body-color: var(--text-main);
-}
-
 /* ========== BASE STYLES ========== */
 body {
   background-color: var(--bg-body) !important;

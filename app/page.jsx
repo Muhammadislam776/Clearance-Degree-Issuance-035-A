@@ -1,7 +1,6 @@
 "use client";
 import React from "react";
 import Link from "next/link";
-import ThemeToggle from "@/components/layout/ThemeToggle";
 import LandingFooter from "@/components/layout/LandingFooter";
 import "../styles/landing.css";
 
@@ -15,7 +14,6 @@ export default function Home() {
             <span className="logo-icon">🎓</span>
             <span className="logo-label">Smart Clearance</span>
           </div>
-          <ThemeToggle />
         </div>
       </nav>
 

@@ -100,24 +100,33 @@ export default function ChatPage() {
 
   return (
     <StudentLayout>
-      <Container fluid className="py-4 px-md-4" style={{ minHeight: "calc(100vh - 80px)", background: "#f5f7fb" }}>
+      <Container
+        fluid
+        className="py-4 px-md-4"
+        style={{
+          minHeight: "calc(100vh - 80px)",
+          background:
+            "radial-gradient(1100px 460px at 12% -8%, rgba(37,99,235,0.22), rgba(37,99,235,0) 58%), radial-gradient(900px 420px at 90% 8%, rgba(139,92,246,0.2), rgba(139,92,246,0) 56%), linear-gradient(180deg, #0b1220 0%, #111827 100%)",
+        }}
+      >
         <Row className="g-4">
           <Col lg={4} xl={3}>
             {/* Sidebar Card */}
-            <Card className="border-0 shadow-sm h-100" style={{ borderRadius: "20px", overflow: "hidden" }}>
-              <div className="p-4 bg-white border-bottom">
-                <h4 className="fw-bold mb-0">Communication</h4>
-                <p className="text-muted small mb-0">Choose your support channel</p>
+            <Card className="border-0 shadow-sm h-100 chat-panel chat-sidebar" style={{ borderRadius: "20px", overflow: "hidden" }}>
+              <div className="p-4 chat-sidebar-head border-bottom">
+                <h4 className="fw-bold mb-0 chat-title">Communication</h4>
+                <p className="chat-subtitle small mb-0">Choose your support channel</p>
               </div>
               
-              <div className="p-3 bg-light">
+              <div className="p-3 chat-sidebar-body">
                  <Button 
                    variant={activeTab === 'ai' ? 'primary' : 'outline-primary'} 
-                   className="w-100 mb-4 py-3 d-flex align-items-center justify-content-center gap-3 border-0 shadow-sm"
+                   className="w-100 mb-4 py-3 d-flex align-items-center justify-content-center gap-3 border-0 shadow-sm chat-ai-btn"
                    style={{ 
                      borderRadius: "15px", 
-                     background: activeTab === 'ai' ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' : 'white', 
-                     color: activeTab === 'ai' ? 'white' : '#667eea',
+                     background: activeTab === 'ai' ? 'linear-gradient(135deg, #2563eb 0%, #7c3aed 100%)' : 'rgba(15, 23, 42, 0.86)', 
+                     color: activeTab === 'ai' ? '#ffffff' : '#dbeafe',
+                     border: '1px solid rgba(96, 165, 250, 0.22)',
                      fontWeight: "600",
                      transition: "all 0.3s"
                    }}
@@ -126,7 +135,7 @@ export default function ChatPage() {
                    <span style={{ fontSize: "1.2rem" }}>🤖</span> Talk to AI Assistant
                  </Button>
                  
-                  <div className="text-uppercase small fw-bold text-muted mb-3 px-2" style={{ letterSpacing: "1.5px" }}>Departments</div>
+                  <div className="text-uppercase small fw-bold chat-section-label mb-3 px-2" style={{ letterSpacing: "1.5px" }}>Departments</div>
                   <div className="custom-scrollbar" style={{ maxHeight: "600px", overflowY: "auto", paddingRight: "5px" }}>
                     {departments.map((dept) => (
                       <div 
@@ -136,9 +145,9 @@ export default function ChatPage() {
                         style={{ 
                           cursor: "pointer", 
                           transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
-                          background: selectedDepartment?.id === dept.id ? 'white' : 'rgba(255,255,255,0.7)',
-                          border: selectedDepartment?.id === dept.id ? '2px solid #667eea' : '1px solid #edf2f7',
-                          boxShadow: selectedDepartment?.id === dept.id ? '0 12px 24px rgba(102, 126, 234, 0.2)' : '0 2px 4px rgba(0,0,0,0.02)'
+                          background: selectedDepartment?.id === dept.id ? 'linear-gradient(180deg, rgba(37,99,235,0.22) 0%, rgba(15,23,42,0.9) 100%)' : 'rgba(15, 23, 42, 0.82)',
+                          border: selectedDepartment?.id === dept.id ? '1px solid rgba(96, 165, 250, 0.55)' : '1px solid rgba(148, 163, 184, 0.18)',
+                          boxShadow: selectedDepartment?.id === dept.id ? '0 14px 28px rgba(37, 99, 235, 0.24)' : '0 8px 18px rgba(15,23,42,0.22)'
                         }}
                       >
                         <div className="d-flex align-items-center gap-3">
@@ -146,19 +155,19 @@ export default function ChatPage() {
                             minWidth: "56px", 
                             height: "56px", 
                             borderRadius: "18px", 
-                            background: selectedDepartment?.id === dept.id ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' : 'white', 
-                            color: selectedDepartment?.id === dept.id ? 'white' : '#667eea', 
+                            background: selectedDepartment?.id === dept.id ? 'linear-gradient(135deg, #2563eb 0%, #7c3aed 100%)' : 'rgba(30, 41, 59, 0.96)', 
+                            color: '#f8fafc', 
                             display: "flex", 
                             alignItems: "center", 
                             justifyContent: "center", 
                             fontWeight: "800",
                             fontSize: "1.4rem",
-                            boxShadow: "inset 0 0 0 1px rgba(0,0,0,0.05)"
+                            boxShadow: "inset 0 0 0 1px rgba(148,163,184,0.2)"
                           }}>
                             {dept.name.charAt(0).toUpperCase()}
                           </div>
                           <div className="flex-grow-1">
-                            <div className="fw-bold mb-1 text-dark" style={{ fontSize: "1.1rem", lineHeight: "1.2", letterSpacing: "-0.3px" }}>
+                            <div className="fw-bold mb-1 chat-dept-name" style={{ fontSize: "1.1rem", lineHeight: "1.2", letterSpacing: "-0.3px" }}>
                               {dept.name}
                             </div>
                             <div className="d-flex align-items-center gap-2">
@@ -187,12 +196,12 @@ export default function ChatPage() {
             ) : selectedDepartment ? (
               <div className="h-100 d-flex flex-column">
                 {/* Department Info Header */}
-                <Card className="border-0 shadow-sm mb-3 px-4 py-3" style={{ borderRadius: "16px" }}>
+                <Card className="border-0 shadow-sm mb-3 px-4 py-3 chat-panel" style={{ borderRadius: "16px" }}>
                   <div className="d-flex justify-content-between align-items-center flex-wrap gap-3">
                     <div className="d-flex align-items-center gap-3">
                       <div>
-                        <h5 className="fw-bold mb-0">{selectedDepartment.name} Support</h5>
-                        <p className="text-muted small mb-0">Focal: {selectedDepartment.focal_name}</p>
+                        <h5 className="fw-bold mb-0 chat-title">{selectedDepartment.name} Support</h5>
+                        <p className="chat-subtitle small mb-0">Focal: {selectedDepartment.focal_name}</p>
                       </div>
                     </div>
                     <div className="d-flex gap-2">
@@ -235,10 +244,10 @@ export default function ChatPage() {
                 </div>
               </div>
             ) : (
-              <Card className="border-0 shadow-sm h-100 d-flex align-items-center justify-content-center text-center p-5" style={{ borderRadius: "20px", background: "white" }}>
+              <Card className="border-0 shadow-sm h-100 d-flex align-items-center justify-content-center text-center p-5 chat-panel" style={{ borderRadius: "20px" }}>
                 <div className="mb-4" style={{ fontSize: "5rem" }}>💬</div>
-                <h3 className="fw-bold">Ready to Connect</h3>
-                <p className="text-muted mx-auto" style={{ maxWidth: "400px" }}>
+                <h3 className="fw-bold chat-title">Ready to Connect</h3>
+                <p className="chat-subtitle mx-auto" style={{ maxWidth: "400px" }}>
                   Select a department to message their staff directly, or chat with our 
                   AI Clearance Assistant for instant answers to frequently asked questions.
                 </p>
@@ -258,8 +267,8 @@ export default function ChatPage() {
         .transition-all { transition: all 0.3s ease; }
         .dept-item:hover { 
           transform: translateX(8px);
-          background-color: white !important;
-          box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+          background-color: rgba(37, 99, 235, 0.18) !important;
+          box-shadow: 0 14px 28px rgba(15,23,42,0.3);
         }
         .active-dept {
           transform: translateX(10px) scale(1.02);
@@ -286,6 +295,49 @@ export default function ChatPage() {
           background: #d0d0d0;
         }
         .flex-center { display: flex; flex-direction: column; align-items: center; justify-content: center; }
+        .chat-panel {
+          background: linear-gradient(180deg, rgba(30, 41, 59, 0.88) 0%, rgba(15, 23, 42, 0.88) 100%);
+          border: 1px solid rgba(148, 163, 184, 0.22);
+          color: #e2e8f0;
+          backdrop-filter: blur(8px);
+          box-shadow: 0 16px 32px rgba(15, 23, 42, 0.3);
+          transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+        }
+        .chat-panel:hover {
+          transform: translateY(-4px);
+          box-shadow: 0 22px 40px rgba(15, 23, 42, 0.4);
+          border-color: rgba(96, 165, 250, 0.42);
+        }
+        .chat-sidebar-head {
+          background: linear-gradient(90deg, rgba(15, 23, 42, 0.96) 0%, rgba(30, 41, 59, 0.96) 100%);
+          border-bottom: 1px solid rgba(148, 163, 184, 0.18);
+        }
+        .chat-sidebar-body {
+          background: rgba(15, 23, 42, 0.72);
+        }
+        .chat-title {
+          color: #f8fafc;
+        }
+        .chat-subtitle {
+          color: #cbd5e1 !important;
+        }
+        .chat-section-label {
+          color: #93c5fd !important;
+        }
+        .chat-dept-name {
+          color: #f8fafc;
+        }
+        .chat-ai-btn:hover {
+          transform: translateY(-2px);
+        }
+        .chat-panel .text-muted,
+        .chat-panel p {
+          color: #cbd5e1;
+        }
+        .chat-panel .btn-light {
+          background: rgba(248, 250, 252, 0.92);
+          color: #0f172a;
+        }
       `}</style>
     </StudentLayout>
   );

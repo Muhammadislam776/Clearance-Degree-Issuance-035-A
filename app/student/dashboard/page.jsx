@@ -69,11 +69,23 @@ export default function StudentDashboard() {
   }, [authLoading, profile?.student_id]);
 
   const latest = clearances?.[0];
+  const isDegreeIssued = !!latest?.degree_issued;
+  const workflowProgress = latest
+    ? (isDegreeIssued ? 100 : Math.min(Number(latest.progress || 0), 90))
+    : 0;
 
   return (
     <ProtectedRoute requiredRoles="student">
       <StudentLayout>
-        <Container fluid className="py-4 px-md-5" style={{ background: "#F4F7F9", minHeight: "calc(100vh - 80px)" }}>
+        <Container
+          fluid
+          className="py-4 px-md-5"
+          style={{
+            background:
+              "radial-gradient(1200px 480px at 8% -10%, rgba(37,99,235,0.28), rgba(37,99,235,0) 60%), radial-gradient(900px 420px at 92% 4%, rgba(139,92,246,0.24), rgba(139,92,246,0) 58%), linear-gradient(180deg, #0b1220 0%, #0f172a 46%, #111827 100%)",
+            minHeight: "calc(100vh - 80px)",
+          }}
+        >
           {/* Dashboard Hero */}
           <div 
             className="p-5 mb-5 text-white shadow-lg" 
@@ -139,11 +151,11 @@ export default function StudentDashboard() {
                       </Badge>
                     </div>
                     
-                    {latest.overall_status === "completed" && (
+                    {isDegreeIssued && (
                       <div className="mb-4">
                         <Alert variant="success" className="d-flex justify-content-between align-items-center border-0 shadow-sm rounded-4">
                           <div>
-                            <strong>Congratulations!</strong> Your clearance is fully approved.
+                            <strong>Congratulations!</strong> Your degree has been officially issued.
                           </div>
                           <Button 
                             variant="success" 
@@ -166,16 +178,24 @@ export default function StudentDashboard() {
                         </Alert>
                       </div>
                     )}
+
+                    {!isDegreeIssued && latest.progress >= 100 && (
+                      <div className="mb-4">
+                        <Alert variant="info" className="border-0 shadow-sm rounded-4 mb-0">
+                          All departments have approved your request. Examiner review and academic degree issuance are still pending.
+                        </Alert>
+                      </div>
+                    )}
                     
                     <div className="mb-4">
                       <div className="d-flex justify-content-between mb-2">
                         <span className="text-muted small fw-bold">General Progress</span>
-                        <span className="text-primary small fw-bold">{latest.progress}%</span>
+                        <span className="text-primary small fw-bold">{workflowProgress}%</span>
                       </div>
                       <div className="progress rounded-pill" style={{ height: "12px" }}>
                         <div 
                           className="progress-bar progress-bar-striped progress-bar-animated bg-primary" 
-                          style={{ width: `${latest.progress}%` }}
+                          style={{ width: `${workflowProgress}%` }}
                         ></div>
                       </div>
                     </div>
@@ -193,21 +213,21 @@ export default function StudentDashboard() {
                 <Col lg={4}>
                   <Row className="g-3">
                     <Col xs={12}>
-                      <Card className="border-0 shadow-sm p-3 text-center" style={{ borderRadius: "16px", background: "#fff" }}>
-                        <div className="text-muted small text-uppercase mb-1">Last Submission</div>
-                        <div className="h5 fw-bold mb-0">{new Date(latest.created_at).toLocaleDateString()}</div>
+                      <Card className="border-0 shadow-sm p-3 text-center student-stat-card" style={{ borderRadius: "16px" }}>
+                        <div className="small text-uppercase mb-1 stat-label">Last Submission</div>
+                        <div className="h5 fw-bold mb-0 stat-value">{new Date(latest.created_at).toLocaleDateString()}</div>
                       </Card>
                     </Col>
                     <Col xs={12}>
-                      <Card className="border-0 shadow-sm p-3 text-center" style={{ borderRadius: "16px", background: "#fff" }}>
-                        <div className="text-muted small text-uppercase mb-1">Departments Contacted</div>
-                        <div className="h5 fw-bold mb-0 text-success">{latest.total_departments} Units</div>
+                      <Card className="border-0 shadow-sm p-3 text-center student-stat-card" style={{ borderRadius: "16px" }}>
+                        <div className="small text-uppercase mb-1 stat-label">Departments Contacted</div>
+                        <div className="h5 fw-bold mb-0 stat-value stat-value--success">{latest.total_departments} Units</div>
                       </Card>
                     </Col>
                     <Col xs={12}>
-                      <Card className="border-0 shadow-sm p-3 text-center" style={{ borderRadius: "16px", background: "#fff" }}>
-                        <div className="text-muted small text-uppercase mb-1">Feedback Alerts</div>
-                        <div className="h5 fw-bold mb-0 text-danger">{latest.rejected_count} Flags</div>
+                      <Card className="border-0 shadow-sm p-3 text-center student-stat-card" style={{ borderRadius: "16px" }}>
+                        <div className="small text-uppercase mb-1 stat-label">Feedback Alerts</div>
+                        <div className="h5 fw-bold mb-0 stat-value stat-value--danger">{latest.rejected_count} Flags</div>
                       </Card>
                     </Col>
                   </Row>
@@ -215,7 +235,7 @@ export default function StudentDashboard() {
               </Row>
 
               {/* Quick Hub */}
-              <h4 className="fw-bold mb-4">Quick Navigation</h4>
+              <h4 className="fw-bold mb-4 text-white">Quick Navigation</h4>
               <Row className="g-3">
                 {[
                   { icon: "💬", title: "Chat", link: "/student/chat", desc: "Talk to departments" },
@@ -225,10 +245,18 @@ export default function StudentDashboard() {
                 ].map((item, idx) => (
                   <Col key={idx} xs={6} md={3}>
                     <Link href={item.link} className="text-decoration-none">
-                      <Card className="border-0 shadow-sm p-4 text-center hover-lift h-100" style={{ borderRadius: "18px" }}>
+                      <Card
+                        className="border-0 shadow-sm p-4 text-center hover-lift h-100"
+                        style={{
+                          borderRadius: "18px",
+                          background: "rgba(30, 41, 59, 0.78)",
+                          border: "1px solid rgba(148, 163, 184, 0.28)",
+                          backdropFilter: "blur(6px)",
+                        }}
+                      >
                         <div style={{ fontSize: "2.5rem" }} className="mb-2">{item.icon}</div>
-                        <div className="fw-bold text-dark mb-1">{item.title}</div>
-                        <div className="text-muted extra-small">{item.desc}</div>
+                        <div className="fw-bold quick-nav-title mb-1">{item.title}</div>
+                        <div className="quick-nav-desc extra-small">{item.desc}</div>
                       </Card>
                     </Link>
                   </Col>
@@ -242,6 +270,21 @@ export default function StudentDashboard() {
             .hover-lift { transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1); cursor: pointer; }
             .hover-lift:hover { transform: translateY(-8px); }
             .extra-small { font-size: 0.75rem; }
+            .student-stat-card {
+              background: rgba(30, 41, 59, 0.78);
+              border: 1px solid rgba(148, 163, 184, 0.28);
+              backdrop-filter: blur(6px);
+            }
+            .stat-label {
+              color: #94a3b8;
+              letter-spacing: 0.06em;
+              font-weight: 700;
+            }
+            .stat-value { color: #f8fafc; }
+            .stat-value--success { color: #34d399; }
+            .stat-value--danger { color: #fb7185; }
+            .quick-nav-title { color: #f8fafc; }
+            .quick-nav-desc { color: #cbd5e1; }
             .btn-premium-primary { background: linear-gradient(135deg, #0062FF, #6366F1); color: white; }
           `}</style>
         </Container>

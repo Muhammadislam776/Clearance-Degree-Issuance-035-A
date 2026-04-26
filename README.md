@@ -160,3 +160,23 @@ The system is built using a modern **Serverless Architecture**:
 
 **Project Status**: ✅ Viva Ready | ✅ Production Tested
 
+## 📖 Use Case Diagram Summary
+
+The system involves four primary actors:
+
+- **Student** – registers, logs in, submits clearance applications, uploads required documents, tracks progress, chats with department staff, and receives final degree issuance.
+- **Department Staff** – logs in, reviews pending clearance requests for their department, approves or rejects them with remarks, communicates with students via chat, and updates request status.
+- **Examiner (Academic Office)** – reviews fully cleared applications, performs final verification, and issues the degree.
+- **Administrator** – manages user accounts and roles, creates and maintains department listings, views system-wide analytics, and monitors security logs.
+
+Key use cases:
+
+1. **User Management** – Register, Login, Role‑based access control.
+2. **Clearance Application** – Student fills wizard, selects departments, uploads documents, and submits.
+3. **Department Review** – Staff view pending requests, approve/reject, add comments, and chat.
+4. **Final Review** – Examiner validates all cleared requests and issues degree certificates.
+5. **Administration** – Admin adds/edits departments, assigns roles, monitors logs, and generates reports.
+6. **Real‑time Communication** – Integrated chat between students and staff for instant clarification.
+7. **Notifications** – Email/in‑app alerts on status changes, approvals, rejections, and final issuance.
+
+These use cases are visualised in the project’s `usecase_diagram.png` (included in the `docs/` directory) and form the backbone of the system’s functional architecture.

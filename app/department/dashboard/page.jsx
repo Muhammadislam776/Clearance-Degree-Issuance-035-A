@@ -9,7 +9,6 @@ import { useSection } from "@/lib/SectionContext";
 import { supabase } from "@/lib/supabaseClient";
 import { updateClearanceTaskStatus } from "@/lib/clearanceService";
 import ReviewModal from "@/components/department/ReviewModal";
-import WhatsAppButton from "@/components/WhatsAppButton";
 
 // ── Config ────────────────────────────────────────────────────────────────────
 const STAT_CARDS = (stats) => [
@@ -54,8 +53,8 @@ function RequestCard({ req, idx, isNew, onReview }) {
             {req.student.charAt(0).toUpperCase()}
           </div>
           <div>
-            <div style={{ fontWeight: 700, color: "#0F172A", fontSize: "0.9rem" }}>{req.student}</div>
-            <div style={{ color: "#94A3B8", fontSize: "0.75rem" }}>{req.email}</div>
+            <div style={{ fontWeight: 700, color: "#F8FAFC", fontSize: "0.9rem" }}>{req.student}</div>
+            <div style={{ color: "#CBD5E1", fontSize: "0.75rem" }}>{req.email}</div>
           </div>
         </div>
         <span style={{
@@ -280,38 +279,17 @@ function DashboardContent() {
           </div>
           <h1 className="dept-hero-title">🏛️ Institutional Hub</h1>
           <p className="dept-hero-sub">Manage student clearance across vital segments.</p>
-          {deptInfo && (
-            <div style={{ marginTop: "1.5rem", color: "rgba(255,255,255,0.9)", fontSize: "0.9rem", maxWidth: "320px" }}>
-              <Card className="p-3 shadow-lg border-0" style={{ background: "rgba(255,255,255,0.1)", backdropFilter: "blur(10px)", color: "white" }}>
-                <div>📞 Contact: {deptInfo.whatsapp_number || deptInfo.contact || "N/A"}</div>
-                <div>👤 Focal Person: {deptInfo.focal_person || "N/A"}</div>
-                <div>✉️ Email: {deptInfo.email || "N/A"}</div>
-                {deptInfo.is_academic && <div style={{ fontWeight: "bold", marginTop: "4px" }}>🎓 Academic Department (Final Authority)</div>}
-                {deptInfo.is_academic ? (
-                  <button
-                    onClick={() => router.push(`/academic/issuance?deptId=${deptInfo.id}`)}
-                    className="btn btn-sm fw-semibold mt-2"
-                    style={{
-                      background: "linear-gradient(135deg, #0f172a 0%, #334155 100%)",
-                      color: "#fff",
-                      border: "none",
-                      borderRadius: "999px",
-                      padding: "0.45rem 0.9rem",
-                    }}
-                  >
-                    Final Degree Issuance
-                  </button>
-                ) : null}
-                
-                {(deptInfo.whatsapp_number || deptInfo.contact) && (
-                  <WhatsAppButton 
-                    number={deptInfo.whatsapp_number || deptInfo.contact} 
-                    message={`Hello from the system, tracking clearance...`} 
-                  />
-                )}
-              </Card>
+          {deptInfo?.is_academic ? (
+            <div className="dept-issuance-wrap">
+              <button
+                onClick={() => router.push(`/academic/issuance?deptId=${deptInfo.id}`)}
+                className="dept-issuance-btn"
+              >
+                <span className="dept-issuance-btn__icon">🎓</span>
+                <span>Final Degree Issuance</span>
+              </button>
             </div>
-          )}
+          ) : null}
         </div>
 
         <button
@@ -425,8 +403,8 @@ function DashboardContent() {
                               {req.student.charAt(0).toUpperCase()}
                             </div>
                             <div>
-                              <div style={{ fontWeight: 700, color: "#0F172A", fontSize: "0.875rem" }}>{req.student}</div>
-                              <div style={{ color: "#94A3B8", fontSize: "0.72rem" }}>{req.email}</div>
+                              <div style={{ fontWeight: 700, color: "#F8FAFC", fontSize: "0.875rem" }}>{req.student}</div>
+                              <div style={{ color: "#CBD5E1", fontSize: "0.72rem" }}>{req.email}</div>
                             </div>
                           </div>
                         </td>
@@ -481,10 +459,12 @@ function DashboardContent() {
       <style jsx global>{`
         /* Hero */
         .dept-hero {
-          background: linear-gradient(135deg, #0062FF 0%, #6366F1 60%, #8B5CF6 100%);
+          background: linear-gradient(135deg, rgba(37,99,235,0.92) 0%, rgba(79,70,229,0.92) 58%, rgba(124,58,237,0.92) 100%);
           border-radius: 20px; padding: 2rem 2.5rem; margin-bottom: 1.5rem;
           color: white; position: relative; overflow: hidden;
-          box-shadow: 0 10px 30px rgba(0,98,255,0.25);
+          box-shadow: 0 18px 40px rgba(15,23,42,0.26);
+          border: 1px solid rgba(255,255,255,0.12);
+          backdrop-filter: blur(12px);
         }
         .dept-hero-title {
           font-family: 'Poppins',sans-serif; font-weight: 800;
@@ -509,14 +489,42 @@ function DashboardContent() {
         }
         .dept-refresh-btn {
           position: absolute; top: 1.3rem; right: 1.3rem;
-          background: rgba(255,255,255,0.15); backdrop-filter: blur(8px);
-          border: 1px solid rgba(255,255,255,0.3); color: white;
+          background: rgba(15,23,42,0.26); backdrop-filter: blur(8px);
+          border: 1px solid rgba(255,255,255,0.18); color: white;
           border-radius: 10px; padding: 0.4rem 1rem;
           font-weight: 600; font-size: 0.8rem; cursor: pointer;
           display: flex; align-items: center; gap: 0.4rem;
           transition: all 0.2s ease;
         }
-        .dept-refresh-btn:hover { background: rgba(255,255,255,0.25); }
+        .dept-refresh-btn:hover { background: rgba(15,23,42,0.38); }
+
+        .dept-issuance-wrap {
+          margin-top: 1.35rem;
+        }
+        .dept-issuance-btn {
+          display: inline-flex;
+          align-items: center;
+          gap: 0.55rem;
+          border: 1px solid rgba(255,255,255,0.25);
+          background: linear-gradient(135deg, rgba(15,23,42,0.9) 0%, rgba(30,41,59,0.9) 100%);
+          color: #ffffff;
+          border-radius: 999px;
+          padding: 0.62rem 1.15rem;
+          font-weight: 700;
+          font-size: 0.86rem;
+          letter-spacing: 0.2px;
+          box-shadow: 0 10px 22px rgba(15,23,42,0.28);
+          transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+        }
+        .dept-issuance-btn:hover {
+          transform: translateY(-1px);
+          border-color: rgba(191,219,254,0.6);
+          box-shadow: 0 14px 26px rgba(15,23,42,0.34);
+        }
+        .dept-issuance-btn__icon {
+          font-size: 0.95rem;
+          line-height: 1;
+        }
 
         /* Stats */
         .dept-stats-scroll {
@@ -527,14 +535,15 @@ function DashboardContent() {
         }
         .dept-stats-scroll::-webkit-scrollbar { display: none; }
         .dept-stat-card {
-          background: white; border-radius: 18px; padding: 1.3rem 1.2rem;
-          border: 1px solid #E2E8F0; box-shadow: 0 4px 16px rgba(0,0,0,0.04);
+          background: linear-gradient(180deg, rgba(15,23,42,0.96) 0%, rgba(30,41,59,0.96) 100%); border-radius: 18px; padding: 1.3rem 1.2rem;
+          border: 1px solid rgba(148,163,184,0.14); box-shadow: 0 10px 26px rgba(15,23,42,0.18);
           transition: all 0.25s ease; cursor: default;
           min-width: 155px; flex-shrink: 0;
         }
         .dept-stat-card:hover {
           transform: translateY(-4px);
-          box-shadow: 0 12px 28px rgba(0,0,0,0.09);
+          box-shadow: 0 16px 34px rgba(15,23,42,0.28);
+          border-color: rgba(96,165,250,0.34);
         }
         .dept-stat-icon {
           width: 44px; height: 44px; border-radius: 13px;
@@ -542,25 +551,25 @@ function DashboardContent() {
           font-size: 1.1rem; margin-bottom: 0.85rem;
         }
         .dept-stat-value {
-          font-size: 2rem; font-weight: 800; color: #0F172A;
+          font-size: 2rem; font-weight: 800; color: #F8FAFC;
           line-height: 1; margin-bottom: 0.25rem;
         }
-        .dept-stat-label { font-weight: 700; color: #0F172A; font-size: 0.85rem; }
+        .dept-stat-label { font-weight: 700; color: #E2E8F0; font-size: 0.85rem; }
         .dept-stat-sub { color: #94A3B8; font-size: 0.74rem; margin-top: 0.1rem; }
 
         /* Pipeline */
         .dept-pipeline {
-          background: white; border-radius: 20px; overflow: hidden;
-          border: 1px solid #E2E8F0; box-shadow: 0 4px 16px rgba(0,0,0,0.04);
+          background: linear-gradient(180deg, rgba(15,23,42,0.96) 0%, rgba(17,24,39,0.96) 100%); border-radius: 20px; overflow: hidden;
+          border: 1px solid rgba(148,163,184,0.14); box-shadow: 0 12px 28px rgba(15,23,42,0.18);
         }
         .dept-pipeline-header {
           padding: 1.2rem 1.5rem; display: flex; justify-content: space-between;
           align-items: center; flex-wrap: wrap; gap: 1rem;
-          border-bottom: 1px solid #E2E8F0;
+          border-bottom: 1px solid rgba(148,163,184,0.14);
         }
         .dept-filter-tabs {
-          display: flex; background: #F4F7F9; padding: 4px;
-          border-radius: 50px; gap: 3px; border: 1px solid #E2E8F0;
+          display: flex; background: rgba(15,23,42,0.72); padding: 4px;
+          border-radius: 50px; gap: 3px; border: 1px solid rgba(148,163,184,0.12);
           overflow-x: auto; scrollbar-width: none;
         }
         .dept-filter-tabs::-webkit-scrollbar { display: none; }
@@ -568,10 +577,10 @@ function DashboardContent() {
           padding: 0.35rem 0.9rem; border-radius: 50px; border: none;
           font-weight: 600; font-size: 0.78rem; cursor: pointer;
           transition: all 0.2s ease; background: transparent;
-          color: #475569; white-space: nowrap;
+          color: #CBD5E1; white-space: nowrap;
         }
         .dept-filter-btn--active {
-          background: linear-gradient(135deg,#0062FF,#6366F1);
+          background: linear-gradient(135deg,rgba(37,99,235,0.94),rgba(124,58,237,0.94));
           color: white; box-shadow: 0 3px 10px rgba(0,98,255,0.25);
         }
 
@@ -581,7 +590,7 @@ function DashboardContent() {
 
         /* Review button */
         .dept-review-btn {
-          background: linear-gradient(135deg,#0062FF,#6366F1);
+          background: linear-gradient(135deg,rgba(37,99,235,0.96),rgba(124,58,237,0.96));
           color: white; border: none; border-radius: 10px;
           padding: 0.4rem 1rem; font-weight: 700; font-size: 0.78rem;
           cursor: pointer; box-shadow: 0 4px 10px rgba(0,98,255,0.25);
@@ -594,13 +603,13 @@ function DashboardContent() {
         /* Mobile card */
         .dept-req-card {
           margin: 0.75rem 1rem; padding: 1.1rem 1.2rem;
-          background: white; border: 1px solid #E2E8F0;
+          background: rgba(15,23,42,0.95); border: 1px solid rgba(148,163,184,0.14);
           border-radius: 16px; cursor: pointer;
           transition: all 0.2s ease;
-          box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+          box-shadow: 0 8px 20px rgba(15,23,42,0.16);
         }
-        .dept-req-card:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(0,0,0,0.08); }
-        .dept-req-card--new { border-left: 4px solid #0062FF; animation: highlightRow 0.5s ease; }
+        .dept-req-card:hover { transform: translateY(-2px); box-shadow: 0 14px 28px rgba(15,23,42,0.24); border-color: rgba(96,165,250,0.32); }
+        .dept-req-card--new { border-left: 4px solid #60A5FA; animation: highlightRow 0.5s ease; }
         .dept-req-card-top {
           display: flex; justify-content: space-between; align-items: flex-start;
           gap: 0.75rem; margin-bottom: 0.85rem;
@@ -610,7 +619,36 @@ function DashboardContent() {
           flex-wrap: wrap;
         }
         .dept-req-card-chip {
-          background: rgba(0,98,255,0.07); border-radius: 8px; padding: 0.2rem 0.6rem;
+          background: rgba(96,165,250,0.12); border-radius: 8px; padding: 0.2rem 0.6rem;
+          border: 1px solid rgba(96,165,250,0.16);
+        }
+
+        .dept-pipeline h4,
+        .dept-pipeline p,
+        .dept-pipeline strong {
+          color: #E2E8F0;
+        }
+
+        .dept-table-wrap thead tr {
+          background: rgba(15,23,42,0.98) !important;
+        }
+
+        .dept-table-wrap th {
+          border-bottom: 1px solid rgba(148,163,184,0.14) !important;
+          color: #94A3B8 !important;
+        }
+
+        .dept-table-wrap tbody tr {
+          background: rgba(15,23,42,0.88);
+          color: #E2E8F0;
+        }
+
+        .dept-table-wrap tbody tr:hover {
+          background: rgba(30,41,59,0.95) !important;
+        }
+
+        .dept-table-wrap td {
+          border-bottom: 1px solid rgba(148,163,184,0.12) !important;
         }
 
         /* Breakpoints */
@@ -635,7 +673,7 @@ function DashboardContent() {
           50%      { opacity:0.5; transform:scale(1.4); }
         }
         @keyframes highlightRow {
-          from { background: rgba(0,98,255,0.08); }
+          from { background: rgba(96,165,250,0.12); }
           to   { background: transparent; }
         }
       `}</style>

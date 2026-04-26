@@ -33,7 +33,7 @@ export default function FinalReview() {
       const { data: clearanceData } = await supabase
         .from("clearance_status")
         .select("*")
-        .eq("student_id", params.id);
+        .eq("request_id", params.id);
       
       setClearances(clearanceData || []);
     } catch (error) {
@@ -47,8 +47,9 @@ export default function FinalReview() {
   if (loading) return <ExaminerLayout><div className="text-center py-5"><p>Loading...</p></div></ExaminerLayout>;
   if (!student) return <ExaminerLayout><div className="text-center py-5"><p>Student not found</p></div></ExaminerLayout>;
 
-  const allApproved = clearances.every(c => c.status === "approved");
-  const approvingPercentage = (clearances.filter(c => c.status === "approved").length / clearances.length) * 100;
+  const approvedCount = clearances.filter(c => c.status === "approved").length;
+  const allApproved = clearances.length > 0 && approvedCount === clearances.length;
+  const approvingPercentage = clearances.length > 0 ? (approvedCount / clearances.length) * 100 : 0;
 
   return (
     <ExaminerLayout>

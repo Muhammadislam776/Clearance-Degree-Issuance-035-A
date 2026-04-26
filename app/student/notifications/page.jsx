@@ -201,7 +201,15 @@ export default function NotificationsPage() {
 
   return (
     <StudentLayout>
-      <Container fluid className="py-4 px-md-5" style={{ background: "#F8FAFC", minHeight: "calc(100vh - 80px)" }}>
+      <Container
+        fluid
+        className="py-4 px-md-5"
+        style={{
+          minHeight: "calc(100vh - 80px)",
+          background:
+            "radial-gradient(1100px 460px at 10% -8%, rgba(37,99,235,0.22), rgba(37,99,235,0) 58%), radial-gradient(900px 420px at 92% 8%, rgba(139,92,246,0.2), rgba(139,92,246,0) 56%), linear-gradient(180deg, #0b1220 0%, #111827 100%)",
+        }}
+      >
 
         {/* ── Live Toast ─────────────────────────────────────────────────── */}
         {newToast && (
@@ -219,8 +227,8 @@ export default function NotificationsPage() {
         {/* ── Page Header ────────────────────────────────────────────────── */}
         <div className="d-flex justify-content-between align-items-end mb-4 flex-wrap gap-3">
           <div>
-            <h1 className="fw-bold mb-1" style={{ color: "#0F172A", letterSpacing: "-0.02em" }}>Notifications</h1>
-            <p className="text-muted mb-0 small">Stay updated on your clearance status and academic requests.</p>
+            <h1 className="fw-bold mb-1 notif-page-title" style={{ letterSpacing: "-0.02em" }}>Notifications</h1>
+            <p className="notif-page-subtitle mb-0 small">Stay updated on your clearance status and academic requests.</p>
           </div>
           <div className="d-flex gap-2">
             <div className="filter-pill-container shadow-sm">
@@ -239,7 +247,7 @@ export default function NotificationsPage() {
             </div>
             <Button 
               variant="link" 
-              className="text-decoration-none fw-bold text-primary small"
+              className="text-decoration-none fw-bold notif-markall-link small"
               onClick={handleMarkAllRead}
               disabled={unreadCount === 0}
             >
@@ -253,15 +261,15 @@ export default function NotificationsPage() {
             {loading ? (
               <div className="d-flex flex-column align-items-center py-5">
                 <Spinner animation="border" variant="primary" size="lg" />
-                <p className="mt-3 text-muted fw-medium">Syncing notifications...</p>
+                <p className="mt-3 notif-page-subtitle fw-medium">Syncing notifications...</p>
               </div>
             ) : notifications.length === 0 ? (
-              <div className="empty-state shadow-sm border">
+              <div className="empty-state shadow-sm border notif-panel">
                 <div className="empty-icon-container">
                   <span className="empty-icon">🎐</span>
                 </div>
-                <h3 className="fw-bold mt-4" style={{ color: "#1E293B" }}>All Caught Up!</h3>
-                <p className="text-muted mb-4 mx-auto" style={{ maxWidth: "420px" }}>
+                <h3 className="fw-bold mt-4 notif-panel-title">All Caught Up!</h3>
+                <p className="notif-page-subtitle mb-4 mx-auto" style={{ maxWidth: "420px" }}>
                   {filter === "unread" 
                     ? "You've read all your notifications. Refresh the page or check back later for updates."
                     : "Your notification history is empty. We'll alert you here as soon as there's an update on your clearance."}
@@ -332,13 +340,20 @@ export default function NotificationsPage() {
       </Container>
 
       <style jsx>{`
+        @keyframes slideInNotif {
+          from { transform: translateX(100%); opacity: 0; }
+          to { transform: translateX(0); opacity: 1; }
+        }
+
         .filter-pill-container {
-          background: white;
+          background: rgba(15, 23, 42, 0.82);
           padding: 4px;
           border-radius: 14px;
           display: flex;
           gap: 4px;
-          border: 1px solid #E2E8F0;
+          border: 1px solid rgba(148, 163, 184, 0.22);
+          backdrop-filter: blur(8px);
+          box-shadow: 0 14px 28px rgba(15, 23, 42, 0.24);
         }
         .filter-pill {
           border: none;
@@ -347,16 +362,16 @@ export default function NotificationsPage() {
           border-radius: 10px;
           font-size: 0.85rem;
           font-weight: 600;
-          color: #64748B;
+          color: #cbd5e1;
           transition: all 0.2s ease;
           display: flex;
           align-items: center;
           gap: 6px;
         }
         .filter-pill.active {
-          background: #0F172A;
+          background: linear-gradient(135deg, #2563eb 0%, #7c3aed 100%);
           color: white;
-          box-shadow: 0 4px 12px rgba(15, 23, 42, 0.15);
+          box-shadow: 0 10px 22px rgba(37, 99, 235, 0.24);
         }
         .badge-count {
           background: #EF4444;
@@ -373,24 +388,26 @@ export default function NotificationsPage() {
         }
 
         .notification-card {
-          background: white;
-          border: 1px solid #E2E8F0;
+          background: linear-gradient(180deg, rgba(30, 41, 59, 0.9) 0%, rgba(15, 23, 42, 0.9) 100%);
+          border: 1px solid rgba(148, 163, 184, 0.2);
           border-radius: 20px;
           padding: 20px;
           display: flex;
           gap: 16px;
           position: relative;
           overflow: hidden;
-          transition: all 0.2s ease;
+          transition: transform 0.22s ease, box-shadow 0.22s ease, border-color 0.22s ease;
+          box-shadow: 0 14px 28px rgba(15, 23, 42, 0.24);
+          backdrop-filter: blur(8px);
         }
         .notification-card:hover {
-          transform: translateY(-2px);
-          box-shadow: 0 10px 20px rgba(0,0,0,0.04);
-          border-color: #CBD5E1;
+          transform: translateY(-4px);
+          box-shadow: 0 20px 36px rgba(15, 23, 42, 0.34);
+          border-color: rgba(96, 165, 250, 0.42);
         }
         .notification-card.unread {
-          background: #FAFBFF;
-          border-color: #6366F120;
+          background: linear-gradient(180deg, rgba(30, 41, 59, 0.96) 0%, rgba(15, 23, 42, 0.96) 100%);
+          border-color: rgba(96, 165, 250, 0.3);
         }
         .notif-type-border {
           position: absolute;
@@ -417,12 +434,12 @@ export default function NotificationsPage() {
         }
         .notif-title {
           font-weight: 700;
-          color: #0F172A;
+          color: #f8fafc;
           font-size: 0.95rem;
         }
         .notif-message {
           font-size: 0.9rem;
-          color: #475569;
+          color: #cbd5e1;
           line-height: 1.5;
         }
         .notif-time {
@@ -434,16 +451,16 @@ export default function NotificationsPage() {
         .unread-dot {
           width: 8px;
           height: 8px;
-          background: #6366F1;
+          background: #60a5fa;
           border-radius: 50%;
           display: inline-block;
-          box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1);
+          box-shadow: 0 0 0 4px rgba(96, 165, 250, 0.12);
         }
 
         .action-link {
           background: transparent;
           border: none;
-          color: #6366F1;
+          color: #93c5fd;
           font-size: 0.8rem;
           font-weight: 700;
           padding: 0;
@@ -456,9 +473,9 @@ export default function NotificationsPage() {
           align-items: center;
         }
         .delete-btn {
-          background: transparent;
-          border: none;
-          color: #CBD5E1;
+          background: rgba(15, 23, 42, 0.84);
+          border: 1px solid rgba(148, 163, 184, 0.22);
+          color: #cbd5e1;
           padding: 8px;
           border-radius: 10px;
           transition: all 0.2s ease;
@@ -466,24 +483,29 @@ export default function NotificationsPage() {
         }
         .delete-btn:hover {
           color: #EF4444;
-          background: rgba(239, 68, 68, 0.05);
+          background: rgba(239, 68, 68, 0.14);
+          border-color: rgba(239, 68, 68, 0.42);
         }
 
         .empty-state {
-          background: white;
+          background: linear-gradient(180deg, rgba(30, 41, 59, 0.9) 0%, rgba(15, 23, 42, 0.9) 100%);
           padding: 60px 40px;
           border-radius: 28px;
           text-align: center;
+          box-shadow: 0 16px 34px rgba(15, 23, 42, 0.26);
+          backdrop-filter: blur(8px);
+          border-color: rgba(148, 163, 184, 0.2) !important;
         }
         .empty-icon-container {
           width: 100px;
           height: 100px;
-          background: #F1F5F9;
+          background: rgba(30, 41, 59, 0.95);
           border-radius: 50%;
           display: flex;
           align-items: center;
           justify-content: center;
           margin: 0 auto;
+          box-shadow: inset 0 0 0 1px rgba(148, 163, 184, 0.18);
         }
         .empty-icon {
           font-size: 3.5rem;
@@ -493,15 +515,18 @@ export default function NotificationsPage() {
           position: fixed;
           top: 90px;
           right: 30px;
-          background: white;
+          background: linear-gradient(180deg, rgba(30, 41, 59, 0.95) 0%, rgba(15, 23, 42, 0.95) 100%);
           border-radius: 18px;
           padding: 16px 20px;
           display: flex;
           align-items: center;
           gap: 15px;
           z-index: 1050;
-          border: 1px solid #E2E8F0;
+          border: 1px solid rgba(148, 163, 184, 0.24);
           max-width: 400px;
+          color: #f8fafc;
+          box-shadow: 0 18px 36px rgba(15, 23, 42, 0.34);
+          backdrop-filter: blur(10px);
           animation: slideInNotif 0.5s cubic-bezier(0.16, 1, 0.3, 1);
         }
         .toast-accent {
@@ -513,19 +538,43 @@ export default function NotificationsPage() {
           border-radius: 0 4px 4px 0;
         }
         .toast-icon { font-size: 1.5rem; }
-        .toast-title { font-weight: 800; font-size: 0.9rem; color: #0F172A; }
-        .toast-message { font-size: 0.85rem; color: #64748B; margin-top: 2px; }
+        .toast-title { font-weight: 800; font-size: 0.9rem; color: #f8fafc; }
+        .toast-message { font-size: 0.85rem; color: #cbd5e1; margin-top: 2px; }
         .toast-close {
           background: transparent;
           border: none;
           font-size: 1.2rem;
-          color: #94A3B8;
+          color: #cbd5e1;
           cursor: pointer;
         }
 
-        @keyframes slideInNotif {
-          from { transform: translateX(100%); opacity: 0; }
-          to { transform: translateX(0); opacity: 1; }
+        .notif-page-title {
+          color: #f8fafc;
+        }
+
+        .notif-page-subtitle {
+          color: #cbd5e1;
+        }
+
+        .notif-markall-link {
+          color: #93c5fd !important;
+        }
+
+        .notif-markall-link:disabled {
+          color: #64748b !important;
+        }
+
+        .notif-panel-title {
+          color: #f8fafc;
+        }
+
+        .notif-panel {
+          border-color: rgba(148, 163, 184, 0.2) !important;
+        }
+
+        .notification-card .text-muted,
+        .empty-state .text-muted {
+          color: #cbd5e1 !important;
         }
       `}</style>
     </StudentLayout>
