@@ -2,7 +2,7 @@
 
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { Alert, Badge, Button, Card, Col, Container, Form, Modal, Row, Spinner } from "react-bootstrap";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import DepartmentLayout from "@/components/layout/DepartmentLayout";
 import { useAuth } from "@/lib/useAuth";
@@ -37,7 +37,6 @@ function timeAgo(dateStr) {
 
 export default function AcademicDashboardPage() {
   const router = useRouter();
-  const searchParams = useSearchParams();
   const { profile, loading: authLoading } = useAuth();
   const [loading, setLoading] = useState(true);
   const [readyStudents, setReadyStudents] = useState([]);
@@ -52,9 +51,9 @@ export default function AcademicDashboardPage() {
   const [issueRemarks, setIssueRemarks] = useState("");
   const [activeAcademicDept, setActiveAcademicDept] = useState(null);
   const [academicDeptLoading, setAcademicDeptLoading] = useState(true);
+  const [requestedDeptId, setRequestedDeptId] = useState(null);
   const userDeptId = profile?.department_id || profile?.department_profile?.id || null;
   const userDeptName = profile?.department_profile?.name || profile?.department_name || profile?.department || null;
-  const requestedDeptId = searchParams.get("deptId") || null;
   const hasBoundDepartment = !!(userDeptId || userDeptName);
   const requestedAcademicDeptId =
     activeAcademicDept?.id && requestedDeptId === activeAcademicDept.id ? requestedDeptId : null;
@@ -110,6 +109,11 @@ export default function AcademicDashboardPage() {
   useEffect(() => {
     loadAcademicDepartment();
   }, [loadAcademicDepartment]);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    setRequestedDeptId(params.get("deptId") || null);
+  }, []);
 
   useEffect(() => {
     if (!authLoading && profile) {
