@@ -92,10 +92,7 @@ export default function AcademicDashboardPage() {
       if (!resIssued.success) throw new Error(resIssued.error);
 
       const ready = (resCleared.data || []).filter(
-        (student) =>
-          student.isCleared &&
-          !student.degreeIssued &&
-          ["approved", "completed"].includes(String(student.overallStatus || "").toLowerCase())
+        (student) => student.readyForAcademicIssuance
       );
       setReadyStudents(ready);
       setIssuedDegrees(resIssued.data || []);
@@ -195,6 +192,10 @@ export default function AcademicDashboardPage() {
       setError("Academic department is not configured. Ask admin to select one from Manage Departments.");
       return;
     }
+    if (!selectedStudent.readyForAcademicIssuance) {
+      setError("This request is not ready yet. Examiner approval is required before academic issuance.");
+      return;
+    }
     setActionLoading(true);
     try {
       const title = degreeTitle.trim() || "Official Degree";
@@ -221,6 +222,14 @@ export default function AcademicDashboardPage() {
     }
   };
 
+  const handleBack = () => {
+    if (typeof window !== "undefined" && window.history.length > 1) {
+      router.back();
+      return;
+    }
+    router.push("/department/dashboard");
+  };
+
   const renderStudentCard = (student, type, index) => {
     const grad = CARD_GRADS[index % CARD_GRADS.length];
     return (
@@ -231,14 +240,14 @@ export default function AcademicDashboardPage() {
               <div className="d-flex align-items-center gap-3 flex-grow-1 min-w-0">
                 <div className="academic-avatar" style={{ background: grad }}>{initials(student.studentName)}</div>
                 <div className="min-w-0">
-                  <div className="fw-bold fs-6 text-dark text-truncate">{student.studentName}</div>
-                  <div className="text-muted small text-truncate">{student.studentEmail}</div>
+                  <div className="fw-bold fs-6 text-truncate academic-name">{student.studentName}</div>
+                  <div className="small text-truncate academic-email">{student.studentEmail}</div>
                 </div>
               </div>
             </div>
 
             <div className="d-flex justify-content-end mb-3">
-              <Badge bg="light" text="dark" className="rounded-pill border px-3 py-2 academic-status-badge">
+              <Badge className="rounded-pill border px-3 py-2 academic-status-badge academic-soft-badge">
                 {type === "ready" ? `${student.clearedCount}/${student.totalDepts}` : "Issued"}
               </Badge>
             </div>
@@ -248,16 +257,16 @@ export default function AcademicDashboardPage() {
                 <Badge bg="success" className="rounded-pill px-3 py-2 mb-3">Ready for academic issuance</Badge>
                 <div className="mb-3">
                   <div className="d-flex justify-content-between small mb-2">
-                    <span className="text-muted">Clearance progress</span>
+                    <span className="academic-muted">Clearance progress</span>
                     <strong>{student.totalDepts ? Math.round((student.clearedCount / student.totalDepts) * 100) : 0}%</strong>
                   </div>
-                  <div className="progress" style={{ height: 8, borderRadius: 999, background: "#e2e8f0" }}>
+                  <div className="progress" style={{ height: 8, borderRadius: 999, background: "rgba(148,163,184,0.2)" }}>
                     <div className="progress-bar" style={{ width: `${student.totalDepts ? (student.clearedCount / student.totalDepts) * 100 : 0}%`, background: "linear-gradient(90deg,#0f766e,#14b8a6)", borderRadius: 999 }} />
                   </div>
                 </div>
-                <div className="text-muted small mb-3">All departments approved. This record is waiting for final academic issuance.</div>
+                <div className="academic-muted small mb-3">All departments approved. This record is waiting for final academic issuance.</div>
                 <div className="d-flex align-items-center justify-content-between gap-2">
-                  <span className="text-muted small">{timeAgo(student.submittedAt)}</span>
+                  <span className="academic-muted small">{timeAgo(student.submittedAt)}</span>
                   <Button
                     className="academic-cta"
                     onClick={() => {
@@ -274,13 +283,13 @@ export default function AcademicDashboardPage() {
             ) : (
               <>
                 <Badge bg="primary" className="rounded-pill px-3 py-2 mb-3">Degree issued</Badge>
-                <div className="mb-2 small text-muted">Title</div>
+                <div className="mb-2 small academic-muted">Title</div>
                 <div className="fw-semibold mb-3">{student.degreeTitle || "Official Degree"}</div>
-                <div className="mb-2 small text-muted">Issued</div>
+                <div className="mb-2 small academic-muted">Issued</div>
                 <div className="fw-semibold mb-3">{new Date(student.issuedAt || Date.now()).toLocaleDateString()}</div>
                 <div className="d-flex align-items-center justify-content-between">
-                  <span className="text-muted small">QR: {student.qrCode || "N/A"}</span>
-                  <Badge bg="light" text="dark" className="rounded-pill border px-3 py-2">Ledger</Badge>
+                  <span className="academic-muted small">QR: {student.qrCode || "N/A"}</span>
+                  <Badge className="rounded-pill border px-3 py-2 academic-soft-badge">Ledger</Badge>
                 </div>
               </>
             )}
@@ -323,6 +332,8 @@ export default function AcademicDashboardPage() {
               padding: 2rem;
               margin-bottom: 1.5rem;
               animation: acadRise 0.5s ease-out;
+              border: 1px solid rgba(255,255,255,0.12);
+              box-shadow: 0 18px 38px rgba(15,23,42,0.26);
             }
 
             .academic-hero::after {
@@ -347,7 +358,7 @@ export default function AcademicDashboardPage() {
               margin-bottom: 0.85rem;
             }
 
-            .academic-title { font-size: clamp(1.9rem, 2.7vw, 3rem); font-weight: 900; line-height: 1.05; margin-bottom: 0.75rem; }
+            .academic-title { font-size: clamp(1.9rem, 2.7vw, 3rem); font-weight: 900; line-height: 1.05; margin-bottom: 0.75rem; color: #f8fafc !important; }
             .academic-sub { max-width: 740px; color: rgba(255,255,255,0.84); margin-bottom: 0; }
 
             .academic-stat-grid {
@@ -358,16 +369,16 @@ export default function AcademicDashboardPage() {
             }
 
             .academic-stat {
-              background: #fff;
+              background: linear-gradient(180deg, rgba(15,23,42,0.96) 0%, rgba(30,41,59,0.96) 100%);
               border-radius: 22px;
-              border: 1px solid #ecfeff;
+              border: 1px solid rgba(148,163,184,0.14);
               padding: 1.2rem;
               transition: transform 0.25s ease, box-shadow 0.25s ease;
             }
 
             .academic-stat:hover {
               transform: translateY(-6px);
-              box-shadow: 0 18px 36px rgba(15, 23, 42, 0.08);
+              box-shadow: 0 18px 36px rgba(15, 23, 42, 0.26);
             }
 
             .academic-stat-icon {
@@ -383,10 +394,10 @@ export default function AcademicDashboardPage() {
             }
 
             .academic-panel {
-              background: #fff;
+              background: linear-gradient(180deg, rgba(15,23,42,0.96) 0%, rgba(17,24,39,0.96) 100%);
               border-radius: 28px;
-              border: 1px solid #ecfeff;
-              box-shadow: 0 12px 30px rgba(15, 23, 42, 0.05);
+              border: 1px solid rgba(148,163,184,0.14);
+              box-shadow: 0 12px 30px rgba(15, 23, 42, 0.2);
               overflow: hidden;
             }
 
@@ -397,7 +408,8 @@ export default function AcademicDashboardPage() {
               flex-wrap: wrap;
               gap: 1rem;
               padding: 1.25rem 1.4rem;
-              border-bottom: 1px solid #ecfeff;
+              border-bottom: 1px solid rgba(148,163,184,0.14);
+              background: linear-gradient(180deg, rgba(15,23,42,0.98) 0%, rgba(30,41,59,0.94) 100%);
             }
 
             .academic-grid {
@@ -416,14 +428,15 @@ export default function AcademicDashboardPage() {
 
             .academic-card {
               border-radius: 22px;
-              border: 1px solid #ecfeff;
+              border: 1px solid rgba(148,163,184,0.14);
+              background: linear-gradient(180deg, rgba(15,23,42,0.95) 0%, rgba(30,41,59,0.95) 100%);
               transition: transform 0.25s ease, box-shadow 0.25s ease;
               animation: acadRise 0.45s ease-out backwards;
             }
 
             .academic-card:hover {
               transform: translateY(-6px);
-              box-shadow: 0 18px 36px rgba(15, 23, 42, 0.08);
+              box-shadow: 0 18px 36px rgba(15, 23, 42, 0.24);
             }
 
             .academic-avatar {
@@ -443,6 +456,37 @@ export default function AcademicDashboardPage() {
               flex-shrink: 0;
             }
 
+            .academic-soft-badge {
+              background: rgba(15,23,42,0.78) !important;
+              border-color: rgba(148,163,184,0.2) !important;
+              color: #e2e8f0 !important;
+            }
+
+            .academic-name {
+              color: #f8fafc;
+            }
+
+            .academic-email,
+            .academic-muted {
+              color: #cbd5e1 !important;
+            }
+
+            .academic-panel h4,
+            .academic-panel h5,
+            .academic-panel .fw-semibold,
+            .academic-panel .fw-bold {
+              color: #f8fafc;
+            }
+
+            .academic-search {
+              background: rgba(15,23,42,0.86) !important;
+              border: 1px solid rgba(148,163,184,0.2) !important;
+              color: #f8fafc !important;
+            }
+            .academic-search::placeholder {
+              color: #94a3b8;
+            }
+
             .academic-cta {
               background: linear-gradient(135deg, #0f766e 0%, #14b8a6 100%);
               border: none;
@@ -454,10 +498,55 @@ export default function AcademicDashboardPage() {
 
             .academic-cta:hover { transform: translateY(-2px); }
 
+            .academic-nav-actions {
+              position: absolute;
+              top: 1.4rem;
+              right: 1.4rem;
+              display: flex;
+              align-items: center;
+              gap: 0.6rem;
+              z-index: 2;
+            }
+
+            .academic-nav-btn {
+              padding: 0.6rem 1.1rem;
+              font-weight: 700;
+            }
+
+            .academic-modal .modal-content {
+              border: 1px solid rgba(148,163,184,0.2);
+              border-radius: 24px;
+              overflow: hidden;
+              background: linear-gradient(180deg, rgba(15,23,42,0.98) 0%, rgba(30,41,59,0.98) 100%);
+              color: #e2e8f0;
+              box-shadow: 0 30px 66px rgba(15,23,42,0.45);
+            }
+            .academic-modal .btn-close {
+              filter: invert(1) brightness(2);
+            }
+            .academic-modal .text-muted {
+              color: #94a3b8 !important;
+            }
+            .academic-modal .form-control,
+            .academic-modal .form-control:focus {
+              background: rgba(15,23,42,0.86) !important;
+              border: 1px solid rgba(148,163,184,0.2) !important;
+              color: #f8fafc !important;
+              box-shadow: none !important;
+            }
+            .academic-modal .form-control::placeholder {
+              color: #94a3b8;
+            }
+
             @media (max-width: 768px) {
               .academic-hero { padding: 1.4rem; }
               .academic-panel-head { padding: 1rem; }
               .academic-grid { padding: 1rem; }
+              .academic-nav-actions {
+                position: static;
+                margin-top: 1rem;
+                justify-content: flex-start;
+              }
             }
           `}</style>
 
@@ -469,14 +558,17 @@ export default function AcademicDashboardPage() {
                 This panel is for the academic department to issue degrees only after all departments and the examiner have completed review.
               </p>
             </div>
-            <Button
-              variant="light"
-              className="fw-bold rounded-pill"
-              onClick={() => router.push("/department/dashboard")}
-              style={{ position: "absolute", top: "1.4rem", right: "1.4rem" }}
-            >
-              Department Hub
-            </Button>
+            <div className="academic-nav-actions">
+              <Button className="rounded-pill academic-soft-badge academic-nav-btn" onClick={handleBack}>
+                Back
+              </Button>
+              <Button
+                className="rounded-pill academic-soft-badge academic-nav-btn"
+                onClick={() => router.push("/department/dashboard")}
+              >
+                Department Hub
+              </Button>
+            </div>
           </div>
 
           {error ? <Alert variant="danger" className="rounded-4 border-0 shadow-sm">{error}</Alert> : null}
@@ -490,9 +582,9 @@ export default function AcademicDashboardPage() {
             ].map((item) => (
               <div key={item.label} className="academic-stat">
                 <div className="academic-stat-icon" style={{ background: item.color }}>{item.icon}</div>
-                <div className="fs-2 fw-black" style={{ fontWeight: 900, color: "#0f172a" }}>{item.value}</div>
-                <div className="fw-bold text-dark mt-1">{item.label}</div>
-                <div className="text-muted small">{item.sub}</div>
+                <div className="fs-2 fw-black" style={{ fontWeight: 900, color: "#f8fafc" }}>{item.value}</div>
+                <div className="fw-bold mt-1" style={{ color: "#f8fafc" }}>{item.label}</div>
+                <div className="academic-muted small">{item.sub}</div>
               </div>
             ))}
           </div>
@@ -501,12 +593,12 @@ export default function AcademicDashboardPage() {
             <div className="academic-panel-head">
               <div>
                 <h4 className="fw-bold mb-1">Ready for Academic Issuance</h4>
-                <p className="text-muted mb-0 small">Students approved by all departments and the examiner.</p>
+                <p className="academic-muted mb-0 small">Students approved by all departments and the examiner.</p>
               </div>
 
               <Form.Control
                 style={{ minWidth: "min(100%, 320px)" }}
-                className="rounded-pill px-3 py-2"
+                className="rounded-pill px-3 py-2 academic-search"
                 placeholder="Search student, email, or degree title..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
@@ -517,10 +609,10 @@ export default function AcademicDashboardPage() {
               {loading ? (
                 <div className="text-center py-5">
                   <Spinner animation="border" className="mb-3" />
-                  <p className="text-muted mb-0">Loading academic issuance queue...</p>
+                  <p className="academic-muted mb-0">Loading academic issuance queue...</p>
                 </div>
               ) : filteredReady.length === 0 ? (
-                <div className="text-center py-5 text-muted">
+                <div className="text-center py-5 academic-muted">
                   <div style={{ fontSize: "3rem" }}>📭</div>
                   <h5 className="fw-bold mt-2">No Students Waiting for Issuance</h5>
                   <p className="mb-0">When examiner approves a student, they will appear here for final degree issuance.</p>
@@ -537,7 +629,7 @@ export default function AcademicDashboardPage() {
             <div className="academic-panel-head">
               <div>
                 <h4 className="fw-bold mb-1">Issued Degrees Ledger</h4>
-                <p className="text-muted mb-0 small">All degrees already issued by academic authority.</p>
+                <p className="academic-muted mb-0 small">All degrees already issued by academic authority.</p>
               </div>
             </div>
 
@@ -547,7 +639,7 @@ export default function AcademicDashboardPage() {
                   <Spinner animation="border" className="mb-2" />
                 </div>
               ) : filteredIssued.length === 0 ? (
-                <div className="text-center py-4 text-muted">No issued records found yet.</div>
+                <div className="text-center py-4 academic-muted">No issued records found yet.</div>
               ) : (
                 <div className="academic-card-grid">
                   {filteredIssued.map((student, index) => renderStudentCard(student, "issued", index))}
@@ -556,7 +648,7 @@ export default function AcademicDashboardPage() {
             </div>
           </Card>
 
-          <Modal show={showIssue} onHide={() => setShowIssue(false)} centered>
+          <Modal show={showIssue} onHide={() => setShowIssue(false)} centered className="academic-modal">
             <Modal.Header closeButton className="border-0 pb-0">
               <Modal.Title className="fw-bold">Issue Degree Certificate</Modal.Title>
             </Modal.Header>

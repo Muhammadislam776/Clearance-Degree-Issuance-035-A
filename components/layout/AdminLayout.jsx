@@ -20,35 +20,34 @@ export default function AdminLayout({ children }) {
 
   return (
     <>
-      <Navbar expand="lg" className="navbar-premium mb-4">
+      <Navbar expand="lg" className="admin-navbar">
         <Container>
-          <Navbar.Brand onClick={() => router.push("/admin/dashboard")} className="navbar-brand-premium cursor-pointer">
+          <Navbar.Brand onClick={() => router.push("/admin/dashboard")} className="admin-navbar-brand cursor-pointer">
             Administrative Control
           </Navbar.Brand>
-          <Navbar.Toggle aria-controls="basic-navbar-nav" />
-          <Navbar.Collapse id="basic-navbar-nav">
+          <Navbar.Toggle aria-controls="admin-navbar-nav" />
+          <Navbar.Collapse id="admin-navbar-nav">
             <Nav className="ms-auto align-items-center">
               <Nav.Link 
                 onClick={() => router.push("/admin/dashboard")}
-                className="nav-link-premium"
+                className="admin-nav-link"
               >
                 Dashboard
               </Nav.Link>
               <Nav.Link 
                 onClick={() => router.push("/admin/departments")}
-                className="nav-link-premium"
+                className="admin-nav-link"
               >
                 Departments
               </Nav.Link>
               <Nav.Link 
                 onClick={() => router.push("/admin/users")}
-                className="nav-link-premium"
+                className="admin-nav-link"
               >
                 Identity
               </Nav.Link>
               <Button 
-                className="btn-premium btn-premium-primary ms-lg-3"
-                size="sm"
+                className="admin-exit-btn ms-lg-3"
                 onClick={handleLogout}
               >
                 Termination/Exit
@@ -58,10 +57,74 @@ export default function AdminLayout({ children }) {
         </Container>
       </Navbar>
 
-      <Container fluid className="px-4">
+      <Container fluid className="px-4 pt-4 admin-shell">
         {children}
       </Container>
       <AIChatbot />
+
+      <style jsx global>{`
+        .admin-shell {
+          min-height: calc(100vh - 86px);
+          background:
+            radial-gradient(1100px 460px at 12% -8%, rgba(30,58,138,0.18), rgba(30,58,138,0) 58%),
+            radial-gradient(900px 420px at 88% 8%, rgba(67,56,202,0.18), rgba(67,56,202,0) 56%),
+            linear-gradient(180deg, #0b1220 0%, #0f172a 100%);
+        }
+
+        .admin-navbar {
+          background: rgba(15,23,42,0.94) !important;
+          border-bottom: 1px solid rgba(148,163,184,0.14);
+          box-shadow: 0 10px 24px rgba(15,23,42,0.18);
+          backdrop-filter: blur(12px);
+          margin-bottom: 0 !important;
+        }
+
+        .admin-navbar-brand {
+          font-weight: 800;
+          letter-spacing: -0.5px;
+          font-size: 1.8rem;
+          background: linear-gradient(135deg, #60A5FA, #3B82F6);
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: transparent;
+          background-clip: text;
+        }
+
+        .admin-nav-link {
+          color: #CBD5E1 !important;
+          font-weight: 700;
+          border-radius: 10px;
+          padding: 0.45rem 0.85rem !important;
+          transition: all 0.2s ease;
+        }
+        .admin-nav-link:hover {
+          color: #F8FAFC !important;
+          background: rgba(59,130,246,0.12);
+        }
+
+        .admin-exit-btn {
+          background: linear-gradient(135deg, #ef4444 0%, #b91c1c 100%);
+          border: none;
+          color: #fff;
+          border-radius: 12px;
+          font-weight: 700;
+          padding: 0.52rem 1.05rem;
+          box-shadow: 0 10px 22px rgba(239,68,68,0.2);
+          transition: all 0.2s ease;
+        }
+        .admin-exit-btn:hover {
+          transform: translateY(-1px);
+          box-shadow: 0 12px 24px rgba(239,68,68,0.28);
+          filter: brightness(1.1);
+        }
+
+        .admin-navbar .navbar-toggler {
+          border-color: rgba(148,163,184,0.24);
+          background: rgba(255,255,255,0.04);
+        }
+        .admin-navbar .navbar-toggler-icon {
+          filter: invert(1) brightness(2);
+        }
+      `}</style>
     </>
   );
 }

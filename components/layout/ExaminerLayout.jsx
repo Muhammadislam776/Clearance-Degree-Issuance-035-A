@@ -1,6 +1,6 @@
 "use client";
 import React from "react";
-import { Navbar, Nav, Container, Button } from "react-bootstrap";
+import { Navbar, Nav, Container, NavDropdown } from "react-bootstrap";
 import { useRouter } from "next/navigation";
 import { logoutUser } from "@/lib/authService";
 import { useAuth } from "@/lib/useAuth";
@@ -11,6 +11,15 @@ export default function ExaminerLayout({ children }) {
   const router = useRouter();
   const { profile } = useAuth();
 
+  const profileInitials = String(profile?.name || "EX")
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((part) => part[0])
+    .join("")
+    .slice(0, 2)
+    .toUpperCase() || "EX";
+
   const handleLogout = async () => {
     const result = await logoutUser();
     if (result.success) {
@@ -20,7 +29,7 @@ export default function ExaminerLayout({ children }) {
 
   return (
     <>
-      <Navbar expand="lg" className="ex-navbar mb-4">
+      <Navbar expand="lg" className="ex-navbar">
         <Container>
           <Navbar.Brand onClick={() => router.push("/examiner/dashboard")} className="ex-navbar-brand cursor-pointer">
             Examiner Portal
@@ -40,18 +49,21 @@ export default function ExaminerLayout({ children }) {
               >
                 Pending
               </Nav.Link>
-              <Button 
-                className="ex-signout-btn ms-lg-3"
-                size="sm"
-                onClick={handleLogout}
+              <Nav.Link 
+                onClick={() => router.push("/examiner/profile")}
+                className="ex-profile-dropdown ms-lg-3 d-flex align-items-center"
+                style={{ cursor: "pointer" }}
               >
-                Sign Out
-              </Button>
+                <span className="ex-profile-title">
+                  <span className="ex-profile-chip">{profileInitials}</span>
+                  <span>Profile</span>
+                </span>
+              </Nav.Link>
             </Nav>
           </Navbar.Collapse>
         </Container>
       </Navbar>
-      <Container fluid className="px-4 ex-shell">{children}</Container>
+      <Container fluid className="px-4 pt-4 ex-shell">{children}</Container>
       <AIChatbot />
 
       <style jsx global>{`
@@ -68,6 +80,7 @@ export default function ExaminerLayout({ children }) {
           border-bottom: 1px solid rgba(148,163,184,0.14);
           box-shadow: 0 10px 24px rgba(15,23,42,0.18);
           backdrop-filter: blur(12px);
+          margin-bottom: 0 !important;
         }
 
         .ex-navbar-brand {
@@ -92,20 +105,53 @@ export default function ExaminerLayout({ children }) {
           background: rgba(96,165,250,0.12);
         }
 
-        .ex-signout-btn {
-          background: linear-gradient(135deg, rgba(37,99,235,0.96), rgba(124,58,237,0.96));
-          color: #fff;
-          border: none;
-          border-radius: 12px;
-          font-weight: 700;
-          padding: 0.52rem 1.05rem;
-          box-shadow: 0 10px 22px rgba(37,99,235,0.22);
+        .ex-profile-title {
+          display: inline-flex;
+          align-items: center;
+          gap: 0.45rem;
         }
-        .ex-signout-btn:hover,
-        .ex-signout-btn:focus,
-        .ex-signout-btn:active {
+
+        .ex-profile-chip {
+          width: 24px;
+          height: 24px;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          border-radius: 999px;
+          font-size: 0.68rem;
+          font-weight: 800;
+          background: rgba(255,255,255,0.2);
+          color: #fff;
+          border: 1px solid rgba(255,255,255,0.28);
+        }
+
+        .ex-profile-dropdown {
+          background: linear-gradient(135deg, rgba(37,99,235,0.96), rgba(124,58,237,0.96)) !important;
           color: #fff !important;
+          border: none !important;
+          border-radius: 12px !important;
+          font-weight: 700 !important;
+          padding: 0.52rem 1.05rem !important;
+          box-shadow: 0 10px 22px rgba(37,99,235,0.22);
+          transition: all 0.2s ease;
+          opacity: 1 !important;
+        }
+
+        .ex-profile-dropdown:hover,
+        .ex-profile-dropdown:focus,
+        .ex-profile-dropdown:active {
           background: linear-gradient(135deg, rgba(59,130,246,0.96), rgba(139,92,246,0.96)) !important;
+          box-shadow: 0 12px 24px rgba(59,130,246,0.28) !important;
+          transform: translateY(-1px);
+        }
+
+        @media (max-width: 991px) {
+          .ex-profile-dropdown {
+            width: 100%;
+            margin-top: 0.5rem;
+            text-align: center;
+            justify-content: center;
+          }
         }
 
         .ex-navbar .navbar-toggler {

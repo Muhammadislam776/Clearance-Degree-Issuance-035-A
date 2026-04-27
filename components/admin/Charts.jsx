@@ -18,12 +18,13 @@ export default function Charts({ stats }) {
   ];
 
   const COLORS = ["#10B981", "#F59E0B", "#EF4444"];
+  const axisColor = "#94A3B8";
 
   return (
     <Row className="mt-4 g-4">
       <Col md={6}>
-        <Card className="border-0 shadow-sm rounded-4 p-4 h-100">
-          <h5 className="fw-bold mb-4">Request Distribution</h5>
+        <Card className="admin-chart-card border-0 rounded-4 p-4 h-100">
+          <h5 className="fw-bold text-white mb-4">Request Distribution</h5>
           <div style={{ width: "100%", height: 300 }}>
             <ResponsiveContainer>
               <PieChart>
@@ -41,7 +42,13 @@ export default function Charts({ stats }) {
                   ))}
                 </Pie>
                 <PieTooltip 
-                  contentStyle={{ borderRadius: "12px", border: "none", boxShadow: "0 4px 6px rgba(0,0,0,0.1)" }}
+                  contentStyle={{
+                    borderRadius: "12px",
+                    border: "1px solid rgba(148,163,184,0.24)",
+                    boxShadow: "0 10px 24px rgba(2,6,23,0.4)",
+                    background: "rgba(15,23,42,0.96)",
+                    color: "#E2E8F0"
+                  }}
                 />
               </PieChart>
             </ResponsiveContainer>
@@ -50,16 +57,22 @@ export default function Charts({ stats }) {
       </Col>
 
       <Col md={6}>
-        <Card className="border-0 shadow-sm rounded-4 p-4 h-100">
-          <h5 className="fw-bold mb-4">Pipeline Overview</h5>
+        <Card className="admin-chart-card border-0 rounded-4 p-4 h-100">
+          <h5 className="fw-bold text-white mb-4">Pipeline Overview</h5>
           <div style={{ width: "100%", height: 300 }}>
             <ResponsiveContainer>
               <BarChart data={barData} margin={{ top: 20, right: 30, left: 0, bottom: 0 }}>
-                <XAxis dataKey="name" axisLine={false} tickLine={false} />
-                <YAxis axisLine={false} tickLine={false} />
+                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: axisColor, fontSize: 12 }} />
+                <YAxis axisLine={false} tickLine={false} tick={{ fill: axisColor, fontSize: 12 }} />
                 <BarTooltip 
                   cursor={{ fill: "transparent" }}
-                  contentStyle={{ borderRadius: "12px", border: "none", boxShadow: "0 4px 6px rgba(0,0,0,0.1)" }}
+                  contentStyle={{
+                    borderRadius: "12px",
+                    border: "1px solid rgba(148,163,184,0.24)",
+                    boxShadow: "0 10px 24px rgba(2,6,23,0.4)",
+                    background: "rgba(15,23,42,0.96)",
+                    color: "#E2E8F0"
+                  }}
                 />
                 <Bar dataKey="value" radius={[6, 6, 0, 0]}>
                   {barData.map((entry, index) => (

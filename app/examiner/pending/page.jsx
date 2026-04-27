@@ -1,5 +1,5 @@
 'use client';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Container, Row, Col, Card, Table, Button, Badge, Modal, Form, Alert, Spinner } from 'react-bootstrap';
 import ExaminerLayout from '@/components/layout/ExaminerLayout';
 import { useAuth } from '@/lib/useAuth';
@@ -14,9 +14,44 @@ export default function PendingClearancesPage() {
   const [comments, setComments] = useState("");
   
   const [pendingApplications, setPendingApplications] = useState([]);
+  const [allActiveApplications, setAllActiveApplications] = useState([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [academicDepartment, setAcademicDepartment] = useState(null);
+
+  const dashboardStats = useMemo(() => {
+    const totalApps = allActiveApplications.length;
+
+    if (!totalApps) {
+      return {
+        averageClearances: "0.0",
+        completeDocuments: 0,
+        needAttention: 0,
+      };
+    }
+
+    const totalApprovedAcrossApps = allActiveApplications.reduce((sum, app) => {
+      const approvedCount = (app.clearance_status || []).filter(
+        (s) => s.status === "approved" || s.status === "completed"
+      ).length;
+      return sum + approvedCount;
+    }, 0);
+
+    const completeDocuments = allActiveApplications.filter((app) => {
+      const statuses = app.clearance_status || [];
+      return statuses.length > 0 && statuses.every((s) => s.status === "approved" || s.status === "completed");
+    }).length;
+
+    const needAttention = allActiveApplications.filter((app) =>
+      (app.clearance_status || []).some((s) => s.status === "rejected")
+    ).length;
+
+    return {
+      averageClearances: (totalApprovedAcrossApps / totalApps).toFixed(1),
+      completeDocuments,
+      needAttention,
+    };
+  }, [allActiveApplications]);
 
   useEffect(() => {
     async function loadApplications() {
@@ -41,6 +76,8 @@ export default function PendingClearancesPage() {
           .eq('degree_issued', false);
 
         if (error) throw error;
+
+        setAllActiveApplications(requests || []);
 
         // Verify that EVERY department is approved to show up in Examiner dashboard
         const eligibleRequests = (requests || []).filter(req => {
@@ -109,18 +146,156 @@ export default function PendingClearancesPage() {
   return (
     <ExaminerLayout>
       <Container fluid style={{ padding: "20px" }}>
+        <style jsx global>{`
+          @keyframes exPendingRise {
+            from { opacity: 0; transform: translateY(14px); }
+            to { opacity: 1; transform: translateY(0); }
+          }
+
+          .ex-pending-hero {
+            background: linear-gradient(135deg, rgba(37,99,235,0.92) 0%, rgba(99,102,241,0.92) 58%, rgba(124,58,237,0.92) 100%);
+            padding: 1.8rem;
+            border-radius: 20px;
+            margin-bottom: 1.4rem;
+            color: #fff;
+            border: 1px solid rgba(255,255,255,0.12);
+            box-shadow: 0 16px 34px rgba(15,23,42,0.26);
+            animation: exPendingRise 0.45s ease-out;
+          }
+
+          .ex-pending-alert {
+            border: 1px solid rgba(148,163,184,0.14) !important;
+            box-shadow: 0 10px 24px rgba(15,23,42,0.18) !important;
+          }
+
+          .ex-pending-stat {
+            background: linear-gradient(180deg, rgba(15,23,42,0.96) 0%, rgba(30,41,59,0.96) 100%) !important;
+            border: 1px solid rgba(148,163,184,0.14) !important;
+            border-radius: 16px !important;
+            box-shadow: 0 10px 24px rgba(15,23,42,0.2) !important;
+            transition: transform 0.24s ease, box-shadow 0.24s ease, border-color 0.24s ease;
+          }
+
+          .ex-pending-stat:hover {
+            transform: translateY(-4px);
+            border-color: rgba(96,165,250,0.34) !important;
+            box-shadow: 0 16px 30px rgba(15,23,42,0.28) !important;
+          }
+
+          .ex-pending-stat-label {
+            color: #cbd5e1 !important;
+          }
+
+          .ex-pending-table-card {
+            background: linear-gradient(180deg, rgba(15,23,42,0.96) 0%, rgba(17,24,39,0.96) 100%) !important;
+            border: 1px solid rgba(148,163,184,0.14) !important;
+            border-radius: 18px !important;
+            box-shadow: 0 12px 28px rgba(15,23,42,0.2) !important;
+            overflow: hidden;
+          }
+
+          .ex-pending-table-head {
+            background: linear-gradient(135deg, rgba(37,99,235,0.9) 0%, rgba(124,58,237,0.9) 100%) !important;
+            color: #fff !important;
+            font-weight: 800;
+            border-bottom: 1px solid rgba(148,163,184,0.16);
+          }
+
+          .ex-pending-table-wrap {
+            background: transparent;
+          }
+
+          .ex-pending-table {
+            --bs-table-bg: transparent;
+            --bs-table-striped-bg: rgba(30,41,59,0.42);
+            --bs-table-color: #e2e8f0;
+            --bs-table-striped-color: #e2e8f0;
+            --bs-table-hover-bg: rgba(59,130,246,0.12);
+            --bs-table-hover-color: #f8fafc;
+            margin-bottom: 0;
+          }
+
+          .ex-pending-table thead th {
+            color: #93c5fd;
+            border-bottom: 1px solid rgba(148,163,184,0.16);
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            font-size: 0.72rem;
+            background: rgba(15,23,42,0.4);
+          }
+
+          .ex-pending-table td {
+            border-color: rgba(148,163,184,0.12);
+            vertical-align: middle;
+          }
+
+          .ex-action-btn {
+            background: linear-gradient(135deg, rgba(37,99,235,0.96), rgba(124,58,237,0.96)) !important;
+            border: none !important;
+            border-radius: 10px !important;
+            font-weight: 700 !important;
+            box-shadow: 0 10px 20px rgba(37,99,235,0.2);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+          }
+
+          .ex-action-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 14px 24px rgba(37,99,235,0.28);
+          }
+
+          .ex-pending-modal .modal-content {
+            border: 1px solid rgba(148,163,184,0.2);
+            border-radius: 20px;
+            overflow: hidden;
+            background: linear-gradient(180deg, rgba(15,23,42,0.98) 0%, rgba(30,41,59,0.98) 100%);
+            color: #e2e8f0;
+            box-shadow: 0 30px 60px rgba(15,23,42,0.45);
+          }
+
+          .ex-pending-modal .modal-header {
+            border-bottom-color: rgba(148,163,184,0.16);
+          }
+
+          .ex-pending-modal .modal-footer {
+            border-top-color: rgba(148,163,184,0.16);
+          }
+
+          .ex-pending-modal .btn-close {
+            filter: invert(1) brightness(2);
+          }
+
+          .ex-pending-modal .form-control,
+          .ex-pending-modal .form-select,
+          .ex-pending-modal .form-control:focus,
+          .ex-pending-modal .form-select:focus {
+            background: rgba(15,23,42,0.86) !important;
+            color: #f8fafc !important;
+            border: 1px solid rgba(148,163,184,0.24) !important;
+            box-shadow: none !important;
+          }
+
+          .ex-pending-modal .form-control::placeholder {
+            color: #94a3b8;
+          }
+
+          .ex-progress-shell {
+            background: rgba(15,23,42,0.72) !important;
+            border: 1px solid rgba(148,163,184,0.14);
+          }
+        `}</style>
+
         {/* Header */}
-        <div style={{ background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)", padding: "30px", borderRadius: "12px", marginBottom: "30px", color: "white" }}>
+        <div className="ex-pending-hero">
           <h1 className="fw-bold mb-2">⏳ Pending Clearances for Review</h1>
           <p>Review and approve final degree clearances from students</p>
         </div>
 
         {academicDepartment ? (
-          <Alert variant="info" className="border-0 shadow-sm rounded-4">
+          <Alert variant="info" className="border-0 shadow-sm rounded-4 ex-pending-alert">
             Final degree issuance authority: <strong>{academicDepartment.name}</strong>. Examiner approval forwards records there.
           </Alert>
         ) : (
-          <Alert variant="warning" className="border-0 shadow-sm rounded-4">
+          <Alert variant="warning" className="border-0 shadow-sm rounded-4 ex-pending-alert">
             No academic department is selected by admin. Examiner can review, but final degree issuance cannot proceed until one department is marked academic.
           </Alert>
         )}
@@ -128,34 +303,34 @@ export default function PendingClearancesPage() {
         {/* Summary */}
         <Row className="mb-4">
           <Col md={6} lg={3} className="mb-3">
-            <Card style={{ boxShadow: "0 4px 12px rgba(0,0,0,0.1)", borderRadius: "12px", borderLeft: "4px solid #ffc107" }}>
+            <Card className="ex-pending-stat" style={{ borderLeft: "4px solid #ffc107" }}>
               <Card.Body>
-                <p className="text-muted small mb-1">Pending Review</p>
+                <p className="small mb-1 ex-pending-stat-label">Pending Review</p>
                 <h3 className="fw-bold mb-0" style={{ color: "#ffc107" }}>{pendingApplications.length}</h3>
               </Card.Body>
             </Card>
           </Col>
           <Col md={6} lg={3} className="mb-3">
-            <Card style={{ boxShadow: "0 4px 12px rgba(0,0,0,0.1)", borderRadius: "12px", borderLeft: "4px solid #667eea" }}>
+            <Card className="ex-pending-stat" style={{ borderLeft: "4px solid #667eea" }}>
               <Card.Body>
-                <p className="text-muted small mb-1">Average Clearances</p>
-                <h3 className="fw-bold mb-0" style={{ color: "#667eea" }}>5.5</h3>
+                <p className="small mb-1 ex-pending-stat-label">Average Clearances</p>
+                <h3 className="fw-bold mb-0" style={{ color: "#667eea" }}>{dashboardStats.averageClearances}</h3>
               </Card.Body>
             </Card>
           </Col>
           <Col md={6} lg={3} className="mb-3">
-            <Card style={{ boxShadow: "0 4px 12px rgba(0,0,0,0.1)", borderRadius: "12px", borderLeft: "4px solid #198754" }}>
+            <Card className="ex-pending-stat" style={{ borderLeft: "4px solid #198754" }}>
               <Card.Body>
-                <p className="text-muted small mb-1">Complete Documents</p>
-                <h3 className="fw-bold mb-0" style={{ color: "#198754" }}>3</h3>
+                <p className="small mb-1 ex-pending-stat-label">Complete Documents</p>
+                <h3 className="fw-bold mb-0" style={{ color: "#198754" }}>{dashboardStats.completeDocuments}</h3>
               </Card.Body>
             </Card>
           </Col>
           <Col md={6} lg={3} className="mb-3">
-            <Card style={{ boxShadow: "0 4px 12px rgba(0,0,0,0.1)", borderRadius: "12px", borderLeft: "4px solid #dc3545" }}>
+            <Card className="ex-pending-stat" style={{ borderLeft: "4px solid #dc3545" }}>
               <Card.Body>
-                <p className="text-muted small mb-1">Need Attention</p>
-                <h3 className="fw-bold mb-0" style={{ color: "#dc3545" }}>1</h3>
+                <p className="small mb-1 ex-pending-stat-label">Need Attention</p>
+                <h3 className="fw-bold mb-0" style={{ color: "#dc3545" }}>{dashboardStats.needAttention}</h3>
               </Card.Body>
             </Card>
           </Col>
@@ -164,12 +339,12 @@ export default function PendingClearancesPage() {
         {/* Applications Table */}
         <Row>
           <Col lg={12}>
-            <Card style={{ boxShadow: "0 4px 12px rgba(0,0,0,0.1)", borderRadius: "12px" }}>
-              <Card.Header style={{ background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)", color: "white", fontWeight: "bold" }}>
+            <Card className="ex-pending-table-card">
+              <Card.Header className="ex-pending-table-head">
                 📋 Applications Pending Final Review
               </Card.Header>
-              <Card.Body>
-                <Table responsive striped hover>
+              <Card.Body className="ex-pending-table-wrap">
+                <Table responsive striped hover className="ex-pending-table">
                   <thead>
                     <tr>
                       <th>App ID</th>
@@ -206,7 +381,7 @@ export default function PendingClearancesPage() {
                               variant="primary"
                               size="sm"
                               onClick={() => handleReview(app)}
-                              style={{ background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)", border: "none" }}
+                              className="ex-action-btn"
                             >
                               Review Final
                             </Button>
@@ -223,7 +398,7 @@ export default function PendingClearancesPage() {
       </Container>
 
       {/* Review Modal */}
-      <Modal show={showModal} onHide={() => setShowModal(false)} size="lg" centered>
+      <Modal show={showModal} onHide={() => setShowModal(false)} size="lg" centered className="ex-pending-modal">
         <Modal.Header closeButton style={{ background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)" }} className="text-white">
           <Modal.Title>📋 Review Application - {selectedApp?.id}</Modal.Title>
         </Modal.Header>
@@ -240,7 +415,7 @@ export default function PendingClearancesPage() {
                   <div style={{ backgroundColor: "#f8f9ff", padding: "15px", borderRadius: "8px" }}>
                     <div className="d-flex justify-content-between align-items-center">
                       <span className="text-success"><i className="bi bi-check-circle-fill"></i> Completed Verified Clearances: <strong>100%</strong></span>
-                      <div style={{ width: "150px", height: "20px", backgroundColor: "#e0e0e0", borderRadius: "10px", overflow: "hidden" }}>
+                      <div className="ex-progress-shell" style={{ width: "150px", height: "20px", borderRadius: "10px", overflow: "hidden" }}>
                         <div style={{
                           width: `100%`,
                           height: "100%",
@@ -257,7 +432,7 @@ export default function PendingClearancesPage() {
                     type="text"
                     value={selectedApp.documentsStatus}
                     disabled
-                    style={{ backgroundColor: "#f5f5f5" }}
+                    style={{ backgroundColor: "rgba(15,23,42,0.72)" }}
                   />
                 </Form.Group>
 
@@ -297,7 +472,7 @@ export default function PendingClearancesPage() {
             variant="primary"
             onClick={handleSubmitVerdict}
             disabled={submitting}
-            style={{ background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)", border: "none" }}
+            className="ex-action-btn"
           >
             {submitting ? "Processing..." : "Submit Review"}
           </Button>
