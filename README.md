@@ -27,7 +27,7 @@ Access:   Full system management, user management, analytics
 
 ### 2️⃣ **Student Account**
 ```
-Email:    is@gmail.com
+Email:    talha@gmail.com
 Password: Islam`123
 Role:     Student
 Access:   Apply for clearance, track status, upload documents
