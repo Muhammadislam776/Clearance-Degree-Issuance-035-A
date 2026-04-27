@@ -1,5 +1,5 @@
 "use client";
-import React, { useEffect, useState, useCallback, useMemo } from "react";
+import React, { useEffect, useState, useCallback, useMemo, useRef } from "react";
 import { Row, Col, Spinner, Alert, Card } from "react-bootstrap";
 import { useRouter } from "next/navigation";
 import ProtectedRoute from "@/components/ProtectedRoute";
@@ -99,6 +99,28 @@ function DashboardContent() {
   const [newRequestPulse, setNewRequestPulse] = useState(null);
   const [stats, setStats] = useState({ total: 0, approved: 0, pending: 0, rejected: 0 });
   const [deptInfo, setDeptInfo] = useState(null);
+  const studentCacheRef = useRef(new Map());
+  const requestCacheRef = useRef(new Map());
+
+  useEffect(() => {
+    const loadDeptInfo = async () => {
+      const deptId = activeSection?.id;
+      if (!deptId || deptId === "all") {
+        setDeptInfo(null);
+        return;
+      }
+
+      const { data: currentDept } = await supabase
+        .from("departments")
+        .select("id, name, focal_person, contact, whatsapp_number, email, is_academic")
+        .eq("id", deptId)
+        .maybeSingle();
+
+      setDeptInfo(currentDept || null);
+    };
+
+    loadDeptInfo();
+  }, [activeSection?.id]);
 
   const fetchRequests = useCallback(async (silent = false) => {
     try {
@@ -107,106 +129,119 @@ function DashboardContent() {
       const deptId = activeSection?.id;
       if (!deptId) return;
 
-      if (deptId === "all") {
-        setDeptInfo(null);
-      } else {
-        const { data: currentDept } = await supabase
-          .from("departments")
-          .select("id, name, focal_person, contact, whatsapp_number, email, is_academic")
-          .eq("id", deptId)
-          .single();
-        setDeptInfo(currentDept);
-      }
-
       const staffDeptId = profile?.department_id;
       let fmt = [];
       let newStats = { total: 0, approved: 0, pending: 0, rejected: 0 };
 
-      if (deptId === "all") {
-        // ── HUB OVERVIEW: Count unique students/requests ──
-        const { data, error: e } = await supabase
-          .from("clearance_requests")
-          .select(`
-            id, overall_status, created_at, notes,
-            students!inner ( name, roll_number, email ),
-            clearance_status(id, status, department_id)
-          `)
-          .order("created_at", { ascending: false });
+      // ── Primary source: clearance_status table ──
+      let statusQuery = supabase
+        .from("clearance_status")
+        .select("id, status, remarks, request_id, department_id, updated_at")
+        .order("updated_at", { ascending: false });
 
-        if (e) throw e;
-
-        fmt = data.map(item => {
-          // Identify the relevant task for the current staff's department
-          // We deduplicate in JS: if there are multiple tasks for the same dept, pick the most 'advanced' one
-          const deptTasks = item.clearance_status?.filter(s => s.department_id === staffDeptId) || [];
-          const myTask = deptTasks.sort((a,b) => {
-             const weights = { approved: 1, rejected: 2, pending: 3 };
-             return (weights[a.status] || 99) - (weights[b.status] || 99);
-          })[0];
-          
-          return {
-            taskId: myTask?.id || null, 
-            id: item.id,
-            student: item.students?.name || "Student",
-            rollNo: item.students?.roll_number || "N/A",
-            email: item.students?.email || "N/A",
-            dateSubmitted: item.created_at ? new Date(item.created_at).toLocaleDateString() : "N/A",
-            // FIX: Show the status of the USER'S department, not the overall system
-            status: myTask?.status || 'pending',
-            remarks: myTask?.remarks || item.notes || "",
-            notes: item.notes || "",
-          };
-        });
-
-
-        newStats = {
-          total: data.length,
-          approved: data.filter(r => r.overall_status === 'completed').length,
-          pending: data.filter(r => r.overall_status === 'pending' || r.overall_status === 'in_progress').length,
-          rejected: data.filter(r => r.clearance_status?.some(s => s.status === 'rejected')).length,
-        };
-      } else {
-        // ── DEPARTMENT VIEW: Current behavior for specific tasks ──
-        let q = supabase.from("clearance_status").select(`
-          id, status, remarks, request_id, updated_at,
-          clearance_requests!inner (
-            id, created_at, notes,
-            students!inner ( name, roll_number, email )
-          )
-        `).eq("department_id", deptId);
-
-        const { data, error: e } = await q.order("updated_at", { ascending: false });
-        if (e) throw e;
-
-        // Deduplicate: Keep only the most recent status entry per request
-        const uniqueRequests = new Map();
-        data.forEach(item => {
-          if (!uniqueRequests.has(item.request_id)) {
-            uniqueRequests.set(item.request_id, item);
-          }
-        });
-        const deduplicatedData = Array.from(uniqueRequests.values());
-
-        fmt = deduplicatedData.map(item => ({
-          taskId: item.id,
-          id: item.clearance_requests?.id || item.request_id,
-          student: item.clearance_requests?.students?.name || "Student",
-          rollNo: item.clearance_requests?.students?.roll_number || "N/A",
-          email: item.clearance_requests?.students?.email || "N/A",
-          dateSubmitted: item.clearance_requests?.created_at
-            ? new Date(item.clearance_requests.created_at).toLocaleDateString() : "N/A",
-          status: item.status || "pending",
-          remarks: item.remarks || "",
-          notes: item.clearance_requests?.notes || "",
-        }));
+      if (deptId === "all" && staffDeptId) {
+        statusQuery = statusQuery.eq("department_id", staffDeptId);
+      } else if (deptId !== "all") {
+        statusQuery = statusQuery.eq("department_id", deptId);
       }
 
+      const { data: statusRows, error: statusError } = await statusQuery;
+      if (statusError) throw statusError;
+
+      const visibleStatusRows = statusRows || [];
+
+      // Deduplicate: keep latest task per request
+      const uniqueRequests = new Map();
+      visibleStatusRows.forEach((item) => {
+        if (!uniqueRequests.has(item.request_id)) {
+          uniqueRequests.set(item.request_id, item);
+        }
+      });
+      const deduplicatedData = Array.from(uniqueRequests.values());
+
+      // Optional enrichment from related tables
+      const requestIds = [...new Set(deduplicatedData.map((s) => s.request_id).filter(Boolean))];
+      const studentRowsMap = new Map();
+      if (requestIds.length) {
+        const missingRequestIds = requestIds.filter((id) => !requestCacheRef.current.has(id));
+
+        if (missingRequestIds.length) {
+          const { data, error: requestErr } = await supabase
+            .from("clearance_requests")
+            .select("id, student_id, created_at, notes, students(name, email, roll_number)")
+            .in("id", missingRequestIds);
+
+          if (requestErr) {
+            console.warn("Requests lookup skipped:", requestErr?.message || requestErr);
+          } else {
+            (data || []).forEach((r) => {
+              requestCacheRef.current.set(r.id, r);
+            });
+          }
+        }
+
+        const { data: dashboardPeople, error: peopleErr } = await supabase.rpc(
+          "get_department_dashboard_people",
+          { p_request_ids: requestIds }
+        );
+
+        if (peopleErr) {
+          console.warn("Dashboard people RPC skipped:", peopleErr?.message || peopleErr);
+        } else {
+          (dashboardPeople || []).forEach((row) => {
+            if (!studentRowsMap.has(row.request_id)) {
+              studentRowsMap.set(row.request_id, {
+                name: row.name || "Student",
+                roll_number: row.roll_number || "N/A",
+                email: row.email || "N/A",
+              });
+            }
+          });
+        }
+      }
+
+      fmt = deduplicatedData.map((item) => {
+        const request = requestCacheRef.current.get(item.request_id) || {};
+        let student = studentRowsMap.get(item.request_id);
+        
+        if (!student && request.students) {
+          student = {
+            name: request.students.name || "Student",
+            roll_number: request.students.roll_number || "N/A",
+            email: request.students.email || "N/A",
+          };
+        }
+        
+        student = student || {};
+
+        return {
+          taskId: item.id,
+          id: item.request_id,
+          student: student?.name || "Student",
+          rollNo: student?.roll_number || "N/A",
+          email: student?.email || "N/A",
+          dateSubmitted: request?.created_at
+            ? new Date(request.created_at).toLocaleDateString()
+            : item?.updated_at
+              ? new Date(item.updated_at).toLocaleDateString()
+              : "N/A",
+          status: item.status || "pending",
+          remarks: item.remarks || "",
+          notes: request?.notes || "",
+        };
+      });
+
       // ── GLOBAL DEDUPLICATION BY STUDENT ──
-      // Ensure a student (by roll number) only appears ONCE in any view using their latest request
+      // Ensure a student only appears once, but never collapse unrelated rows when rollNo is unavailable.
       const uniqueStudents = new Map();
       fmt.forEach(item => {
-        if (!uniqueStudents.has(item.rollNo)) {
-          uniqueStudents.set(item.rollNo, item);
+        const hasUsableRoll = !!item.rollNo && item.rollNo !== "N/A";
+        const dedupeKey = hasUsableRoll
+          ? `roll:${item.rollNo}`
+          : `request:${item.id || item.taskId}`;
+
+        if (!uniqueStudents.has(dedupeKey)) {
+          uniqueStudents.set(dedupeKey, item);
         }
       });
       const finalFmt = Array.from(uniqueStudents.values());
@@ -222,7 +257,7 @@ function DashboardContent() {
       setStats(newStats);
     } catch (err) {
       console.error("Dashboard Fetch Error:", err);
-      setError("Synchronization Error: Check database permissions or RLS policies.");
+      setError(`Synchronization Error: ${err?.message || "Check database permissions or RLS policies."}`);
     } finally { setLoading(false); }
   }, [activeSection?.id, profile?.department_id]);
 

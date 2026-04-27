@@ -141,69 +141,91 @@ function DepartmentProfileContent() {
         </Col>
       </Row>
 
-      <style jsx>{`
+      <style jsx global>{`
         @keyframes profileRise {
-          from { opacity: 0; transform: translateY(10px); }
+          from { opacity: 0; transform: translateY(14px); }
           to { opacity: 1; transform: translateY(0); }
         }
 
         .dept-profile-hero {
-          animation: profileRise 0.45s ease-out;
+          animation: profileRise 0.5s ease-out;
           border-radius: 20px;
-          box-shadow: 0 18px 40px rgba(15,23,42,0.26);
+          box-shadow: 0 18px 40px rgba(15,23,42,0.3);
           border: 1px solid rgba(255,255,255,0.12);
           backdrop-filter: blur(12px);
         }
 
         .dept-profile-panel {
-          background: linear-gradient(180deg, rgba(15,23,42,0.96) 0%, rgba(30,41,59,0.96) 100%);
+          background: linear-gradient(145deg, rgba(30,41,59,0.95) 0%, rgba(15,23,42,0.98) 100%) !important;
           border: 1px solid rgba(148,163,184,0.14) !important;
-          color: #E2E8F0;
+          color: #F8FAFC !important;
           backdrop-filter: blur(8px);
-          box-shadow: 0 12px 28px rgba(15,23,42,0.18) !important;
+          box-shadow: 0 12px 28px rgba(0,0,0,0.2) !important;
+          border-radius: 24px !important;
+          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+          animation: profileRise 0.5s ease-out backwards;
+        }
+
+        .dept-profile-panel:hover {
+          transform: translateY(-8px);
+          box-shadow: 0 24px 48px rgba(0,0,0,0.4) !important;
+          border-color: rgba(96,165,250,0.3) !important;
         }
 
         .dept-profile-title {
-          color: #F8FAFC;
+          color: #F8FAFC !important;
         }
 
         .dept-profile-subtitle {
-          color: #CBD5E1;
+          color: #CBD5E1 !important;
         }
 
         .profile-detail-item {
           display: flex;
           justify-content: space-between;
+          align-items: center;
           gap: 16px;
-          padding: 14px 0;
+          padding: 16px 0;
           border-bottom: 1px solid rgba(148,163,184,0.16);
+          transition: background 0.2s ease;
         }
+        
+        .profile-detail-item:hover {
+          background: rgba(255,255,255,0.03);
+          border-radius: 8px;
+          padding-left: 8px;
+          padding-right: 8px;
+        }
+
         .profile-detail-item:last-child { border-bottom: 0; }
+        
         .profile-detail-item .label {
-          color: #93C5FD;
+          color: #93C5FD !important;
           font-size: 12px;
           font-weight: 800;
           text-transform: uppercase;
-          letter-spacing: 0.06em;
+          letter-spacing: 0.08em;
         }
+        
         .profile-detail-item .value {
-          color: #F8FAFC;
-          font-size: 14px;
+          color: #F8FAFC !important;
+          font-size: 15px;
           font-weight: 700;
           text-align: right;
         }
 
         .dept-note-box {
-          background: linear-gradient(180deg, rgba(30,41,59,0.92) 0%, rgba(15,23,42,0.92) 100%);
-          border: 1px solid rgba(148,163,184,0.14);
+          background: linear-gradient(180deg, rgba(30,41,59,0.92) 0%, rgba(15,23,42,0.92) 100%) !important;
+          border: 1px solid rgba(148,163,184,0.18) !important;
         }
 
         .dept-note-label {
-          color: #93C5FD;
+          color: #60A5FA !important;
+          letter-spacing: 0.05em;
         }
 
         .dept-note-text {
-          color: #CBD5E1;
+          color: #E2E8F0 !important;
         }
       `}</style>
     </Container>

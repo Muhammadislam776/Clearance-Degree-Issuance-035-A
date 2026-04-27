@@ -98,6 +98,17 @@ export default function ReviewModal({ show, onHide, request, onAction }) {
           </div>
         ) : (
           <>
+            {request.notes ? (
+              <div style={{ background: "#F8FAFC", border: "1px solid #E2E8F0", borderRadius: "12px", padding: "1rem", marginBottom: "1rem" }}>
+                <div style={{ fontSize: "0.78rem", fontWeight: 800, textTransform: "uppercase", letterSpacing: "1px", color: "#475569", marginBottom: "0.5rem" }}>
+                  Student Submitted Details
+                </div>
+                <div style={{ color: "#334155", whiteSpace: "pre-wrap", fontSize: "0.92rem", lineHeight: 1.5 }}>
+                  {request.notes}
+                </div>
+              </div>
+            ) : null}
+
             {/* Remarks Form */}
             <Form.Group className="mb-4 mt-3">
               <Form.Label style={{ fontSize: "0.8rem", fontWeight: 800, textTransform: "uppercase", letterSpacing: "1px", color: "#475569" }}>

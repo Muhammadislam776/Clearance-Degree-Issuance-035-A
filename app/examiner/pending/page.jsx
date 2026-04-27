@@ -137,7 +137,8 @@ export default function PendingClearancesPage() {
       }
     } catch (err) {
        console.error("Failed to submit verdict", err);
-       alert("Error processing review. Please try again.");
+       const errorMsg = err?.message || (typeof err === 'object' ? JSON.stringify(err) : String(err));
+       alert("Error processing review: " + errorMsg);
     } finally {
       setSubmitting(false);
     }
@@ -206,27 +207,53 @@ export default function PendingClearancesPage() {
           }
 
           .ex-pending-table {
-            --bs-table-bg: transparent;
-            --bs-table-striped-bg: rgba(30,41,59,0.42);
-            --bs-table-color: #e2e8f0;
-            --bs-table-striped-color: #e2e8f0;
-            --bs-table-hover-bg: rgba(59,130,246,0.12);
-            --bs-table-hover-color: #f8fafc;
             margin-bottom: 0;
+            border-collapse: separate;
+            border-spacing: 0 12px;
           }
 
           .ex-pending-table thead th {
-            color: #93c5fd;
-            border-bottom: 1px solid rgba(148,163,184,0.16);
+            color: #94A3B8 !important;
+            border: none !important;
             text-transform: uppercase;
-            letter-spacing: 0.06em;
-            font-size: 0.72rem;
-            background: rgba(15,23,42,0.4);
+            letter-spacing: 1px;
+            font-size: 0.75rem;
+            font-weight: 800;
+            background: transparent !important;
+            padding: 0.5rem 1rem;
+          }
+
+          .ex-pending-table tbody tr {
+            background: linear-gradient(145deg, rgba(30,41,59,0.9) 0%, rgba(15,23,42,0.95) 100%) !important;
+            box-shadow: 0 8px 16px rgba(0,0,0,0.15);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            border-radius: 16px;
+          }
+          
+          .ex-pending-table tbody tr:hover {
+            transform: translateY(-4px) scale(1.01);
+            box-shadow: 0 20px 30px rgba(0,0,0,0.35);
+            background: linear-gradient(145deg, rgba(51,65,85,0.95) 0%, rgba(30,41,59,0.95) 100%) !important;
           }
 
           .ex-pending-table td {
-            border-color: rgba(148,163,184,0.12);
+            border: none !important;
+            background: transparent !important;
             vertical-align: middle;
+            color: #F8FAFC !important;
+            font-weight: 600;
+            font-size: 0.95rem;
+            padding: 1.25rem 1rem;
+          }
+          
+          .ex-pending-table td:first-child {
+            border-top-left-radius: 16px;
+            border-bottom-left-radius: 16px;
+          }
+          
+          .ex-pending-table td:last-child {
+            border-top-right-radius: 16px;
+            border-bottom-right-radius: 16px;
           }
 
           .ex-action-btn {
@@ -344,7 +371,7 @@ export default function PendingClearancesPage() {
                 📋 Applications Pending Final Review
               </Card.Header>
               <Card.Body className="ex-pending-table-wrap">
-                <Table responsive striped hover className="ex-pending-table">
+                <Table responsive className="ex-pending-table border-0">
                   <thead>
                     <tr>
                       <th>App ID</th>

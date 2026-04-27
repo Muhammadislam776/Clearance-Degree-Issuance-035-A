@@ -23,20 +23,49 @@ export default function StudentDashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [clearances, setClearances] = useState([]);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
-  const loadData = async (studentId) => {
+  const fetchClearances = async (studentId) => {
+    return getStudentClearances(studentId, false, {
+      includeDocuments: false,
+      requestTimeoutMs: 35000,
+    });
+  };
+
+  const loadData = async (studentId, { silent = false } = {}) => {
     try {
-      setLoading(true);
+      if (!studentId) return;
+
+      if (!silent) {
+        setLoading(true);
+      } else {
+        setIsRefreshing(true);
+      }
+
       setError(null);
+
+      let result = await fetchClearances(studentId);
+
+      // Retry once for transient slow-network/database lock scenarios.
+      if (!result?.success && String(result?.error || "").toLowerCase().includes("timed out")) {
+        result = await fetchClearances(studentId);
+      }
+
+      if (!result?.success) {
+        throw new Error(result?.error || "Failed to sync dashboard data.");
+      }
       
-      const { data, error: fetchError } = await getStudentClearances(studentId);
-      if (fetchError) throw new Error(fetchError);
-      
-      setClearances(data || []);
+      setClearances(result.data || []);
     } catch (e) {
-      setError(e.message);
+      // Keep existing data visible if we already loaded before.
+      if (!clearances?.length) {
+        setError(e.message);
+      } else {
+        setError("Live sync is temporarily delayed. Showing last updated data.");
+      }
     } finally {
       setLoading(false);
+      setIsRefreshing(false);
     }
   };
 
@@ -52,12 +81,12 @@ export default function StudentDashboard() {
           schema: "public",
           table: "clearance_requests",
           filter: `student_id=eq.${profile.student_id}`,
-        }, () => loadData(profile.student_id))
+        }, () => loadData(profile.student_id, { silent: true }))
         .on("postgres_changes", {
           event: "*",
           schema: "public",
           table: "clearance_status"
-        }, () => loadData(profile.student_id))
+        }, () => loadData(profile.student_id, { silent: true }))
         .subscribe();
 
       return () => {
@@ -92,58 +121,92 @@ export default function StudentDashboard() {
         >
           {/* Dashboard Hero */}
           <div 
-            className="p-5 mb-5 text-white shadow-lg animate-fade-in-up" 
+            className="p-5 mb-5 text-white shadow-lg animate-fade-in-up hero-glass" 
             style={{ 
-              background: "linear-gradient(135deg, #0062FF 0%, #6366F1 60%, #8B5CF6 100%)", 
-              borderRadius: "24px",
+              background: "linear-gradient(135deg, rgba(0, 98, 255, 0.9) 0%, rgba(99, 102, 241, 0.8) 60%, rgba(139, 92, 246, 0.7) 100%)", 
+              borderRadius: "32px",
               position: "relative",
-              overflow: "hidden"
+              overflow: "hidden",
+              border: "1px solid rgba(255, 255, 255, 0.15)",
+              backdropFilter: "blur(10px)"
             }}
           >
-            <div style={{ position: "absolute", top: "-20px", right: "-20px", fontSize: "12rem", opacity: 0.1 }}>🎓</div>
+            <div className="hero-glow"></div>
+            <div style={{ position: "absolute", top: "-30px", right: "-30px", fontSize: "14rem", opacity: 0.1, filter: "blur(2px)" }}>🎓</div>
             <Row className="align-items-center">
-              <Col md={8} style={{ position: "relative", zIndex: 1 }}>
-                <h1 className="display-4 fw-bold mb-3">Hello, {profile?.name?.split(' ')[0] || "Scholar"}!</h1>
-                <p className="lead mb-4">
+              <Col md={8} style={{ position: "relative", zIndex: 2 }}>
+                <div className="d-flex align-items-center gap-2 mb-3">
+                  <Badge bg="primary" className="rounded-pill px-3 py-2 bg-opacity-25 border border-primary border-opacity-50">STUDENT PORTAL</Badge>
+                  <div className="pulse-dot"></div>
+                  <span className="small opacity-75 fw-bold">SYSTEM ACTIVE</span>
+                </div>
+                <h1 className="display-4 fw-black mb-3" style={{ letterSpacing: "-0.02em" }}>Hello, {profile?.name?.split(' ')[0] || "Scholar"}!</h1>
+                <p className="lead mb-4 opacity-90" style={{ maxWidth: "600px" }}>
                   {clearances.length > 0 
-                    ? `You have ${clearances.length} active clearance request(s) in progress.` 
-                    : "Ready to start your graduation journey? Apply for clearance below."}
+                    ? `You have ${clearances.length} active clearance request(s) being reviewed by the departments.` 
+                    : "Ready to transition from student to alumni? Your graduation journey starts with a simple clearance application."}
                 </p>
-                <div className="d-flex gap-3">
+                <div className="d-flex gap-3 flex-wrap">
                   <Link href="/student/clearance">
-                    <Button variant="light" className="rounded-pill px-4 py-2 fw-bold text-primary">New Application</Button>
+                    <Button variant="light" className="rounded-pill px-5 py-3 fw-bold text-primary shadow-lg hover-scale">Apply for Clearance</Button>
                   </Link>
-                  <Button variant="outline-light" className="rounded-pill px-4 py-2 border-2">How it works</Button>
+                  <Button variant="outline-light" className="rounded-pill px-4 py-3 border-2 fw-bold hover-glow">How it works</Button>
                 </div>
               </Col>
             </Row>
           </div>
+
 
           {loading ? (
             <div className="text-center py-5">
               <Spinner animation="border" variant="primary" size="lg" />
               <p className="mt-3 text-muted fw-bold">Connecting to IQRA Secure Hub...</p>
             </div>
-          ) : error ? (
+          ) : error && clearances.length === 0 ? (
             <Alert variant="danger" className="rounded-4 border-0 shadow-sm p-4 text-center">
               <h4 className="fw-bold">Synchronization Error</h4>
               <p>{error}</p>
               <Button onClick={() => loadData(profile?.student_id)} variant="outline-danger" className="rounded-pill">Retry Sync</Button>
             </Alert>
           ) : clearances.length === 0 ? (
-            <Card className="border-0 shadow-sm p-5 text-center mt-4" style={{ borderRadius: "20px" }}>
-              <div style={{ fontSize: "5rem" }}>📦</div>
-              <h2 className="fw-bold mt-3">No Active Requests</h2>
-              <p className="text-muted mx-auto" style={{ maxWidth: "500px" }}>
-                Pending requests older than 4 days with no activity are automatically archived to keep your workspace clean. 
-                Start a fresh application to begin the process.
+            <Card className="border-0 shadow-lg p-5 text-center mt-4 premium-glass-card welcome-gateway" style={{ borderRadius: "32px", background: "rgba(15, 23, 42, 0.6)" }}>
+              <div className="gateway-icon-wrap mb-4 mx-auto">
+                <span style={{ fontSize: "5rem" }}>🚀</span>
+              </div>
+              <h2 className="fw-black mt-3 mb-3" style={{ fontSize: "2.5rem" }}>Begin Your Clearance</h2>
+              <p className="text-muted mx-auto mb-5" style={{ maxWidth: "550px", fontSize: "1.1rem", lineHeight: "1.6" }}>
+                Pending requests older than 4 days with no activity are automatically archived. 
+                Submit a fresh application to start your departmental reviews and track your degree issuance progress in real-time.
               </p>
-              <Link href="/student/clearance" className="mt-2">
-                <Button size="lg" className="rounded-pill px-5 btn-premium-primary border-0">Start Clearance</Button>
-              </Link>
+              <div className="d-flex justify-content-center gap-3 flex-wrap">
+                <Link href="/student/clearance">
+                  <Button size="lg" className="rounded-pill px-5 py-3 btn-premium-primary border-0 fw-bold shadow-glow">
+                    Start New Application
+                  </Button>
+                </Link>
+                <Link href="/student/chat">
+                  <Button size="lg" variant="outline-light" className="rounded-pill px-5 py-3 border-2 fw-bold opacity-75">
+                    Consult Support
+                  </Button>
+                </Link>
+              </div>
             </Card>
+
           ) : (
             <>
+              {error ? (
+                <Alert variant="warning" className="rounded-4 border-0 shadow-sm mb-4">
+                  {error}
+                </Alert>
+              ) : null}
+
+              {isRefreshing ? (
+                <div className="d-flex align-items-center gap-2 mb-3 text-info small fw-bold">
+                  <Spinner animation="border" size="sm" />
+                  <span>Syncing latest updates...</span>
+                </div>
+              ) : null}
+
               {/* Stats & Current Progress */}
               <Row className="g-4 mb-5">
                 <Col lg={8} className="animate-fade-in-up" style={{ animationDelay: "0.1s" }}>
@@ -277,6 +340,70 @@ export default function StudentDashboard() {
 
           {/* Global Styles for Hover Effects */}
           <style jsx global>{`
+            /* Dashboard Specific Adjustments */
+            :global(body) {
+              background-color: #0b1220 !important;
+            }
+
+            .fw-black { font-weight: 900; }
+            
+            .hero-glass {
+              box-shadow: 0 30px 60px rgba(0, 0, 0, 0.4) !important;
+            }
+
+            .hero-glow {
+              position: absolute;
+              top: -50%; left: -20%;
+              width: 100%; height: 200%;
+              background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+              transform: rotate(-20deg);
+              pointer-events: none;
+            }
+
+            .pulse-dot {
+              width: 8px; height: 8px;
+              background: #10b981;
+              border-radius: 50%;
+              box-shadow: 0 0 0 rgba(16, 185, 129, 0.4);
+              animation: dotPulse 2s infinite;
+            }
+
+            @keyframes dotPulse {
+              0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
+              70% { box-shadow: 0 0 0 10px rgba(16, 185, 129, 0); }
+              100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+            }
+
+            .hover-scale { transition: all 0.3s ease; }
+            .hover-scale:hover { transform: scale(1.05); }
+
+            .hover-glow:hover {
+              background: rgba(255, 255, 255, 0.1) !important;
+              box-shadow: 0 0 20px rgba(255, 255, 255, 0.2);
+            }
+
+            .welcome-gateway {
+              animation: cardFloatIn 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+            }
+
+            .gateway-icon-wrap {
+              width: 120px; height: 120px;
+              background: rgba(59, 130, 246, 0.1);
+              border-radius: 50%;
+              display: flex; align-items: center; justify-content: center;
+              border: 1px solid rgba(59, 130, 246, 0.2);
+              animation: float 4s ease-in-out infinite;
+            }
+
+            @keyframes float {
+              0%, 100% { transform: translateY(0); }
+              50% { transform: translateY(-10px); }
+            }
+
+            .shadow-glow {
+              box-shadow: 0 15px 30px rgba(0, 98, 255, 0.4) !important;
+            }
+
             .animate-fade-in-up {
               animation: fadeInUp 0.6s ease-out both;
             }
@@ -286,71 +413,45 @@ export default function StudentDashboard() {
             }
 
             .premium-glass-card {
-              background: rgba(30, 41, 59, 0.7) !important;
-              border: 1px solid rgba(148, 163, 184, 0.2) !important;
+              background: rgba(30, 41, 59, 0.6) !important;
+              border: 1px solid rgba(255, 255, 255, 0.08) !important;
               backdrop-filter: blur(12px) !important;
               color: #f8fafc !important;
               transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
             }
 
-            .premium-glass-card h1, 
-            .premium-glass-card h2, 
-            .premium-glass-card h3, 
-            .premium-glass-card h4, 
-            .premium-glass-card h5, 
-            .premium-glass-card h6,
-            .premium-glass-card .fw-bold {
-              color: #f8fafc !important;
-            }
-
-            .premium-glass-card p,
-            .premium-glass-card .text-muted {
-              color: #cbd5e1 !important;
-            }
-
             .premium-glass-card:hover {
-              transform: translateY(-8px) scale(1.02);
-              border-color: rgba(96, 165, 250, 0.5) !important;
-              box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4) !important;
-              background: rgba(30, 41, 59, 0.85) !important;
+              transform: translateY(-8px) scale(1.01);
+              border-color: rgba(96, 165, 250, 0.4) !important;
+              box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5) !important;
+              background: rgba(30, 41, 59, 0.8) !important;
             }
 
-            .extra-small { font-size: 0.75rem; }
-            
             .stat-label {
-              color: #cbd5e1;
-              letter-spacing: 0.06em;
-              font-weight: 700;
+              color: #94a3b8;
+              font-size: 0.7rem;
+              font-weight: 800;
+              letter-spacing: 0.1em;
             }
-            .stat-value { color: #f8fafc; }
+            .stat-value { color: #ffffff; font-size: 1.5rem; letter-spacing: -0.01em; }
             .stat-value--success { color: #34d399; }
-            .stat-value--danger { color: #fb7185; }
-            
-            .quick-nav-title { color: #f8fafc; font-size: 1.1rem; }
-            .quick-nav-desc { color: #cbd5e1; }
+            .stat-value--danger { color: #f87171; }
             
             .btn-premium-primary { 
-              background: linear-gradient(135deg, #0062FF, #6366F1); 
+              background: linear-gradient(135deg, #2563eb, #7c3aed) !important; 
               color: white; 
-              border: none;
-              box-shadow: 0 4px 14px rgba(0, 98, 255, 0.4);
-              transition: all 0.3s ease;
-            }
-            .btn-premium-primary:hover {
-              transform: translateY(-2px);
-              box-shadow: 0 6px 20px rgba(0, 98, 255, 0.6);
+              border: none !important;
             }
 
-            /* Progress Bar Styling */
             .progress {
-              background-color: rgba(148, 163, 184, 0.1) !important;
-              overflow: visible;
+              background-color: rgba(255, 255, 255, 0.05) !important;
+              height: 14px !important;
             }
             .progress-bar {
-              background: linear-gradient(90deg, #0062FF, #8B5CF6) !important;
-              box-shadow: 0 0 15px rgba(0, 98, 255, 0.5);
-              border-radius: 50px;
+              background: linear-gradient(90deg, #2563eb, #7c3aed) !important;
+              box-shadow: 0 0 15px rgba(37, 99, 235, 0.4);
             }
+
           `}</style>
         </Container>
       </StudentLayout>

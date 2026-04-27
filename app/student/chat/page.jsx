@@ -119,21 +119,24 @@ export default function ChatPage() {
               </div>
               
               <div className="p-3 chat-sidebar-body">
-                 <Button 
-                   variant={activeTab === 'ai' ? 'primary' : 'outline-primary'} 
-                   className="w-100 mb-4 py-3 d-flex align-items-center justify-content-center gap-3 border-0 shadow-sm chat-ai-btn"
-                   style={{ 
-                     borderRadius: "15px", 
-                     background: activeTab === 'ai' ? 'linear-gradient(135deg, #2563eb 0%, #7c3aed 100%)' : 'rgba(15, 23, 42, 0.86)', 
-                     color: activeTab === 'ai' ? '#ffffff' : '#dbeafe',
-                     border: '1px solid rgba(96, 165, 250, 0.22)',
-                     fontWeight: "600",
-                     transition: "all 0.3s"
-                   }}
-                   onClick={() => { setActiveTab('ai'); setSelectedDepartment(null); }}
-                 >
-                   <span style={{ fontSize: "1.2rem" }}>🤖</span> Talk to AI Assistant
-                 </Button>
+                  <Button 
+                    variant={activeTab === 'ai' ? 'primary' : 'outline-primary'} 
+                    className={`w-100 mb-4 py-3 d-flex align-items-center justify-content-center gap-3 border-0 shadow-lg chat-ai-btn ${activeTab === 'ai' ? 'active-glow' : ''}`}
+                    style={{ 
+                      borderRadius: "18px", 
+                      background: activeTab === 'ai' ? 'linear-gradient(135deg, #2563eb 0%, #7c3aed 100%)' : 'rgba(30, 41, 59, 0.4)', 
+                      color: '#ffffff',
+                      border: '1px solid rgba(255, 255, 255, 0.1)',
+                      fontWeight: "700",
+                      transition: "all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)"
+                    }}
+                    onClick={() => { setActiveTab('ai'); setSelectedDepartment(null); }}
+                  >
+                    <div className="ai-icon-pulse">
+                      <span style={{ fontSize: "1.4rem" }}>🤖</span>
+                    </div>
+                    <span>Ask AI Assistant</span>
+                  </Button>
                  
                   <div className="text-uppercase small fw-bold chat-section-label mb-3 px-2" style={{ letterSpacing: "1.5px" }}>Departments</div>
                   <div className="custom-scrollbar" style={{ maxHeight: "600px", overflowY: "auto", paddingRight: "5px" }}>
@@ -255,103 +258,150 @@ export default function ChatPage() {
                 </div>
               </div>
             ) : (
-              <Card className="border-0 shadow-sm h-100 d-flex align-items-center justify-content-center text-center p-5 chat-panel" style={{ borderRadius: "20px" }}>
-                <div className="mb-4" style={{ fontSize: "5rem" }}>💬</div>
-                <h3 className="fw-bold chat-title">Ready to Connect</h3>
-                <p className="chat-subtitle mx-auto" style={{ maxWidth: "400px" }}>
-                  Select a department to message their staff directly, or chat with our 
-                  AI Clearance Assistant for instant answers to frequently asked questions.
+              <Card className="border-0 shadow-lg h-100 d-flex align-items-center justify-content-center text-center p-5 chat-panel welcome-gateway" style={{ borderRadius: "32px", background: "rgba(15, 23, 42, 0.6)" }}>
+                <div className="gateway-icon-wrap mb-4 mx-auto" style={{ width: "140px", height: "140px", background: "rgba(59, 130, 246, 0.1)", border: "1px solid rgba(59, 130, 246, 0.2)" }}>
+                  <div className="floating-msg-icons">
+                    <span style={{ fontSize: "5rem" }}>💬</span>
+                  </div>
+                </div>
+                <h2 className="fw-black chat-title mb-3" style={{ fontSize: "2.5rem" }}>Ready to Connect</h2>
+                <p className="chat-subtitle mx-auto mb-5" style={{ maxWidth: "500px", fontSize: "1.1rem", lineHeight: "1.6" }}>
+                  Direct lines are open. Select a department to speak with their staff, 
+                  or start a conversation with our **AI Assistant** for immediate clearance guidance.
                 </p>
-                <div className="d-flex gap-3 mt-3">
-                  <Button variant="primary" onClick={() => setActiveTab('ai')} className="rounded-pill px-4 py-2 border-0" style={{ background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)" }}>AI Assistant</Button>
-                  <Button variant="outline-primary" className="rounded-pill px-4 py-2" onClick={() => { /* scroll to sidebar */ }}>Browse Departments</Button>
+                <div className="d-flex gap-3 mt-2 flex-wrap justify-content-center">
+                  <Button size="lg" className="rounded-pill px-5 py-3 btn-premium-primary border-0 fw-bold shadow-glow" onClick={() => setActiveTab('ai')}>
+                    Launch AI Chat
+                  </Button>
+                  <Button size="lg" variant="outline-light" className="rounded-pill px-5 py-3 border-2 fw-bold opacity-75" onClick={() => { /* scroll logic */ }}>
+                    Browse Units
+                  </Button>
                 </div>
               </Card>
+
             )}
           </Col>
         </Row>
       </Container>
       
       {/* Global CSS for some effects */}
-      <style jsx>{`
+      <style jsx global>{`
+        /* Communication Hub Enhancements */
+        :global(body) {
+          background-color: #0b1220 !important;
+        }
+
+        .fw-black { font-weight: 900; }
+
         .cursor-pointer { cursor: pointer; }
         .transition-all { transition: all 0.3s ease; }
+        
+        .dept-item {
+          background: rgba(30, 41, 59, 0.4) !important;
+          border: 1px solid rgba(255, 255, 255, 0.05) !important;
+          transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1) !important;
+        }
+
         .dept-item:hover { 
-          transform: translateX(8px) scale(1.02);
-          background-color: rgba(37, 99, 235, 0.25) !important;
-          box-shadow: 0 14px 28px rgba(0, 0, 0, 0.4);
-          border-color: rgba(96, 165, 250, 0.4) !important;
+          transform: translateX(10px) scale(1.02);
+          background: rgba(30, 41, 59, 0.8) !important;
+          box-shadow: 0 15px 30px rgba(0, 0, 0, 0.4) !important;
+          border-color: rgba(37, 99, 235, 0.4) !important;
         }
+
         .active-dept {
-          transform: translateX(12px) scale(1.04);
-          background: linear-gradient(135deg, rgba(37, 99, 235, 0.3), rgba(15, 23, 42, 0.95)) !important;
-          border-color: rgba(96, 165, 250, 0.6) !important;
+          transform: translateX(15px) scale(1.04) !important;
+          background: linear-gradient(135deg, rgba(37, 99, 235, 0.2), rgba(15, 23, 42, 0.9)) !important;
+          border-color: rgba(37, 99, 235, 0.6) !important;
+          box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5) !important;
         }
+
+        .ai-icon-pulse {
+          animation: iconPulse 2s infinite;
+        }
+
+        @keyframes iconPulse {
+          0% { transform: scale(1); filter: drop-shadow(0 0 0 rgba(59, 130, 246, 0)); }
+          50% { transform: scale(1.15); filter: drop-shadow(0 0 10px rgba(59, 130, 246, 0.6)); }
+          100% { transform: scale(1); filter: drop-shadow(0 0 0 rgba(59, 130, 246, 0)); }
+        }
+
+        .active-glow {
+          box-shadow: 0 0 25px rgba(37, 99, 235, 0.5) !important;
+        }
+
         .status-dot.bg-success {
-          animation: pulse 2s infinite;
+          animation: dotPulse 2s infinite;
+          box-shadow: 0 0 10px rgba(16, 185, 129, 0.5);
         }
-        @keyframes pulse {
+
+        @keyframes dotPulse {
           0% { transform: scale(1); opacity: 1; }
-          50% { transform: scale(1.5); opacity: 0.7; }
+          50% { transform: scale(1.4); opacity: 0.6; }
           100% { transform: scale(1); opacity: 1; }
         }
-        .custom-scrollbar::-webkit-scrollbar {
-          width: 5px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-track {
-          background: transparent;
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb {
-          background: #e0e0e0;
-          border-radius: 10px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-          background: #d0d0d0;
-        }
-        .flex-center { display: flex; flex-direction: column; align-items: center; justify-content: center; }
+
+        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.1); border-radius: 10px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.2); }
+
         .chat-panel {
-          background: rgba(15, 23, 42, 0.4) !important;
-          border: 1px solid rgba(148, 163, 184, 0.12) !important;
+          background: rgba(15, 23, 42, 0.6) !important;
+          border: 1px solid rgba(255, 255, 255, 0.08) !important;
           color: #f8fafc;
           backdrop-filter: blur(20px);
-          box-shadow: 0 20px 40px rgba(0, 0, 0, 0.25);
-          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+          box-shadow: 0 25px 50px rgba(0, 0, 0, 0.3);
+          transition: all 0.4s ease;
         }
-        .chat-panel:hover {
-          transform: translateY(-4px);
-          box-shadow: 0 30px 60px rgba(0, 0, 0, 0.4);
-          border-color: rgba(96, 165, 250, 0.35);
+
+        .welcome-gateway {
+          animation: fadeInUp 0.8s cubic-bezier(0.16, 1, 0.3, 1);
         }
+
+        @keyframes fadeInUp {
+          from { opacity: 0; transform: translateY(30px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+
+        .gateway-icon-wrap {
+          border-radius: 50%;
+          display: flex; align-items: center; justify-content: center;
+          animation: float 4s ease-in-out infinite;
+        }
+
+        @keyframes float {
+          0%, 100% { transform: translateY(0); }
+          50% { transform: translateY(-15px); }
+        }
+
+        .shadow-glow {
+          box-shadow: 0 15px 30px rgba(37, 99, 235, 0.4) !important;
+        }
+
+        .btn-premium-primary { 
+          background: linear-gradient(135deg, #2563eb, #7c3aed) !important; 
+          color: white; 
+          border: none !important;
+          transition: all 0.3s ease !important;
+        }
+
+        .btn-premium-primary:hover {
+          transform: translateY(-3px);
+          box-shadow: 0 20px 40px rgba(37, 99, 235, 0.5) !important;
+        }
+
         .chat-sidebar-head {
-          background: linear-gradient(90deg, rgba(15, 23, 42, 0.96) 0%, rgba(30, 41, 59, 0.96) 100%);
-          border-bottom: 1px solid rgba(148, 163, 184, 0.18);
+          background: rgba(30, 41, 59, 0.5);
+          backdrop-filter: blur(10px);
+          border-bottom: 1px solid rgba(255, 255, 255, 0.08);
         }
-        .chat-sidebar-body {
-          background: rgba(15, 23, 42, 0.72);
-        }
-        .chat-title {
-          color: #f8fafc;
-        }
-        .chat-subtitle {
-          color: #cbd5e1 !important;
-        }
-        .chat-section-label {
-          color: #93c5fd !important;
-        }
-        .chat-dept-name {
-          color: #f8fafc;
-        }
-        .chat-ai-btn:hover {
-          transform: translateY(-2px);
-        }
-        .chat-panel .text-muted,
-        .chat-panel p {
-          color: #cbd5e1;
-        }
-        .chat-panel .btn-light {
-          background: rgba(248, 250, 252, 0.92);
-          color: #0f172a;
-        }
+        
+        .chat-title { color: #ffffff; }
+        .chat-subtitle { color: #94a3b8 !important; }
+        .chat-section-label { color: #60a5fa !important; }
+        .chat-dept-name { color: #ffffff; }
+
       `}</style>
     </StudentLayout>
   );

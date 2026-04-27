@@ -5,6 +5,11 @@ import StudentLayout from "@/components/layout/StudentLayout";
 import { useAuth } from "@/lib/useAuth";
 import { supabase } from "@/lib/supabaseClient";
 import { submitClearanceRequest } from "@/lib/clearanceService";
+import {
+  formatDepartmentFormForNotes,
+  getDepartmentClearanceForm,
+  getDepartmentFormInitialValues,
+} from "@/lib/departmentClearanceForms";
 import { v4 as uuidv4 } from "uuid";
 
 export default function ClearancePage() {
@@ -24,8 +29,11 @@ export default function ClearancePage() {
   const [progress, setProgress] = useState(0);
   const [isLiveSync, setIsLiveSync] = useState(false);
   const [resolvedStudentId, setResolvedStudentId] = useState(null);
+  const [departmentFormValues, setDepartmentFormValues] = useState({});
 
   const studentId = resolvedStudentId || profile?.student_id || profile?.student_profile?.id || null;
+  const studentDepartment = profile?.department_name || profile?.student_profile?.department || profile?.department || "";
+  const departmentFormDefinition = getDepartmentClearanceForm(studentDepartment);
 
   const ensureStudentId = useCallback(async () => {
     const existingId = profile?.student_id || profile?.student_profile?.id || null;
@@ -81,6 +89,10 @@ export default function ClearancePage() {
     ensureStudentId();
   }, [ensureStudentId]);
 
+  useEffect(() => {
+    setDepartmentFormValues(getDepartmentFormInitialValues(departmentFormDefinition));
+  }, [departmentFormDefinition.id]);
+
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData({ ...formData, [name]: value });
@@ -88,6 +100,13 @@ export default function ClearancePage() {
 
   const handleStudentCardChange = (e) => {
     setStudentCardFile(e.target.files?.[0] || null);
+  };
+
+  const handleDepartmentFieldChange = (fieldKey, value) => {
+    setDepartmentFormValues((prev) => ({
+      ...prev,
+      [fieldKey]: value,
+    }));
   };
 
   const resolveUploadBucket = useCallback(async () => {
@@ -296,13 +315,28 @@ export default function ClearancePage() {
         throw new Error("Student card is mandatory. Please upload your student card to continue.");
       }
 
+      const requiredDepartmentField = (departmentFormDefinition.fields || []).find(
+        (field) => field.required && !String(departmentFormValues?.[field.key] || "").trim()
+      );
+      if (requiredDepartmentField) {
+        throw new Error(`Please complete '${requiredDepartmentField.label}' for your department form.`);
+      }
+
+      const departmentFormNotes = formatDepartmentFormForNotes(departmentFormDefinition, departmentFormValues);
+      const combinedNotes = [
+        `Reason: ${formData.reason.trim()}`,
+        departmentFormNotes,
+      ]
+        .filter(Boolean)
+        .join("\n\n");
+
       setMessage({ type: "info", text: "Submitting application to all departments..." });
 
       const submissionResult = await submitClearanceRequest(
         effectiveStudentId,
         user?.id,
         "final",
-        formData.reason
+        combinedNotes
       );
 
       if (!submissionResult || !submissionResult.success) {
@@ -319,12 +353,15 @@ export default function ClearancePage() {
       }
 
       setMessage({
-        type: uploadWarning ? "warning" : "success",
+        type: submissionResult?.reused ? "info" : uploadWarning ? "warning" : "success",
         text: uploadWarning
           ? `Clearance request submitted, but student card upload failed: ${uploadWarning}`
-          : "Clearance request submitted successfully! Departments will now review it.",
+          : submissionResult?.reused
+            ? `An active request already exists (ID: ${submissionResult?.data?.id || "N/A"}). A new record was not created.`
+            : `Clearance request submitted successfully (ID: ${submissionResult?.data?.id || "N/A"}). Departments will now review it.`,
       });
       setFormData({ reason: "", department: "" });
+      setDepartmentFormValues(getDepartmentFormInitialValues(departmentFormDefinition));
       setActiveRequest(submissionResult.data);
       setActiveTab("status");
       setTimeout(() => setMessage(""), 5000);
@@ -358,26 +395,61 @@ export default function ClearancePage() {
           className="apply-hero"
           style={{
             background: "linear-gradient(135deg, rgba(37,99,235,0.96) 0%, rgba(124,58,237,0.96) 100%)",
-            padding: "30px",
-            borderRadius: "18px",
-            marginBottom: "30px",
+            padding: "40px",
+            borderRadius: "24px",
+            marginBottom: "35px",
             color: "white",
             position: "relative",
-            boxShadow: "0 18px 40px rgba(76, 81, 191, 0.25)",
+            boxShadow: "0 22px 50px rgba(37, 99, 235, 0.35)",
+            border: "1px solid rgba(255,255,255,0.15)",
+            overflow: "hidden"
           }}
         >
-          {isLiveSync && (
-            <div
-              className="d-flex align-items-center gap-1 bg-white px-2 py-1 rounded-pill shadow-sm"
-              style={{ fontSize: "0.65rem", position: "absolute", top: "15px", right: "15px", color: "black" }}
-            >
-              <span className="live-orb"></span>
-              <span className="fw-bold">LIVE SYNC ACTIVE</span>
+          <div className="hero-glow" style={{ position: "absolute", top: "-50%", right: "-20%", width: "400px", height: "400px", background: "radial-gradient(circle, rgba(255,255,255,0.2) 0%, transparent 70%)", pointerEvents: "none" }} />
+          
+          <div className="d-flex flex-wrap align-items-center justify-content-between gap-3 position-relative" style={{ zIndex: 1 }}>
+            <div>
+              <div className="d-inline-flex align-items-center gap-2 bg-white bg-opacity-10 px-3 py-1 rounded-pill mb-3 border border-white border-opacity-20" style={{ backdropFilter: "blur(4px)" }}>
+                <span style={{ fontSize: "0.8rem", fontWeight: "800", letterSpacing: "0.05em" }}>STUDENT PORTAL</span>
+              </div>
+              <h1 className="fw-black mb-2" style={{ fontSize: "clamp(2rem, 5vw, 3rem)", fontWeight: 900 }}>Clearance Dashboard</h1>
+              <p className="fs-5 opacity-90 mb-0">Official degree issuance and departmental clearance management</p>
             </div>
-          )}
-          <h1 className="fw-bold mb-2">📋 Clearance</h1>
-          <p className="mb-0">Submit and track your clearance application</p>
+
+            {isLiveSync && (
+              <div
+                className="d-flex align-items-center gap-2 bg-black bg-opacity-40 px-3 py-2 rounded-pill border border-white border-opacity-10"
+                style={{ fontSize: "0.75rem", backdropFilter: "blur(8px)" }}
+              >
+                <span className="live-orb" style={{ width: "8px", height: "8px", borderRadius: "50%", background: "#10b981", boxShadow: "0 0 10px #10b981", animation: "pulse 2s infinite" }}></span>
+                <span className="fw-bold tracking-wider">LIVE SYNC ACTIVE</span>
+              </div>
+            )}
+          </div>
         </div>
+
+        {!activeRequest && activeTab !== "apply" && (
+           <Card className="mb-4 border-0 shadow-lg welcome-card" style={{ background: "linear-gradient(135deg, rgba(30,41,59,0.9) 0%, rgba(15,23,42,0.9) 100%)", borderRadius: "20px", border: "1px solid rgba(148,163,184,0.15)" }}>
+             <Card.Body className="p-4 p-md-5 text-center">
+               <div className="mb-4 d-inline-flex align-items-center justify-content-center bg-primary bg-opacity-10 rounded-circle" style={{ width: 80, height: 80 }}>
+                 <span style={{ fontSize: "2.5rem" }}>🚀</span>
+               </div>
+               <h2 className="fw-bold text-white mb-3">Ready to start your clearance?</h2>
+               <p className="text-muted mx-auto mb-4" style={{ maxWidth: "600px" }}>
+                 Submit your application to all university departments simultaneously. Track real-time progress and get notified as soon as you're cleared for degree issuance.
+               </p>
+               <Button 
+                 variant="primary" 
+                 size="lg" 
+                 className="rounded-pill px-5 fw-bold shadow-lg"
+                 style={{ background: "linear-gradient(135deg, #2563eb 0%, #7c3aed 100%)", border: "none" }}
+                 onClick={() => setActiveTab("apply")}
+               >
+                 Apply for Clearance Now
+               </Button>
+             </Card.Body>
+           </Card>
+        )}
 
         <Row>
           <Col lg={12}>
@@ -393,59 +465,152 @@ export default function ClearancePage() {
 
                     {activeRequest && ["pending", "in_progress", "completed"].includes(activeRequest.overall_status) ? (
                       <div className="py-5 text-center">
-                        <div style={{ fontSize: "4rem", marginBottom: "20px" }}>ℹ️</div>
-                        <h3 className="fw-bold mb-3">Clearance already applied</h3>
-                        <p className="text-muted mx-auto" style={{ maxWidth: "500px", fontSize: "1.1rem" }}>
-                          Your current clearance request is <strong>{normalizedRequestStatus.replace("_", " ")}</strong>.
-                          You cannot submit a new application while a request is active or successfully completed.
+                        <div style={{ fontSize: "5rem", marginBottom: "24px", animation: "bounce 2s infinite" }}>⏳</div>
+                        <h2 className="fw-bold text-white mb-3">Application in Progress</h2>
+                        <p className="text-muted mx-auto mb-4" style={{ maxWidth: "550px", fontSize: "1.1rem" }}>
+                          You have an active clearance request (ID: <span className="text-primary fw-mono">{activeRequest.id.substring(0,8)}...</span>) being reviewed by departments.
                         </p>
-                        <Button
-                          variant="outline-primary"
-                          className="mt-3 px-4 py-2 rounded-pill fw-bold"
-                          onClick={() => setActiveTab("status")}
-                        >
-                          View Active Status
-                        </Button>
+                        <div className="d-flex justify-content-center gap-3">
+                          <Button
+                            variant="primary"
+                            className="px-4 py-2 rounded-pill fw-bold shadow-sm"
+                            style={{ background: "linear-gradient(135deg, #2563eb 0%, #7c3aed 100%)", border: "none" }}
+                            onClick={() => setActiveTab("status")}
+                          >
+                            Track Live Status
+                          </Button>
+                          <Button
+                            variant="outline-light"
+                            className="px-4 py-2 rounded-pill fw-bold"
+                            style={{ borderColor: "rgba(255,255,255,0.2)" }}
+                            onClick={() => window.location.reload()}
+                          >
+                            Refresh View
+                          </Button>
+                        </div>
                       </div>
                     ) : (
-                      <Form onSubmit={handleApplyClearance} className="apply-form">
-                        <Form.Group className="mb-4">
-                          <Form.Label className="fw-bold apply-form-label">Student Name</Form.Label>
-                          <Form.Control type="text" value={profile?.name || ""} disabled className="apply-control" />
-                        </Form.Group>
+                      <Form onSubmit={handleApplyClearance} className="apply-form px-1">
+                        <div className="form-intro-banner mb-5">
+                          <div className="d-flex align-items-center gap-3">
+                             <div className="bg-primary bg-opacity-20 p-3 rounded-4 shadow-sm">
+                               <span style={{ fontSize: "1.5rem" }}>📄</span>
+                             </div>
+                             <div>
+                                <div className="form-intro-title fs-4">Official Submission Form</div>
+                                <p className="mb-0 form-intro-subtitle opacity-75">
+                                  Complete the details below to initiate university-wide clearance review.
+                                </p>
+                             </div>
+                          </div>
+                        </div>
 
-                        <Form.Group className="mb-4">
-                          <Form.Label className="fw-bold apply-form-label">Email</Form.Label>
-                          <Form.Control type="text" value={profile?.email || ""} disabled className="apply-control" />
-                        </Form.Group>
+                        <div className="form-section-card mb-4 p-4">
+                          <div className="section-kicker d-flex align-items-center gap-2 mb-4">
+                            <span className="bg-primary rounded-circle" style={{ width: 8, height: 8 }}></span>
+                            Personal & Academic Record
+                          </div>
+                          <Row className="g-4">
+                            {[
+                              { label: "Full Name", value: profile?.name, icon: "👤" },
+                              { label: "Email Address", value: profile?.email, icon: "📧" },
+                              { label: "Registration No.", value: profile?.roll_number, icon: "🆔" },
+                              { label: "Enrolled Department", value: profile?.department_name, icon: "🏛️" }
+                            ].map((info) => (
+                              <Col md={6} key={info.label}>
+                                <Form.Group>
+                                  <Form.Label className="apply-form-label fw-bold d-flex align-items-center gap-2">
+                                    <small className="opacity-50">{info.icon}</small> {info.label}
+                                  </Form.Label>
+                                  <Form.Control type="text" value={info.value || "Loading..."} disabled className="apply-control py-2" />
+                                </Form.Group>
+                              </Col>
+                            ))}
+                          </Row>
+                        </div>
 
-                        <Form.Group className="mb-4">
-                          <Form.Label className="fw-bold apply-form-label">Registration No.</Form.Label>
-                          <Form.Control type="text" value={profile?.roll_number || ""} disabled className="apply-control" />
-                        </Form.Group>
+                        <div className="dept-form-block mb-4 p-4">
+                          <div className="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
+                            <div>
+                               <div className="dept-form-title fs-5">{departmentFormDefinition.title}</div>
+                               <p className="dept-form-subtitle mb-0 opacity-75">Please provide department-specific requirements for {studentDepartment}.</p>
+                            </div>
+                            <Badge className="dept-form-chip py-2 px-3">REQUIRED FIELD</Badge>
+                          </div>
 
-                        <Form.Group className="mb-4">
-                          <Form.Label className="fw-bold apply-form-label">Department</Form.Label>
-                          <Form.Control type="text" value={profile?.department_name || ""} disabled className="apply-control" />
-                        </Form.Group>
+                          <Row className="g-4">
+                            {(departmentFormDefinition.fields || []).map((field) => {
+                              const fieldValue = departmentFormValues?.[field.key] || "";
+                              const commonProps = {
+                                name: field.key,
+                                value: fieldValue,
+                                required: !!field.required,
+                                className: "apply-control py-2",
+                              };
+                              const isTextarea = field.type === "textarea";
 
-                        <Form.Group className="mb-4">
-                          <Form.Label className="fw-bold apply-form-label">Reason for Clearance</Form.Label>
+                              return (
+                                <Col md={isTextarea ? 12 : 6} key={field.key}>
+                                  <Form.Group>
+                                    <Form.Label className="apply-form-label fw-bold">
+                                      {field.label} {field.required ? <span className="text-danger">*</span> : ""}
+                                    </Form.Label>
+
+                                    {isTextarea ? (
+                                      <Form.Control
+                                        as="textarea"
+                                        rows={field.rows || 3}
+                                        placeholder={field.placeholder || "Type here..."}
+                                        {...commonProps}
+                                        onChange={(e) => handleDepartmentFieldChange(field.key, e.target.value)}
+                                      />
+                                    ) : field.type === "select" ? (
+                                      <Form.Select
+                                        {...commonProps}
+                                        onChange={(e) => handleDepartmentFieldChange(field.key, e.target.value)}
+                                      >
+                                        <option value="">Choose Option...</option>
+                                        {(field.options || []).map((option) => (
+                                          <option key={option} value={option}>
+                                            {option}
+                                          </option>
+                                        ))}
+                                      </Form.Select>
+                                    ) : (
+                                      <Form.Control
+                                        type={field.type || "text"}
+                                        placeholder={field.placeholder || "Enter detail..."}
+                                        {...commonProps}
+                                        onChange={(e) => handleDepartmentFieldChange(field.key, e.target.value)}
+                                      />
+                                    )}
+                                  </Form.Group>
+                                </Col>
+                              );
+                            })}
+                          </Row>
+                        </div>
+
+                        <Form.Group className="mb-4 form-section-card p-4">
+                          <Form.Label className="apply-form-label fw-bold fs-6">Reason for Graduation / Leaving</Form.Label>
                           <Form.Control
                             as="textarea"
                             rows={4}
                             name="reason"
                             value={formData.reason}
                             onChange={handleInputChange}
-                            placeholder="Explain why you need clearance..."
+                            placeholder="Please explain why you are requesting clearance (e.g., Final Semester Graduation, Withdrawal, Transfer)..."
                             required
                             className="apply-control apply-textarea"
                           />
+                          <div className="mt-2 d-flex align-items-center gap-2 text-info opacity-75">
+                             <small>💡 Tip: A professional reason helps focal persons approve your request faster.</small>
+                          </div>
                         </Form.Group>
 
-                        <Form.Group className="mb-4">
-                          <Form.Label className="fw-bold apply-form-label">Student Card (required)</Form.Label>
-                          <div className="apply-upload-box">
+                        <Form.Group className="mb-5 form-section-card p-4">
+                          <Form.Label className="apply-form-label fw-bold fs-6">Mandatory Document Upload</Form.Label>
+                          <div className="apply-upload-box p-4 border-dashed">
                             <Form.Control
                               id="student-card-input"
                               type="file"
@@ -455,135 +620,184 @@ export default function ClearancePage() {
                               className="d-none"
                             />
 
-                            <div className="d-flex flex-wrap align-items-center gap-2">
-                              <label
-                                htmlFor="student-card-input"
-                                className="mb-0"
-                                style={{ cursor: "pointer" }}
-                              >
-                                <span className="apply-choose-btn d-inline-flex align-items-center fw-bold">
-                                  Choose File
-                                </span>
-                              </label>
+                            <div className="text-center py-3">
+                               <div className="mb-3">
+                                  <span style={{ fontSize: "3rem" }}>🪪</span>
+                               </div>
+                               <h5 className="text-white mb-2">Student Identity Card</h5>
+                               <p className="small text-muted mb-4">Please upload a clear scan of your official university ID card.</p>
+                               
+                               <div className="d-flex flex-wrap justify-content-center align-items-center gap-3">
+                                <label
+                                  htmlFor="student-card-input"
+                                  className="mb-0"
+                                  style={{ cursor: "pointer" }}
+                                >
+                                  <span className="apply-choose-btn px-4 py-2">
+                                    {studentCardFile ? "Change File" : "Choose File"}
+                                  </span>
+                                </label>
 
-                              <span className="apply-file-pill">
-                                {studentCardFile ? studentCardFile.name : "No file selected"}
-                              </span>
-                            </div>
-
-                            <div className="mt-2 apply-upload-note">
-                              Accepted formats: JPG, PNG, PDF
+                                {studentCardFile && (
+                                  <div className="apply-file-pill d-flex align-items-center gap-2 bg-success bg-opacity-10 border-success border-opacity-20 text-success">
+                                    <span className="text-truncate" style={{ maxWidth: "200px" }}>{studentCardFile.name}</span>
+                                    <span style={{ cursor: "pointer" }} onClick={() => setStudentCardFile(null)}>✕</span>
+                                  </div>
+                                )}
+                              </div>
                             </div>
                           </div>
                         </Form.Group>
 
-                        <Button
-                          variant="primary"
-                          type="submit"
-                          disabled={loading}
-                          className="apply-submit-btn"
-                        >
-                          {loading ? "Submitting..." : "Submit Application"}
-                        </Button>
+                        <div className="text-end mb-4">
+                           <Button
+                              variant="primary"
+                              type="submit"
+                              disabled={loading}
+                              className="apply-submit-btn px-5 py-3"
+                              style={{ minWidth: "260px" }}
+                            >
+                              {loading ? (
+                                <>
+                                  <Spinner animation="border" size="sm" className="me-2" />
+                                  Processing Application...
+                                </>
+                              ) : "Finalize & Submit Application"}
+                            </Button>
+                        </div>
                       </Form>
                     )}
                   </Tab>
 
                   <Tab eventKey="status" title="📊 Application Status">
                     {activeRequest ? (
-                      <>
-                        <div className="clearance-progress-wrap mb-4">
-                          <div className="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-3">
+                      <div className="status-container px-1">
+                        <div className="clearance-progress-wrap mb-5">
+                          <div className="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
                             <div>
-                              <h4 className="fw-bold mb-1">Overall Completion Progress</h4>
-                              <p className="text-muted mb-0">Live completion based on department review updates.</p>
+                               <div className="d-flex align-items-center gap-2 mb-1">
+                                  <h4 className="fw-black text-white mb-0" style={{ letterSpacing: "-0.02em" }}>Completion Status</h4>
+                                  {isDegreeIssued && <Badge bg="success" className="rounded-pill px-2">FINALIZED</Badge>}
+                               </div>
+                               <p className="text-muted mb-0 small">Live departmental review aggregation</p>
                             </div>
-                            <Badge className="progress-badge rounded-pill px-3 py-2">{displayProgress}% Complete</Badge>
+                            <div className="text-end">
+                               <div className="fs-2 fw-black text-primary" style={{ lineHeight: 1 }}>{displayProgress}%</div>
+                               <div className="small text-muted fw-bold">PROCESSED</div>
+                            </div>
                           </div>
 
-                          <div className="clearance-progress-track" role="progressbar" aria-valuenow={displayProgress} aria-valuemin="0" aria-valuemax="100">
-                            <div className="clearance-progress-fill" style={{ width: `${displayProgress}%` }} />
+                          <div className="clearance-progress-track mb-3" role="progressbar" aria-valuenow={displayProgress} aria-valuemin="0" aria-valuemax="100">
+                            <div className="clearance-progress-fill" style={{ width: `${displayProgress}%` }}>
+                               <div className="fill-glow"></div>
+                            </div>
                           </div>
 
-                          <div className="d-flex justify-content-between mt-2 small text-muted">
-                            <span>Started</span>
-                            <span>In Review</span>
-                            <span>{isDegreeIssued ? "Completed" : "Degree Issuance"}</span>
-                          </div>
+                          <Row className="text-center g-2 mt-4">
+                            {[
+                              { label: "Submitted", active: true, icon: "📩" },
+                              { label: "In Review", active: progress > 0, icon: "🔍" },
+                              { label: "Examiner", active: progress === 100, icon: "⚖️" },
+                              { label: "Issuance", active: isDegreeIssued, icon: "🎓" }
+                            ].map((step, idx) => (
+                              <Col key={step.label} xs={6} md={3}>
+                                <div className={`status-step p-2 rounded-3 ${step.active ? "active shadow-sm" : "opacity-40"}`}>
+                                  <div className="fs-4 mb-1">{step.icon}</div>
+                                  <div className="small fw-bold">{step.label}</div>
+                                </div>
+                              </Col>
+                            ))}
+                          </Row>
 
                           {isDegreeIssued ? (
-                            <h5 className="text-success mt-3 fw-bold mb-0">Degree Issued Successfully! 🎉</h5>
+                             <div className="mt-5 p-4 rounded-4 bg-success bg-opacity-10 border border-success border-opacity-20 text-center">
+                                <h4 className="text-success fw-bold mb-2">Degree Issued Successfully! 🎉</h4>
+                                <p className="mb-0 text-white-50">Your final degree has been processed and is ready for collection.</p>
+                             </div>
                           ) : (
-                            progress === 100 && <h5 className="text-primary mt-3 fw-bold mb-0">All departments approved. Examiner and academic issuance are pending.</h5>
+                            progress === 100 && (
+                               <div className="mt-5 p-4 rounded-4 bg-primary bg-opacity-10 border border-primary border-opacity-20 text-center animate-pulse">
+                                  <h5 className="text-primary fw-bold mb-1">Pending Final Authority Approval</h5>
+                                  <p className="mb-0 text-white-50">All departments cleared. Waiting for the Examiner's final verification.</p>
+                               </div>
+                            )
                           )}
                         </div>
 
-                        <Card className="mb-4 app-details-card">
-                          <Card.Header className="app-details-head">
-                            <div className="d-flex align-items-center gap-2 fw-bold">
-                              <span style={{ fontSize: "1.1rem" }}>📋</span>
-                              <span>Application Details</span>
-                            </div>
-                            <Badge bg={statusVariant} className="text-capitalize rounded-pill px-3 py-2">
-                              {normalizedRequestStatus.replace("_", " ")}
-                            </Badge>
-                          </Card.Header>
-                          <Card.Body>
-                            <div className="app-details-grid">
-                              <div className="app-detail-item">
-                                <div className="app-detail-label">Application ID</div>
-                                <div className="app-detail-value app-detail-mono">{activeRequest.id}</div>
+                        <div className="app-details-grid mb-5">
+                          {[
+                            { label: "Application ID", value: activeRequest.id.substring(0, 12) + "...", icon: "🆔", mono: true },
+                            { label: "Submission Date", value: new Date(activeRequest.created_at).toLocaleDateString(undefined, { dateStyle: 'long' }), icon: "📅" },
+                            { label: "Overall Status", value: normalizedRequestStatus.replace("_", " "), icon: "📊", badge: statusVariant },
+                            { label: "Academic Degree", value: activeRequest.degree_issued ? "READY" : "PROCESSING", icon: "🎓", highlight: activeRequest.degree_issued }
+                          ].map((item) => (
+                            <div className="app-detail-card" key={item.label}>
+                              <div className="d-flex align-items-center gap-2 mb-2">
+                                <small className="opacity-50">{item.icon}</small>
+                                <div className="app-detail-label">{item.label}</div>
                               </div>
-                              <div className="app-detail-item">
-                                <div className="app-detail-label">Submitted Date</div>
-                                <div className="app-detail-value">{new Date(activeRequest.created_at).toLocaleString()}</div>
-                              </div>
-                              <div className="app-detail-item">
-                                <div className="app-detail-label">Current Status</div>
-                                <div className="app-detail-value text-capitalize">{normalizedRequestStatus.replace("_", " ")}</div>
-                              </div>
-                              <div className="app-detail-item">
-                                <div className="app-detail-label">Degree Issued</div>
-                                <div className="app-detail-value">{activeRequest.degree_issued ? "✅ Yes" : "❌ No"}</div>
+                              <div className={`app-detail-value ${item.mono ? "fw-mono fs-7" : ""} ${item.highlight ? "text-success" : ""} text-capitalize`}>
+                                 {item.badge ? <Badge bg={item.badge} className="px-3 py-1 rounded-pill">{item.value}</Badge> : item.value}
                               </div>
                             </div>
-                          </Card.Body>
-                        </Card>
-
-                        <h5 className="fw-bold mb-3 dept-reviews-title">Department Reviews</h5>
-                        <div className="table-responsive dept-reviews-wrap">
-                          <table className="table table-hover dept-reviews-table mb-0">
-                            <thead>
-                              <tr>
-                                <th>Department</th>
-                                <th>Status</th>
-                                <th>Remarks</th>
-                                <th>Last Updated</th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {departmentStatuses.length > 0 ? (
-                                departmentStatuses.map((status) => (
-                                  <tr key={status.id}>
-                                    <td className="fw-bold">{status.departments?.name || "Unknown"}</td>
-                                    <td>
-                                      <Badge bg={status.status === "approved" ? "success" : status.status === "rejected" ? "danger" : "secondary"}>
-                                        {status.status}
-                                      </Badge>
-                                    </td>
-                                    <td className="dept-remarks">{status.remarks || "-"}</td>
-                                    <td>{new Date(status.updated_at).toLocaleDateString()}</td>
-                                  </tr>
-                                ))
-                              ) : (
-                                <tr>
-                                  <td colSpan="4" className="text-center">No department status tracked yet. Wait for system initialization.</td>
-                                </tr>
-                              )}
-                            </tbody>
-                          </table>
+                          ))}
                         </div>
-                      </>
+
+                        <div className="dept-section mt-5">
+                          <div className="d-flex align-items-center justify-content-between mb-3 px-1">
+                             <h5 className="fw-bold text-white mb-0">Departmental Review Status</h5>
+                             <Badge bg="dark" className="border border-white border-opacity-10 opacity-75">REAL-TIME FEED</Badge>
+                          </div>
+                          
+                          <div className="dept-reviews-wrap">
+                            <table className="table table-hover dept-reviews-table mb-0 align-middle">
+                              <thead>
+                                <tr>
+                                  <th className="ps-4">Authority / Department</th>
+                                  <th>Status</th>
+                                  <th>Remarks / Feedback</th>
+                                  <th className="pe-4 text-end">Updated</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {departmentStatuses.length > 0 ? (
+                                  departmentStatuses.map((status) => (
+                                    <tr key={status.id}>
+                                      <td className="ps-4 py-3">
+                                        <div className="fw-bold text-white">{status.departments?.name || "Unknown"}</div>
+                                        <div className="small opacity-50">Department Node</div>
+                                      </td>
+                                      <td>
+                                        <Badge 
+                                          className={`rounded-pill px-3 py-2 ${
+                                            status.status === "approved" ? "bg-success bg-opacity-20 text-success border border-success border-opacity-20" : 
+                                            status.status === "rejected" ? "bg-danger bg-opacity-20 text-danger border border-danger border-opacity-20" : 
+                                            "bg-secondary bg-opacity-20 text-muted border border-white border-opacity-10"
+                                          }`}
+                                        >
+                                          {String(status.status).toUpperCase()}
+                                        </Badge>
+                                      </td>
+                                      <td className="dept-remarks italic small opacity-80" style={{ maxWidth: "300px" }}>
+                                        {status.remarks || "No comments provided yet."}
+                                      </td>
+                                      <td className="pe-4 py-3 text-end small opacity-60">
+                                        {new Date(status.updated_at).toLocaleDateString()}
+                                      </td>
+                                    </tr>
+                                  ))
+                                ) : (
+                                  <tr>
+                                    <td colSpan="4" className="text-center py-5 opacity-50 italic">
+                                      Initializing department nodes for active request...
+                                    </td>
+                                  </tr>
+                                )}
+                              </tbody>
+                            </table>
+                          </div>
+                        </div>
+                      </div>
                     ) : (
                       <div className="text-center py-5 text-muted">
                         <h4>No Active Clearance Request Found</h4>
@@ -593,376 +807,319 @@ export default function ClearancePage() {
                   </Tab>
                 </Tabs>
               </Card.Body>
-            </Card>
-          </Col>
-        </Row>
+                   <style jsx>{`
+          :global(body) {
+            background-color: #0b1220 !important;
+            color: #f8fafc !important;
+          }
 
-        <style jsx>{`
+          :global(main) {
+            background-color: #0b1220 !important;
+          }
+
           @keyframes cardFloatIn {
-            from {
-              opacity: 0;
-              transform: translateY(10px);
-            }
-            to {
-              opacity: 1;
-              transform: translateY(0);
-            }
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
           }
 
-          .clearance-progress-wrap {
-            background: linear-gradient(180deg, rgba(30, 41, 59, 0.92) 0%, rgba(15, 23, 42, 0.92) 100%);
-            border: 1px solid rgba(148, 163, 184, 0.25);
-            border-radius: 16px;
-            padding: 1rem;
-            box-shadow: 0 14px 28px rgba(15, 23, 42, 0.32);
-            backdrop-filter: blur(6px);
-            transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
-            animation: cardFloatIn 0.45s ease-out;
+          
+          @keyframes pulse {
+            0% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.2); opacity: 0.7; }
+            100% { transform: scale(1); opacity: 1; }
           }
 
-          .clearance-progress-wrap:hover {
-            transform: translateY(-4px);
-            box-shadow: 0 20px 38px rgba(15, 23, 42, 0.42);
-            border-color: rgba(96, 165, 250, 0.45);
-          }
-
-          .clearance-progress-wrap h4 {
-            color: #f8fafc;
-          }
-
-          .clearance-progress-wrap .text-muted {
-            color: #cbd5e1 !important;
-          }
-
-          .progress-badge {
-            background: linear-gradient(135deg, #2563eb 0%, #6366f1 100%);
-            color: #fff;
-            font-weight: 700;
-            border: none;
-          }
-
-          .clearance-progress-track {
-            height: 14px;
-            border-radius: 999px;
-            background: rgba(148, 163, 184, 0.3);
-            overflow: hidden;
-          }
-
-          .clearance-progress-fill {
-            height: 100%;
-            border-radius: 999px;
-            background: linear-gradient(90deg, #0ea5e9 0%, #2563eb 45%, #6366f1 100%);
-            box-shadow: 0 0 14px rgba(37, 99, 235, 0.35);
-            transition: width 0.45s ease;
-          }
-
-          .app-details-card {
-            border: 1px solid rgba(148, 163, 184, 0.24);
-            border-radius: 16px;
-            overflow: hidden;
-            box-shadow: 0 14px 28px rgba(15, 23, 42, 0.3);
-            background: rgba(15, 23, 42, 0.8);
-          }
-
-          .app-details-head {
-            background: linear-gradient(90deg, rgba(15, 23, 42, 0.88) 0%, rgba(30, 41, 59, 0.88) 100%);
-            border-bottom: 1px solid rgba(148, 163, 184, 0.24);
-            padding: 0.85rem 1rem;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            flex-wrap: wrap;
-            gap: 0.6rem;
-            color: #f8fafc;
-          }
-
-          .app-details-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-            gap: 0.75rem;
-          }
-
-          .app-detail-item {
-            border: 1px solid rgba(148, 163, 184, 0.22);
-            border-radius: 12px;
-            padding: 0.75rem 0.85rem;
-            background: linear-gradient(180deg, rgba(30, 41, 59, 0.84) 0%, rgba(15, 23, 42, 0.84) 100%);
-            box-shadow: 0 10px 22px rgba(15, 23, 42, 0.24);
-            transition: transform 0.22s ease, border-color 0.22s ease, box-shadow 0.22s ease;
-          }
-
-          .app-detail-item:hover {
-            transform: translateY(-3px);
-            border-color: rgba(96, 165, 250, 0.45);
-            box-shadow: 0 14px 26px rgba(15, 23, 42, 0.36);
-          }
-
-          .app-detail-label {
-            font-size: 0.78rem;
-            text-transform: uppercase;
-            letter-spacing: 0.06em;
-            color: #93c5fd;
-            font-weight: 700;
-            margin-bottom: 0.2rem;
-          }
-
-          .app-detail-value {
-            color: #f8fafc;
-            font-weight: 700;
-          }
-
-          .app-detail-mono {
-            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-            word-break: break-word;
-            font-size: 0.92rem;
-          }
-
-          .dept-reviews-title {
-            color: #f8fafc;
-          }
-
-          .dept-reviews-wrap {
-            border: 1px solid rgba(148, 163, 184, 0.24);
-            border-radius: 14px;
-            overflow: hidden;
-            background: linear-gradient(180deg, rgba(30, 41, 59, 0.84) 0%, rgba(15, 23, 42, 0.84) 100%);
-            box-shadow: 0 14px 28px rgba(15, 23, 42, 0.3);
-            animation: cardFloatIn 0.45s ease-out;
-          }
-
-          .dept-reviews-table {
-            color: #e2e8f0;
-          }
-
-          .dept-reviews-table thead th {
-            background: linear-gradient(90deg, rgba(15, 23, 42, 0.95) 0%, rgba(30, 41, 59, 0.95) 100%);
-            color: #93c5fd;
-            border-bottom: 1px solid rgba(148, 163, 184, 0.25);
-            font-weight: 700;
-            letter-spacing: 0.04em;
-            text-transform: uppercase;
-            font-size: 0.78rem;
-          }
-
-          .dept-reviews-table tbody td {
-            background: transparent;
-            color: #e2e8f0;
-            border-color: rgba(148, 163, 184, 0.15);
-            transition: background-color 0.2s ease;
-          }
-
-          .dept-reviews-table tbody tr:hover td {
-            background: rgba(59, 130, 246, 0.1);
-          }
-
-          .dept-remarks {
-            color: #cbd5e1 !important;
-          }
-
-          .apply-hero {
-            animation: cardFloatIn 0.45s ease-out;
+          @keyframes glowMove {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
           }
 
           .apply-shell {
-            background: rgba(15, 23, 42, 0.74);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(148, 163, 184, 0.18) !important;
-            box-shadow: 0 16px 32px rgba(15, 23, 42, 0.28) !important;
+            background: rgba(15, 23, 42, 0.6) !important;
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.08) !important;
+            border-radius: 24px !important;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5) !important;
+            overflow: hidden;
+            animation: cardFloatIn 0.6s ease-out forwards;
           }
 
-          .apply-shell .card-body {
-            color: #e2e8f0;
+          .apply-shell :global(.card-body) {
+            background: transparent !important;
+            padding: 2.5rem !important;
           }
 
-          .apply-form-label {
-            color: #e2e8f0;
+          :global(.card) {
+            background-color: rgba(15, 23, 42, 0.8) !important;
+            border: 1px solid rgba(255, 255, 255, 0.1) !important;
+            color: #ffffff !important;
           }
 
-          .apply-control {
-            background: rgba(15, 23, 42, 0.9) !important;
-            border: 1px solid rgba(148, 163, 184, 0.22) !important;
+          :global(.card-body) {
+            background-color: transparent !important;
+          }
+
+          .apply-hero {
+            animation: cardFloatIn 0.5s ease-out;
+            border-radius: 24px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+            border: 1px solid rgba(255, 255, 255, 0.1) !important;
+          }
+
+
+          .form-intro-banner {
+            background: linear-gradient(135deg, rgba(37, 99, 235, 0.1) 0%, rgba(15, 23, 42, 0.9) 100%);
+            border: 1px solid rgba(37, 99, 235, 0.2);
+            border-radius: 20px;
+            padding: 24px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            transition: all 0.3s ease;
+          }
+
+          .form-intro-banner:hover {
+            border-color: rgba(37, 99, 235, 0.4);
+            transform: translateY(-2px);
+          }
+
+          :global(.welcome-card) {
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) !important;
+          }
+
+          :global(.welcome-card:hover) {
+            transform: translateY(-8px) scale(1.01);
+            box-shadow: 0 30px 60px rgba(0, 0, 0, 0.6) !important;
+            border-color: rgba(37, 99, 235, 0.4) !important;
+          }
+
+
+          .form-section-card, .dept-form-block {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 20px;
+            transition: all 0.3s ease;
+          }
+
+          .form-section-card:hover, .dept-form-block:hover {
+            background: rgba(255, 255, 255, 0.05);
+            border-color: rgba(37, 99, 235, 0.3);
+            transform: translateY(-2px);
+          }
+
+          .section-kicker {
+            color: #60a5fa;
+            font-size: 0.8rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+          }
+
+          .apply-control, :global(.form-control), :global(.form-select) {
+            background: #0f172a !important;
+            border: 1px solid rgba(255, 255, 255, 0.12) !important;
+            border-radius: 12px !important;
+            color: #ffffff !important;
+            padding: 12px 16px !important;
+            transition: all 0.2s ease !important;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2), 0 2px 4px -1px rgba(0, 0, 0, 0.1) !important;
+          }
+
+          .apply-control:focus, :global(.form-control:focus), :global(.form-select:focus) {
+            background: #1e293b !important;
+            border-color: #3b82f6 !important;
+            box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.25) !important;
+            color: #ffffff !important;
+          }
+
+          :global(.form-control:disabled) {
+            background: #1e293b !important;
+            color: #cbd5e1 !important;
+            opacity: 0.8;
+          }
+
+          :global(label) {
             color: #f8fafc !important;
-            box-shadow: none !important;
+            font-weight: 600 !important;
           }
 
-          .apply-control:disabled {
-            color: #e2e8f0 !important;
-            opacity: 0.88;
+          ::placeholder {
+            color: #94a3b8 !important;
           }
 
-          .apply-control::placeholder {
-            color: #94a3b8;
-          }
-
-          .apply-control:focus {
-            border-color: rgba(96, 165, 250, 0.55) !important;
-            box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.16) !important;
-          }
-
-          .apply-textarea {
-            min-height: 130px;
-          }
 
           .apply-upload-box {
-            border: 1px solid rgba(148, 163, 184, 0.2);
-            border-radius: 14px;
-            padding: 12px;
-            background: linear-gradient(180deg, rgba(30, 41, 59, 0.86) 0%, rgba(15, 23, 42, 0.86) 100%);
-            box-shadow: 0 12px 24px rgba(15, 23, 42, 0.22);
+            border: 2px dashed rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            background: rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+          }
+
+          .apply-upload-box:hover {
+            border-color: #3b82f6;
+            background: rgba(59, 130, 246, 0.05);
           }
 
           .apply-choose-btn {
             background: linear-gradient(135deg, #2563eb 0%, #7c3aed 100%);
             color: #fff;
-            border-radius: 10px;
-            padding: 9px 14px;
-            box-shadow: 0 10px 18px rgba(37,99,235,0.24);
-            transition: transform 0.2s ease, box-shadow 0.2s ease;
-          }
-
-          .apply-choose-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 14px 22px rgba(37,99,235,0.3);
-          }
-
-          .apply-file-pill {
-            color: #e2e8f0;
-            font-weight: 600;
-            background: rgba(15, 23, 42, 0.9);
-            border: 1px solid rgba(148, 163, 184, 0.16);
-            border-radius: 10px;
-            padding: 8px 12px;
-            min-width: 220px;
-            max-width: 100%;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-          }
-
-          .apply-upload-note {
-            color: #94a3b8;
-            font-size: 0.85rem;
+            border-radius: 12px;
+            padding: 12px 24px;
+            font-weight: 700;
+            transition: all 0.3s ease;
+            box-shadow: 0 10px 20px rgba(37, 99, 235, 0.3);
           }
 
           .apply-submit-btn {
             background: linear-gradient(135deg, #2563eb 0%, #7c3aed 100%) !important;
             border: none !important;
-            color: #fff !important;
-            padding: 0.9rem 1.2rem;
-            border-radius: 14px;
-            font-weight: 800;
-            box-shadow: 0 14px 26px rgba(37,99,235,0.24);
-            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            border-radius: 16px !important;
+            font-weight: 800 !important;
+            letter-spacing: 0.02em !important;
+            box-shadow: 0 15px 30px rgba(37, 99, 235, 0.4) !important;
+            transition: all 0.3s ease !important;
           }
 
-          .apply-submit-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 18px 30px rgba(37,99,235,0.3);
+          .apply-submit-btn:hover:not(:disabled) {
+            transform: translateY(-3px);
+            box-shadow: 0 20px 40px rgba(37, 99, 235, 0.5) !important;
           }
 
-          .apply-submit-btn:disabled {
-            opacity: 0.8;
+          /* Status Styles */
+          .clearance-progress-wrap {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 24px;
+            padding: 30px;
           }
 
-          .apply-panel .text-muted,
-          .apply-panel p,
-          .apply-shell .text-muted,
-          .apply-shell p {
-            color: #cbd5e1;
+          .clearance-progress-track {
+            height: 12px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 999px;
+            overflow: hidden;
+            position: relative;
           }
 
-          .apply-shell .btn-light {
-            background: rgba(248,250,252,0.92);
-            color: #0f172a;
+          .clearance-progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #3b82f6, #8b5cf6);
+            border-radius: 999px;
+            position: relative;
+            transition: width 1s cubic-bezier(0.4, 0, 0.2, 1);
           }
 
-          .apply-shell .btn-outline-primary {
-            border-color: rgba(96,165,250,0.35);
-            color: #bfdbfe;
-            background: rgba(15,23,42,0.68);
+          .fill-glow {
+            position: absolute;
+            top: 0; right: 0; bottom: 0; left: 0;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+            background-size: 200% 100%;
+            animation: glowMove 2s linear infinite;
           }
 
-          .apply-shell .btn-outline-primary:hover {
-            background: rgba(37,99,235,0.14);
-            color: #fff;
+          .status-step {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            transition: all 0.3s ease;
           }
 
-          .apply-shell .btn-primary {
-            background: linear-gradient(135deg, #2563eb 0%, #7c3aed 100%);
-            border: none;
+          .status-step.active {
+            background: rgba(37, 99, 235, 0.1);
+            border-color: rgba(37, 99, 235, 0.3);
+            color: #60a5fa;
           }
 
-          .apply-shell .text-dark {
-            color: #f8fafc !important;
+          .app-detail-card {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 16px;
+            padding: 16px;
+            transition: all 0.3s ease;
           }
 
-          .apply-shell .bg-white,
-          .apply-shell .bg-light {
-            background: rgba(15, 23, 42, 0.72) !important;
+          .app-detail-card:hover {
+            background: rgba(255, 255, 255, 0.06);
+            transform: scale(1.02);
           }
 
-          .apply-shell .form-control:disabled {
-            background: rgba(15, 23, 42, 0.9) !important;
-          }
-
-          .apply-shell .form-control,
-          .apply-shell textarea.form-control {
-            background: rgba(15, 23, 42, 0.9) !important;
-            border-color: rgba(148, 163, 184, 0.22) !important;
-            color: #f8fafc !important;
-          }
-
-          .apply-shell .form-control::placeholder,
-          .apply-shell textarea.form-control::placeholder {
+          .app-detail-label {
             color: #94a3b8;
-          }
-
-          .apply-shell .form-control:focus,
-          .apply-shell textarea.form-control:focus {
-            border-color: rgba(96, 165, 250, 0.55) !important;
-            box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.16) !important;
-          }
-
-          .apply-shell .rounded-pill.fw-bold {
-            box-shadow: 0 12px 22px rgba(37,99,235,0.24);
-          }
-
-          .apply-shell .card {
-            background: rgba(15, 23, 42, 0.74);
-          }
-
-          #clearance-tabs.nav-tabs {
-            border-bottom: 1px solid rgba(148, 163, 184, 0.3);
-            gap: 0.45rem;
-          }
-
-          #clearance-tabs .nav-link {
-            color: #cbd5e1;
-            background: linear-gradient(180deg, rgba(30, 41, 59, 0.75) 0%, rgba(15, 23, 42, 0.75) 100%);
-            border: 1px solid rgba(148, 163, 184, 0.26);
-            border-bottom-color: transparent;
-            border-radius: 12px 12px 0 0;
+            font-size: 0.75rem;
             font-weight: 700;
-            letter-spacing: 0.01em;
-            transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+            text-transform: uppercase;
           }
 
-          #clearance-tabs .nav-link:hover {
-            color: #f8fafc;
-            transform: translateY(-2px);
-            border-color: rgba(96, 165, 250, 0.5);
-            box-shadow: 0 10px 20px rgba(15, 23, 42, 0.35);
+          .app-detail-value {
+            color: #fff;
+            font-weight: 700;
+            font-size: 1.1rem;
           }
 
-          #clearance-tabs .nav-link.active {
-            color: #f8fafc;
-            background: linear-gradient(135deg, rgba(37, 99, 235, 0.25) 0%, rgba(99, 102, 241, 0.25) 100%),
-              linear-gradient(180deg, rgba(15, 23, 42, 0.92) 0%, rgba(30, 41, 59, 0.92) 100%);
-            border-color: rgba(96, 165, 250, 0.58);
-            border-bottom-color: rgba(15, 23, 42, 0.92);
-            box-shadow: 0 14px 26px rgba(37, 99, 235, 0.22);
+          .dept-reviews-wrap {
+            border-radius: 20px;
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            background: rgba(0, 0, 0, 0.2);
+          }
+
+          .dept-reviews-table thead th {
+            background: rgba(255, 255, 255, 0.03);
+            color: #94a3b8;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            text-transform: uppercase;
+            font-size: 0.75rem;
+            letter-spacing: 0.05em;
+            padding: 15px;
+          }
+
+          .dept-reviews-table tbody tr {
+            border-bottom: 1px solid rgba(255, 255, 255, 0.02);
+            transition: all 0.2s ease;
+          }
+
+          .dept-reviews-table tbody tr:hover {
+            background: rgba(255, 255, 255, 0.02);
+          }
+
+          :global(h1), :global(h2), :global(h3), :global(h4), :global(h5), :global(h6), :global(.fw-bold), :global(.fw-black) {
+            color: #ffffff !important;
+          }
+
+          :global(p), :global(.text-muted), :global(small) {
+            color: #94a3b8 !important;
+          }
+
+          :global(.nav-tabs) {
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
+          }
+
+          :global(#clearance-tabs .nav-link) {
+            border: none !important;
+            border-radius: 12px !important;
+            color: #94a3b8 !important;
+            padding: 12px 24px !important;
+            font-weight: 700 !important;
+            transition: all 0.3s ease !important;
+          }
+
+
+          :global(#clearance-tabs .nav-link:hover) {
+            background: rgba(255, 255, 255, 0.05) !important;
+            color: #fff !important;
+          }
+
+          :global(#clearance-tabs .nav-link.active) {
+            background: #2563eb !important;
+            color: #fff !important;
+            box-shadow: 0 10px 20px rgba(37, 99, 235, 0.2) !important;
+          }
+          @media (max-width: 768px) {
+            .apply-shell :global(.card-body) { padding: 1.5rem !important; }
+            .clearance-progress-wrap { padding: 20px; }
           }
         `}</style>
+            </Card>
+          </Col>
+        </Row>
       </Container>
     </StudentLayout>
   );
