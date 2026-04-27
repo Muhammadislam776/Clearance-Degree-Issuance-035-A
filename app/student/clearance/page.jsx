@@ -386,7 +386,7 @@ export default function ClearancePage() {
                 <Tabs id="clearance-tabs" activeKey={activeTab} onSelect={(k) => setActiveTab(k)} className="mb-4">
                   <Tab eventKey="apply" title="📝 Apply for Clearance">
                     {message && (
-                      <Alert variant={message.type} dismissible onClose={() => setMessage("")}> 
+                      <Alert variant={message.type} dismissible onClose={() => setMessage("")}>
                         {message.text}
                       </Alert>
                     )}

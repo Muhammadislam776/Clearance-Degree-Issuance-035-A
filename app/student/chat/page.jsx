@@ -109,7 +109,7 @@ export default function ChatPage() {
             "radial-gradient(1100px 460px at 12% -8%, rgba(37,99,235,0.22), rgba(37,99,235,0) 58%), radial-gradient(900px 420px at 90% 8%, rgba(139,92,246,0.2), rgba(139,92,246,0) 56%), linear-gradient(180deg, #0b1220 0%, #111827 100%)",
         }}
       >
-        <Row className="g-4">
+        <Row className="g-4 animate-fade-in-up">
           <Col lg={4} xl={3}>
             {/* Sidebar Card */}
             <Card className="border-0 shadow-sm h-100 chat-panel chat-sidebar" style={{ borderRadius: "20px", overflow: "hidden" }}>
@@ -266,12 +266,15 @@ export default function ChatPage() {
         .cursor-pointer { cursor: pointer; }
         .transition-all { transition: all 0.3s ease; }
         .dept-item:hover { 
-          transform: translateX(8px);
-          background-color: rgba(37, 99, 235, 0.18) !important;
-          box-shadow: 0 14px 28px rgba(15,23,42,0.3);
+          transform: translateX(8px) scale(1.02);
+          background-color: rgba(37, 99, 235, 0.25) !important;
+          box-shadow: 0 14px 28px rgba(0, 0, 0, 0.4);
+          border-color: rgba(96, 165, 250, 0.4) !important;
         }
         .active-dept {
-          transform: translateX(10px) scale(1.02);
+          transform: translateX(12px) scale(1.04);
+          background: linear-gradient(135deg, rgba(37, 99, 235, 0.3), rgba(15, 23, 42, 0.95)) !important;
+          border-color: rgba(96, 165, 250, 0.6) !important;
         }
         .status-dot.bg-success {
           animation: pulse 2s infinite;
@@ -296,17 +299,17 @@ export default function ChatPage() {
         }
         .flex-center { display: flex; flex-direction: column; align-items: center; justify-content: center; }
         .chat-panel {
-          background: linear-gradient(180deg, rgba(30, 41, 59, 0.88) 0%, rgba(15, 23, 42, 0.88) 100%);
-          border: 1px solid rgba(148, 163, 184, 0.22);
-          color: #e2e8f0;
-          backdrop-filter: blur(8px);
-          box-shadow: 0 16px 32px rgba(15, 23, 42, 0.3);
-          transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+          background: rgba(15, 23, 42, 0.4) !important;
+          border: 1px solid rgba(148, 163, 184, 0.12) !important;
+          color: #f8fafc;
+          backdrop-filter: blur(20px);
+          box-shadow: 0 20px 40px rgba(0, 0, 0, 0.25);
+          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
         .chat-panel:hover {
           transform: translateY(-4px);
-          box-shadow: 0 22px 40px rgba(15, 23, 42, 0.4);
-          border-color: rgba(96, 165, 250, 0.42);
+          box-shadow: 0 30px 60px rgba(0, 0, 0, 0.4);
+          border-color: rgba(96, 165, 250, 0.35);
         }
         .chat-sidebar-head {
           background: linear-gradient(90deg, rgba(15, 23, 42, 0.96) 0%, rgba(30, 41, 59, 0.96) 100%);

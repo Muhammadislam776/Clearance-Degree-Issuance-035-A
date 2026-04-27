@@ -17,40 +17,44 @@ body {
 
 /* Navbar */
 .navbar-premium {
-  background: #FFFFFF !important;
-  border-bottom: 1px solid #E2E8F0;
-  padding: 1rem 0;
+  background: rgba(15, 23, 42, 0.8) !important;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.15);
+  padding: 0.75rem 0;
   position: sticky;
   top: 0;
   z-index: 1000;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+  backdrop-filter: blur(12px);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
 }
 
 .navbar-brand-premium {
   font-weight: 800;
-  letter-spacing: -0.5px;
-  color: var(--dash-primary);
+  letter-spacing: -1px;
+  background: linear-gradient(135deg, #0062FF, #6366F1);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
   font-size: 1.5rem;
 }
 
 .nav-link-premium {
   font-weight: 600;
-  color: var(--dash-text-muted) !important;
-  transition: all 0.3s ease;
-  padding: 0.5rem 1rem !important;
-  border-radius: 8px;
-  margin: 0 0.25rem;
+  color: #94a3b8 !important;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  padding: 0.6rem 1.2rem !important;
+  border-radius: 12px;
+  margin: 0 0.15rem;
 }
 
 .nav-link-premium:hover {
-  color: var(--dash-primary) !important;
-  background: rgba(0, 98, 255, 0.08);
+  color: #f8fafc !important;
+  background: rgba(255, 255, 255, 0.05);
   transform: translateY(-1px);
 }
 
 .nav-link-premium.active {
-  color: var(--dash-primary) !important;
-  background: rgba(0, 98, 255, 0.12);
+  color: #f8fafc !important;
+  background: rgba(37, 99, 235, 0.2);
+  box-shadow: inset 0 0 0 1px rgba(37, 99, 235, 0.3);
 }
 
 /* Premium Cards */

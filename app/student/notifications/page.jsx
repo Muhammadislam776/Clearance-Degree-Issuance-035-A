@@ -226,9 +226,9 @@ export default function NotificationsPage() {
 
         {/* ── Page Header ────────────────────────────────────────────────── */}
         <div className="d-flex justify-content-between align-items-end mb-4 flex-wrap gap-3">
-          <div>
-            <h1 className="fw-bold mb-1 notif-page-title" style={{ letterSpacing: "-0.02em" }}>Notifications</h1>
-            <p className="notif-page-subtitle mb-0 small">Stay updated on your clearance status and academic requests.</p>
+          <div className="animate-fade-in-up">
+            <h1 className="fw-bold mb-1 text-white" style={{ letterSpacing: "-0.04em", fontSize: "2.5rem" }}>Notifications</h1>
+            <p className="notif-page-subtitle mb-0 small opacity-75">Stay updated on your clearance status and academic requests.</p>
           </div>
           <div className="d-flex gap-2">
             <div className="filter-pill-container shadow-sm">
@@ -291,7 +291,7 @@ export default function NotificationsPage() {
                   return (
                     <div 
                       key={notif.id} 
-                      className={`notification-card ${!notif.is_read ? 'unread' : ''}`}
+                      className={`notification-card animate-fade-in-up ${!notif.is_read ? 'unread' : ''}`}
                     >
                       <div className="notif-type-border" style={{ background: cfg.accent }}></div>
                       
@@ -302,17 +302,17 @@ export default function NotificationsPage() {
                       <div className="notif-body">
                         <div className="d-flex justify-content-between align-items-start gap-2 mb-1">
                           <div className="d-flex align-items-center gap-2">
-                            <h6 className="notif-title mb-0">{notif.title || cfg.label}</h6>
+                            <h6 className="notif-title mb-0" style={{ fontSize: "1.1rem" }}>{notif.title || cfg.label}</h6>
                             {!notif.is_read && <span className="unread-dot"></span>}
                           </div>
-                          <span className="notif-time">{formatTime(notif.created_at)}</span>
+                          <span className="notif-time opacity-75">{formatTime(notif.created_at)}</span>
                         </div>
-                        <p className="notif-message mb-0">{notif.message}</p>
+                        <p className="notif-message mb-0" style={{ fontSize: "0.95rem", opacity: 0.85 }}>{notif.message}</p>
                         
                         {!notif.is_read && (
                           <div className="mt-3">
                             <button 
-                              className="action-link"
+                              className="action-link-premium"
                               onClick={() => handleMarkAsRead(notif.id)}
                             >
                               Mark as read
@@ -388,26 +388,82 @@ export default function NotificationsPage() {
         }
 
         .notification-card {
-          background: linear-gradient(180deg, rgba(30, 41, 59, 0.9) 0%, rgba(15, 23, 42, 0.9) 100%);
-          border: 1px solid rgba(148, 163, 184, 0.2);
-          border-radius: 20px;
-          padding: 20px;
+          background: rgba(15, 23, 42, 0.4) !important;
+          border: 1px solid rgba(148, 163, 184, 0.08) !important;
+          border-radius: 24px;
+          padding: 24px;
           display: flex;
-          gap: 16px;
+          gap: 20px;
           position: relative;
           overflow: hidden;
-          transition: transform 0.22s ease, box-shadow 0.22s ease, border-color 0.22s ease;
-          box-shadow: 0 14px 28px rgba(15, 23, 42, 0.24);
-          backdrop-filter: blur(8px);
+          transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+          box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+          backdrop-filter: blur(20px);
         }
         .notification-card:hover {
-          transform: translateY(-4px);
-          box-shadow: 0 20px 36px rgba(15, 23, 42, 0.34);
-          border-color: rgba(96, 165, 250, 0.42);
+          transform: translateY(-8px) scale(1.015);
+          box-shadow: 0 25px 50px rgba(0, 0, 0, 0.4);
+          border-color: rgba(96, 165, 250, 0.5) !important;
+          background: rgba(30, 41, 59, 0.6) !important;
         }
         .notification-card.unread {
-          background: linear-gradient(180deg, rgba(30, 41, 59, 0.96) 0%, rgba(15, 23, 42, 0.96) 100%);
-          border-color: rgba(96, 165, 250, 0.3);
+          background: rgba(30, 41, 59, 0.7) !important;
+          border-color: rgba(37, 99, 235, 0.25) !important;
+          box-shadow: 0 15px 40px rgba(37, 99, 235, 0.1);
+        }
+        .notif-type-border {
+          position: absolute;
+          left: 0;
+          top: 0;
+          bottom: 0;
+          width: 5px;
+          opacity: 0.9;
+        }
+
+        .notif-icon-box {
+          width: 56px;
+          height: 56px;
+          border-radius: 18px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 1.6rem;
+          flex-shrink: 0;
+          box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.1);
+        }
+
+        .action-link-premium {
+          background: rgba(37, 99, 235, 0.15);
+          border: 1px solid rgba(37, 99, 235, 0.3);
+          color: #60a5fa;
+          font-size: 0.75rem;
+          font-weight: 700;
+          padding: 6px 16px;
+          border-radius: 99px;
+          cursor: pointer;
+          transition: all 0.2s ease;
+        }
+        .action-link-premium:hover {
+          background: #2563eb;
+          color: white;
+          transform: scale(1.05);
+        }
+
+        .empty-state {
+          background: rgba(30, 41, 59, 0.4) !important;
+          padding: 80px 40px;
+          border-radius: 32px;
+          text-align: center;
+          box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+          backdrop-filter: blur(20px);
+          border: 1px solid rgba(148, 163, 184, 0.1) !important;
+        }
+
+        .filter-pill-container {
+          background: rgba(15, 23, 42, 0.6);
+          padding: 6px;
+          border-radius: 18px;
+          border: 1px solid rgba(148, 163, 184, 0.1);
         }
         .notif-type-border {
           position: absolute;

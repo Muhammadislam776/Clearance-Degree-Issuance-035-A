@@ -70,8 +70,12 @@ export default function StudentDashboard() {
 
   const latest = clearances?.[0];
   const isDegreeIssued = !!latest?.degree_issued;
+  const overallStatus = (latest?.overall_status || "").toLowerCase();
+
   const workflowProgress = latest
-    ? (isDegreeIssued ? 100 : Math.min(Number(latest.progress || 0), 90))
+    ? (isDegreeIssued || overallStatus === "completed" ? 100 
+      : overallStatus === "approved" ? 95 
+      : Math.min(Number(latest.progress || 0), 90))
     : 0;
 
   return (
@@ -88,7 +92,7 @@ export default function StudentDashboard() {
         >
           {/* Dashboard Hero */}
           <div 
-            className="p-5 mb-5 text-white shadow-lg" 
+            className="p-5 mb-5 text-white shadow-lg animate-fade-in-up" 
             style={{ 
               background: "linear-gradient(135deg, #0062FF 0%, #6366F1 60%, #8B5CF6 100%)", 
               borderRadius: "24px",
@@ -100,7 +104,7 @@ export default function StudentDashboard() {
             <Row className="align-items-center">
               <Col md={8} style={{ position: "relative", zIndex: 1 }}>
                 <h1 className="display-4 fw-bold mb-3">Hello, {profile?.name?.split(' ')[0] || "Scholar"}!</h1>
-                <p className="lead mb-4 opacity-75">
+                <p className="lead mb-4">
                   {clearances.length > 0 
                     ? `You have ${clearances.length} active clearance request(s) in progress.` 
                     : "Ready to start your graduation journey? Apply for clearance below."}
@@ -142,8 +146,8 @@ export default function StudentDashboard() {
             <>
               {/* Stats & Current Progress */}
               <Row className="g-4 mb-5">
-                <Col lg={8}>
-                  <Card className="border-0 shadow-sm h-100 p-4" style={{ borderRadius: "20px" }}>
+                <Col lg={8} className="animate-fade-in-up" style={{ animationDelay: "0.1s" }}>
+                  <Card className="border-0 shadow-sm h-100 p-4 premium-glass-card" style={{ borderRadius: "20px" }}>
                     <div className="d-flex justify-content-between align-items-center mb-4">
                       <h4 className="fw-bold mb-0">Clearance Journey</h4>
                       <Badge bg={statusVariant(latest.overall_status)} className="px-3 py-2 rounded-pill text-uppercase">
@@ -179,11 +183,17 @@ export default function StudentDashboard() {
                       </div>
                     )}
 
-                    {!isDegreeIssued && latest.progress >= 100 && (
+                    {!isDegreeIssued && overallStatus !== "completed" && (
                       <div className="mb-4">
-                        <Alert variant="info" className="border-0 shadow-sm rounded-4 mb-0">
-                          All departments have approved your request. Examiner review and academic degree issuance are still pending.
-                        </Alert>
+                        {overallStatus === "approved" ? (
+                          <Alert variant="success" className="border-0 shadow-sm rounded-4 mb-0" style={{ background: "rgba(16, 185, 129, 0.15)", color: "#10b981", border: "1px solid rgba(16, 185, 129, 0.3)" }}>
+                            <strong>Examiner Approved!</strong> Your clearance is vetted. Final degree issuance by the academic department is now in progress.
+                          </Alert>
+                        ) : latest.progress >= 100 ? (
+                          <Alert variant="info" className="border-0 shadow-sm rounded-4 mb-0" style={{ background: "rgba(59, 130, 246, 0.15)", color: "#60a5fa", border: "1px solid rgba(59, 130, 246, 0.3)" }}>
+                            All departments have approved your request. Examiner review and academic degree issuance are still pending.
+                          </Alert>
+                        ) : null}
                       </div>
                     )}
                     
@@ -200,7 +210,7 @@ export default function StudentDashboard() {
                       </div>
                     </div>
 
-                    <p className="small text-muted mb-4 opacity-75">
+                    <p className="small text-muted mb-4">
                        Departmental reviews: <strong>{latest.approved_count} Approved</strong> out of {latest.total_departments} 
                     </p>
 
@@ -212,20 +222,20 @@ export default function StudentDashboard() {
 
                 <Col lg={4}>
                   <Row className="g-3">
-                    <Col xs={12}>
-                      <Card className="border-0 shadow-sm p-3 text-center student-stat-card" style={{ borderRadius: "16px" }}>
+                    <Col xs={12} className="animate-fade-in-up" style={{ animationDelay: "0.2s" }}>
+                      <Card className="border-0 shadow-sm p-3 text-center premium-glass-card" style={{ borderRadius: "16px" }}>
                         <div className="small text-uppercase mb-1 stat-label">Last Submission</div>
                         <div className="h5 fw-bold mb-0 stat-value">{new Date(latest.created_at).toLocaleDateString()}</div>
                       </Card>
                     </Col>
-                    <Col xs={12}>
-                      <Card className="border-0 shadow-sm p-3 text-center student-stat-card" style={{ borderRadius: "16px" }}>
+                    <Col xs={12} className="animate-fade-in-up" style={{ animationDelay: "0.3s" }}>
+                      <Card className="border-0 shadow-sm p-3 text-center premium-glass-card" style={{ borderRadius: "16px" }}>
                         <div className="small text-uppercase mb-1 stat-label">Departments Contacted</div>
                         <div className="h5 fw-bold mb-0 stat-value stat-value--success">{latest.total_departments} Units</div>
                       </Card>
                     </Col>
-                    <Col xs={12}>
-                      <Card className="border-0 shadow-sm p-3 text-center student-stat-card" style={{ borderRadius: "16px" }}>
+                    <Col xs={12} className="animate-fade-in-up" style={{ animationDelay: "0.4s" }}>
+                      <Card className="border-0 shadow-sm p-3 text-center premium-glass-card" style={{ borderRadius: "16px" }}>
                         <div className="small text-uppercase mb-1 stat-label">Feedback Alerts</div>
                         <div className="h5 fw-bold mb-0 stat-value stat-value--danger">{latest.rejected_count} Flags</div>
                       </Card>
@@ -243,10 +253,10 @@ export default function StudentDashboard() {
                   { icon: "📁", title: "Files", link: "/student/clearance", desc: "Your documents" },
                   { icon: "👤", title: "Profile", link: "/student/profile", desc: "Account settings" }
                 ].map((item, idx) => (
-                  <Col key={idx} xs={6} md={3}>
+                  <Col key={idx} xs={6} md={3} className="animate-fade-in-up" style={{ animationDelay: `${0.5 + idx * 0.1}s` }}>
                     <Link href={item.link} className="text-decoration-none">
                       <Card
-                        className="border-0 shadow-sm p-4 text-center hover-lift h-100"
+                        className="border-0 shadow-sm p-4 text-center premium-glass-card h-100"
                         style={{
                           borderRadius: "18px",
                           background: "rgba(30, 41, 59, 0.78)",
@@ -267,25 +277,80 @@ export default function StudentDashboard() {
 
           {/* Global Styles for Hover Effects */}
           <style jsx global>{`
-            .hover-lift { transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1); cursor: pointer; }
-            .hover-lift:hover { transform: translateY(-8px); }
-            .extra-small { font-size: 0.75rem; }
-            .student-stat-card {
-              background: rgba(30, 41, 59, 0.78);
-              border: 1px solid rgba(148, 163, 184, 0.28);
-              backdrop-filter: blur(6px);
+            .animate-fade-in-up {
+              animation: fadeInUp 0.6s ease-out both;
             }
+            @keyframes fadeInUp {
+              from { opacity: 0; transform: translateY(20px); }
+              to { opacity: 1; transform: translateY(0); }
+            }
+
+            .premium-glass-card {
+              background: rgba(30, 41, 59, 0.7) !important;
+              border: 1px solid rgba(148, 163, 184, 0.2) !important;
+              backdrop-filter: blur(12px) !important;
+              color: #f8fafc !important;
+              transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+            }
+
+            .premium-glass-card h1, 
+            .premium-glass-card h2, 
+            .premium-glass-card h3, 
+            .premium-glass-card h4, 
+            .premium-glass-card h5, 
+            .premium-glass-card h6,
+            .premium-glass-card .fw-bold {
+              color: #f8fafc !important;
+            }
+
+            .premium-glass-card p,
+            .premium-glass-card .text-muted {
+              color: #cbd5e1 !important;
+            }
+
+            .premium-glass-card:hover {
+              transform: translateY(-8px) scale(1.02);
+              border-color: rgba(96, 165, 250, 0.5) !important;
+              box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4) !important;
+              background: rgba(30, 41, 59, 0.85) !important;
+            }
+
+            .extra-small { font-size: 0.75rem; }
+            
             .stat-label {
-              color: #94a3b8;
+              color: #cbd5e1;
               letter-spacing: 0.06em;
               font-weight: 700;
             }
             .stat-value { color: #f8fafc; }
             .stat-value--success { color: #34d399; }
             .stat-value--danger { color: #fb7185; }
-            .quick-nav-title { color: #f8fafc; }
+            
+            .quick-nav-title { color: #f8fafc; font-size: 1.1rem; }
             .quick-nav-desc { color: #cbd5e1; }
-            .btn-premium-primary { background: linear-gradient(135deg, #0062FF, #6366F1); color: white; }
+            
+            .btn-premium-primary { 
+              background: linear-gradient(135deg, #0062FF, #6366F1); 
+              color: white; 
+              border: none;
+              box-shadow: 0 4px 14px rgba(0, 98, 255, 0.4);
+              transition: all 0.3s ease;
+            }
+            .btn-premium-primary:hover {
+              transform: translateY(-2px);
+              box-shadow: 0 6px 20px rgba(0, 98, 255, 0.6);
+            }
+
+            /* Progress Bar Styling */
+            .progress {
+              background-color: rgba(148, 163, 184, 0.1) !important;
+              overflow: visible;
+            }
+            .progress-bar {
+              background: linear-gradient(90deg, #0062FF, #8B5CF6) !important;
+              box-shadow: 0 0 15px rgba(0, 98, 255, 0.5);
+              border-radius: 50px;
+            }
           `}</style>
         </Container>
       </StudentLayout>
