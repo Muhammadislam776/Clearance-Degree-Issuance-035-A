@@ -1,6 +1,6 @@
 # 🎓 Smart Student Clearance & Degree Issuance System
 
-[![Live Demo](https://img.shields.io/badge/🌐%20Live%20Demo-degreeclearancesystem.vercel.app-00A4EF?style=for-the-badge)](https://degreeclearancesystem.vercel.app)
+[![Live Demo](https://img.shields.io/badge/🌐%20Live%20Demo-degreeclearancesystem.onrender.com-00A4EF?style=for-the-badge)](https://degreeclearancesystem.onrender.com)
 
 > A modern, intelligent system for streamlining student clearance processes and degree issuance workflows in educational institutions.
 
@@ -8,7 +8,7 @@
 
 ## 🚀 Live Application
 
-**🔗 [degreeclearancesystem.vercel.app](https://degreeclearancesystem.vercel.app)**
+**🔗 [degreeclearancesystem.onrender.com](https://degreeclearancesystem.onrender.com)**
 
 ---
 

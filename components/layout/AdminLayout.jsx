@@ -10,6 +10,8 @@ import "../../styles/dashboard-premium.css";
 export default function AdminLayout({ children }) {
   const router = useRouter();
   const { profile } = useAuth();
+  const adminName = profile?.name || "Administrator";
+  const adminInitial = String(adminName).trim().charAt(0).toUpperCase() || "A";
 
   const handleLogout = async () => {
     const result = await logoutUser();
@@ -46,11 +48,21 @@ export default function AdminLayout({ children }) {
               >
                 Identity
               </Nav.Link>
+
+              <button
+                type="button"
+                className="admin-profile-chip ms-lg-3"
+                onClick={() => router.push("/admin/profile")}
+              >
+                <span className="admin-profile-avatar">{adminInitial}</span>
+                <span className="admin-profile-name">{adminName}</span>
+              </button>
+
               <Button 
-                className="admin-exit-btn ms-lg-3"
+                className="admin-exit-btn ms-lg-2"
                 onClick={handleLogout}
               >
-                Termination/Exit
+                Sign Out
               </Button>
             </Nav>
           </Navbar.Collapse>
@@ -117,12 +129,71 @@ export default function AdminLayout({ children }) {
           filter: brightness(1.1);
         }
 
+        .admin-profile-chip {
+          display: inline-flex;
+          align-items: center;
+          gap: 0.55rem;
+          border: 1px solid rgba(148,163,184,0.24);
+          background: linear-gradient(135deg, rgba(30,58,138,0.34) 0%, rgba(67,56,202,0.34) 100%);
+          color: #e2e8f0;
+          border-radius: 14px;
+          padding: 0.36rem 0.66rem;
+          transition: all 0.2s ease;
+          font-weight: 700;
+          text-decoration: none;
+        }
+        .admin-profile-chip:hover {
+          transform: translateY(-1px);
+          border-color: rgba(96,165,250,0.52);
+          box-shadow: 0 10px 22px rgba(59,130,246,0.18);
+          color: #fff;
+        }
+
+        .admin-profile-avatar {
+          width: 28px;
+          height: 28px;
+          border-radius: 9px;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          background: linear-gradient(135deg, #3B82F6, #6366F1);
+          color: #fff;
+          font-weight: 800;
+          font-size: 0.82rem;
+          box-shadow: 0 8px 18px rgba(59,130,246,0.22);
+        }
+
+        .admin-profile-name {
+          max-width: 120px;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+          color: #f8fafc;
+          font-size: 0.86rem;
+        }
+
         .admin-navbar .navbar-toggler {
           border-color: rgba(148,163,184,0.24);
           background: rgba(255,255,255,0.04);
         }
         .admin-navbar .navbar-toggler-icon {
           filter: invert(1) brightness(2);
+        }
+
+        @media (max-width: 991px) {
+          .admin-profile-chip {
+            margin: 0.4rem 0 0.25rem;
+            width: 100%;
+            justify-content: center;
+          }
+
+          .admin-exit-btn {
+            width: 100%;
+          }
+
+          .admin-profile-name {
+            max-width: unset;
+          }
         }
       `}</style>
     </>

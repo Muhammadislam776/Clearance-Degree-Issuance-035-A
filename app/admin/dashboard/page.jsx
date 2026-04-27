@@ -7,6 +7,8 @@ import Charts from "@/components/admin/Charts";
 import { useAuth } from "@/lib/useAuth";
 import { supabase } from "@/lib/supabaseClient";
 import { withTimeout } from "@/lib/authService";
+import { jsPDF } from "jspdf";
+import autoTable from "jspdf-autotable";
 
 // ── Shared Design Tokens ────────────────────────────────────────────────────────
 const STATUS_INDICATORS = {
@@ -251,24 +253,192 @@ export default function AdminDashboard() {
 
   const downloadReport = async () => {
     try {
-      const { data } = await supabase.from("clearance_requests").select("id, overall_status, created_at");
-      if (!data) return;
+      // 1. Fetch detailed data for all requests
+      const { data: requests, error } = await supabase
+        .from("clearance_requests")
+        .select(`
+          id,
+          overall_status,
+          submission_date,
+          created_at,
+          student_id,
+          students (
+            roll_number,
+            name,
+            email,
+            department
+          ),
+          clearance_status (
+            status
+          )
+        `)
+        .order("created_at", { ascending: false });
 
-      const csv = [
-        ["ID", "Status", "Date"],
-        ...data.map(d => [d.id, d.overall_status || "pending", new Date(d.created_at).toLocaleDateString()])
-      ].map(e => e.join(",")).join("\n");
+      if (error) throw error;
+      if (!requests || requests.length === 0) {
+        alert("No clearance records found to generate a report.");
+        return;
+      }
 
-      const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-      const url = window.URL.createObjectURL(blob);
+      // 2. Process data to get statuses and mapping
+      let totalApproved = 0;
+      let totalRejected = 0;
+      let totalInReview = 0;
+      let totalIssuance = 0;
 
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = "clearance_report.csv";
-      a.click();
-      window.URL.revokeObjectURL(url);
+      const tableData = requests.map((req) => {
+        // Handle array or object from 'students' relation
+        const student = Array.isArray(req.students) ? (req.students[0] || {}) : (req.students || {});
+        const rollNo = student.roll_number || "N/A";
+        const name = student.name || "Unknown";
+        const email = student.email || "N/A";
+        
+        // Departmental Progress
+        const statuses = req.clearance_status || [];
+        const totalDepts = statuses.length;
+        const deptApproved = statuses.filter(s => s.status === 'approved' || s.status === 'completed').length;
+        const deptRejected = statuses.filter(s => s.status === 'rejected').length;
+        
+        let progressStr = totalDepts > 0 ? `${deptApproved}/${totalDepts} Approved` : "No Depts";
+        if (deptRejected > 0) progressStr += ` (${deptRejected} Rejected)`;
+
+        // Status mapping and counters
+        let statusLabel = "";
+        let statusColor = [0, 0, 0];
+        
+        switch(req.overall_status) {
+          case 'completed':
+            statusLabel = "Approved";
+            statusColor = [16, 185, 129]; // Green
+            totalApproved++;
+            break;
+          case 'rejected':
+            statusLabel = "Rejected";
+            statusColor = [239, 68, 68]; // Red
+            totalRejected++;
+            break;
+          case 'in_progress':
+            statusLabel = "Issuance Process";
+            statusColor = [59, 130, 246]; // Blue
+            totalIssuance++;
+            break;
+          case 'pending':
+          default:
+            statusLabel = "Review Process";
+            statusColor = [245, 158, 11]; // Orange
+            totalInReview++;
+            break;
+        }
+
+        const submitDate = req.submission_date ? new Date(req.submission_date).toLocaleDateString() : (req.created_at ? new Date(req.created_at).toLocaleDateString() : "N/A");
+
+        return [
+          { content: `${name}\n(${rollNo})`, styles: { fontStyle: 'bold' } },
+          email,
+          submitDate,
+          progressStr,
+          { content: statusLabel, styles: { textColor: statusColor, fontStyle: 'bold' } }
+        ];
+      });
+
+      // 3. Generate PDF Document
+      const doc = new jsPDF({ orientation: "landscape" });
+      
+      // Theme colors
+      const primaryColor = [79, 70, 229]; // Indigo-600
+      
+      // Header
+      doc.setFillColor(...primaryColor);
+      doc.rect(0, 0, doc.internal.pageSize.width, 40, 'F');
+      
+      doc.setTextColor(255, 255, 255);
+      doc.setFontSize(22);
+      doc.setFont("helvetica", "bold");
+      doc.text("Institutional Ledger - Master Clearance Report", 14, 25);
+      
+      doc.setFontSize(10);
+      doc.setFont("helvetica", "normal");
+      const generateDate = new Date().toLocaleString();
+      doc.text(`Generated on: ${generateDate}`, doc.internal.pageSize.width - 14, 25, { align: "right" });
+
+      // Summary Statistics Section
+      doc.setTextColor(50, 50, 50);
+      doc.setFontSize(12);
+      doc.setFont("helvetica", "bold");
+      doc.text("System Overview", 14, 55);
+      
+      // Draw stat boxes
+      const statY = 62;
+      const boxWidth = 50;
+      const stats = [
+        { label: "Total Requests", val: requests.length, color: [79, 70, 229] },
+        { label: "Approved", val: totalApproved, color: [16, 185, 129] },
+        { label: "Rejected", val: totalRejected, color: [239, 68, 68] },
+        { label: "In Review", val: totalInReview, color: [245, 158, 11] },
+        { label: "In Issuance", val: totalIssuance, color: [59, 130, 246] }
+      ];
+
+      stats.forEach((stat, idx) => {
+        const x = 14 + (idx * (boxWidth + 7));
+        doc.setDrawColor(200, 200, 200);
+        doc.setFillColor(248, 250, 252);
+        doc.roundedRect(x, statY, boxWidth, 20, 2, 2, 'FD');
+        
+        doc.setTextColor(...stat.color);
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(14);
+        doc.text(String(stat.val), x + boxWidth/2, statY + 9, { align: "center" });
+        
+        doc.setTextColor(100, 100, 100);
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(8);
+        doc.text(stat.label.toUpperCase(), x + boxWidth/2, statY + 16, { align: "center" });
+      });
+
+      // Data Table
+      autoTable(doc, {
+        startY: 95,
+        head: [['Student Identity', 'Contact Email', 'Application Date', 'Departmental Progress', 'Overall Status']],
+        body: tableData,
+        theme: 'grid',
+        headStyles: {
+          fillColor: primaryColor,
+          textColor: [255, 255, 255],
+          fontStyle: 'bold',
+        },
+        alternateRowStyles: {
+          fillColor: [249, 250, 251]
+        },
+        styles: {
+          font: 'helvetica',
+          fontSize: 9,
+          cellPadding: 4,
+          lineColor: [226, 232, 240],
+          lineWidth: 0.1,
+        },
+        columnStyles: {
+          0: { cellWidth: 55 },
+          1: { cellWidth: 80 },
+          2: { cellWidth: 40 },
+          3: { cellWidth: 50 },
+          4: { cellWidth: 45 }
+        },
+        didDrawPage: function(data) {
+          // Footer
+          doc.setFontSize(8);
+          doc.setTextColor(150);
+          doc.text(`Page ${doc.internal.getNumberOfPages()}`, doc.internal.pageSize.width / 2, doc.internal.pageSize.height - 10, {
+            align: 'center'
+          });
+        }
+      });
+
+      // Save PDF
+      doc.save(`institutional_clearance_report_${new Date().toISOString().split('T')[0]}.pdf`);
+      
     } catch (err) {
-      console.error("Failed to download report", err);
+      console.error("Failed to generate report", err);
+      alert("Failed to generate report. Please check the console for details.");
     }
   };
 
