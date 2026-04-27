@@ -66,7 +66,7 @@ export default function ClearanceAssistant({ currentUserId }) {
       </Card.Header>
 
       <Card.Body className="d-flex flex-column p-0">
-        <div className="p-3" style={{ flex: 1, overflowY: "auto", maxHeight: "450px", minHeight: "400px" }}>
+        <div className="p-3" style={{ flex: 1, overflowY: "auto", minHeight: "300px" }}>
           {messages.map((msg) => (
             <div key={msg.id} className={`d-flex mb-3 ${msg.sender === "user" ? "justify-content-end" : "justify-content-start"}`}>
               <div style={{
