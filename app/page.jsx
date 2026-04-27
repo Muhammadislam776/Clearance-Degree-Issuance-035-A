@@ -283,6 +283,51 @@ export default function Home() {
         </div>
       </section>
 
+      {/* Development Team Section */}
+      <section className="landing-team">
+        <div className="container">
+          <div className="section-header">
+            <span className="section-badge">Meet The Developer</span>
+            <h2 className="section-title">Development Team</h2>
+            <p className="section-subtitle">The mind behind this institutional clearance ecosystem</p>
+          </div>
+
+          <div className="team-grid">
+            <div className="developer-card">
+              <div className="dev-avatar-wrapper">
+                <div className="dev-avatar">
+                  <span className="avatar-icon">👨‍💻</span>
+                </div>
+                <div className="dev-badge">
+                  <span className="star-icon">★</span>
+                </div>
+              </div>
+
+              <div className="dev-info">
+                <h3 className="dev-name">Muhammad Islam</h3>
+                <div className="dev-role-badge">
+                  <span className="role-icon">⚡</span>
+                  Lead Developer & Full-Stack Engineer
+                </div>
+                <p className="dev-bio">
+                  Full-stack developer specializing in modern web technologies, institutional automation, and high-performance system architecture.
+                </p>
+                
+                <a 
+                  href="https://muhammadislamcv.vercel.app/" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="portfolio-btn"
+                >
+                  <span className="btn-icon">🔗</span>
+                  View Portfolio
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* New Footer */}
       <LandingFooter />
     </div>
