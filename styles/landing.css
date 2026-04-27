@@ -954,3 +954,58 @@
   .dev-name { font-size: 1.5rem; }
   .dev-avatar-wrapper { width: 130px; height: 130px; }
 }
+
+/* ===== MULTI-COLUMN FOOTER LINKS ===== */
+.footer-links-grid {
+  border-top: 1px solid rgba(255, 255, 255, 0.05) !important;
+}
+
+.footer-logo {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.logo-text {
+  font-family: 'Poppins', sans-serif;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #fff;
+}
+
+.link-group-title {
+  font-family: 'Poppins', sans-serif;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #fff;
+  margin-bottom: 1.5rem;
+}
+
+.footer-link-list li {
+  margin-bottom: 0.75rem;
+}
+
+.footer-link-list a {
+  color: #94a3b8;
+  text-decoration: none;
+  font-size: 0.95rem;
+  transition: all 0.2s ease;
+}
+
+.footer-link-list a:hover {
+  color: #60a5fa;
+  transform: translateX(5px);
+  display: inline-block;
+}
+
+.brand-desc {
+  line-height: 1.6;
+}
+
+.footer-contact-info li {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+  font-size: 0.9rem;
+}
