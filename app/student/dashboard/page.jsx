@@ -69,11 +69,21 @@ export default function StudentDashboard() {
     }
   };
 
+  // Use a ref to debounce real-time updates
+  const refreshTimer = React.useRef(null);
+
   useEffect(() => {
     if (!authLoading && profile?.student_id) {
       loadData(profile.student_id);
 
-      // Subscribe for instant updates (Real-time)
+      // Subscribe for instant updates (Real-time) with debouncing
+      const handleRealtimeChange = () => {
+        if (refreshTimer.current) clearTimeout(refreshTimer.current);
+        refreshTimer.current = setTimeout(() => {
+          loadData(profile.student_id, { silent: true });
+        }, 800); // Wait 800ms after last change before refetching
+      };
+
       const channel = supabase
         .channel(`student-dash-${profile.student_id}`)
         .on("postgres_changes", {
@@ -81,21 +91,22 @@ export default function StudentDashboard() {
           schema: "public",
           table: "clearance_requests",
           filter: `student_id=eq.${profile.student_id}`,
-        }, () => loadData(profile.student_id, { silent: true }))
+        }, handleRealtimeChange)
         .on("postgres_changes", {
           event: "*",
           schema: "public",
           table: "clearance_status"
-        }, () => loadData(profile.student_id, { silent: true }))
+        }, handleRealtimeChange)
         .subscribe();
 
       return () => {
         supabase.removeChannel(channel);
+        if (refreshTimer.current) clearTimeout(refreshTimer.current);
       };
     } else if (!authLoading && !profile?.student_id) {
       setLoading(false);
     }
-  }, [authLoading, profile?.student_id]);
+  }, [authLoading, !!profile?.student_id]); // Use boolean for student_id to avoid unnecessary re-effects
 
   const latest = clearances?.[0];
   const isDegreeIssued = !!latest?.degree_issued;
