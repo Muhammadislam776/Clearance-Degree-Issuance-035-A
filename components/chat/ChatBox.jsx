@@ -124,7 +124,7 @@ export default function ChatBox({ currentUserId, conversationPartnerId, partnerN
       </Card.Header>
       
       <Card.Body className="d-flex flex-column p-0" style={{ backgroundColor: "#f8f9ff" }}>
-        <div className="p-3" style={{ flex: 1, overflowY: "auto", maxHeight: "500px", minHeight: "400px" }}>
+        <div className="p-3" style={{ flex: 1, overflowY: "auto", minHeight: "300px" }}>
            {messages.length === 0 ? (
              <div className="text-center text-muted mt-5 font-italic">No messages yet. Say hello!</div>
            ) : (
