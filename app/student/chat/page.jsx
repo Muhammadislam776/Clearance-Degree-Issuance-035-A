@@ -109,8 +109,8 @@ export default function ChatPage() {
             "radial-gradient(1100px 460px at 12% -8%, rgba(37,99,235,0.22), rgba(37,99,235,0) 58%), radial-gradient(900px 420px at 90% 8%, rgba(139,92,246,0.2), rgba(139,92,246,0) 56%), linear-gradient(180deg, #0b1220 0%, #111827 100%)",
         }}
       >
-        <Row className="g-4 animate-fade-in-up">
-          <Col lg={4} xl={3}>
+        <Row className="g-4 animate-fade-in-up chat-row" style={{ minHeight: "80vh" }}>
+          <Col lg={4} xl={3} className={(selectedDepartment || activeTab === 'ai') ? "d-none d-lg-block" : ""}>
             {/* Sidebar Card */}
             <Card className="border-0 shadow-sm h-100 chat-panel chat-sidebar" style={{ borderRadius: "20px", overflow: "hidden" }}>
               <div className="p-4 chat-sidebar-head border-bottom">
@@ -190,7 +190,18 @@ export default function ChatPage() {
             </Card>
           </Col>
 
-          <Col lg={8} xl={9}>
+          <Col lg={8} xl={9} className={(!selectedDepartment && activeTab !== 'ai') ? "d-none d-lg-block" : "d-flex flex-column"}>
+            {/* Mobile Back Button */}
+            <div className="d-lg-none mb-3">
+              <Button 
+                variant="light" 
+                className="border-0 shadow-sm rounded-pill px-4"
+                onClick={() => { setActiveTab("staff"); setSelectedDepartment(null); }}
+              >
+                &larr; Back to Channels
+              </Button>
+            </div>
+
             {activeTab === 'ai' ? (
               <ClearanceAssistant currentUserId={profile?.id} />
             ) : selectedDepartment ? (

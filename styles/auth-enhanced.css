@@ -213,6 +213,10 @@
   overflow-y: auto;
 }
 
+.lp-signup-right {
+  flex: 0 0 560px;
+}
+
 /* ===== CARD ===== */
 .lp-card {
   width: 100%;
@@ -224,6 +228,10 @@
   overflow: hidden;
   animation: fadeInUp 0.6s ease-out both;
   position: relative;
+}
+
+.lp-signup-card {
+  max-width: 500px;
 }
 
 @keyframes fadeInUp {
@@ -674,7 +682,7 @@
     display: none;
   }
 
-  .lp-right {
+  .lp-right, .lp-signup-right {
     flex: 1;
     padding: 2rem 1.25rem;
     background: transparent;
@@ -682,7 +690,7 @@
 }
 
 @media (max-width: 480px) {
-  .lp-card {
+  .lp-card, .lp-signup-card {
     border-radius: 16px;
   }
 

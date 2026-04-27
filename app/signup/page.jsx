@@ -326,8 +326,8 @@ export default function SignupPage() {
         </div>
 
         {/* RIGHT PANEL */}
-        <div className="lp-right" style={{ flex: "0 0 560px" }}>
-          <div className="lp-card" style={{ maxWidth: 500 }}>
+        <div className="lp-right lp-signup-right">
+          <div className="lp-card lp-signup-card">
             <div className="lp-card-accent" />
 
             <div className="lp-card-header">
