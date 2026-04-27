@@ -344,76 +344,102 @@ export default function AdminDashboard() {
       // 3. Generate PDF Document
       const doc = new jsPDF({ orientation: "landscape" });
       
-      // Theme colors
       const primaryColor = [79, 70, 229]; // Indigo-600
       
-      // Header
+      // Header Background
+      doc.setFillColor(30, 41, 59); // Slate 800
+      doc.rect(0, 0, doc.internal.pageSize.width, 45, 'F');
+      
+      // Accent line at the bottom of header
       doc.setFillColor(...primaryColor);
-      doc.rect(0, 0, doc.internal.pageSize.width, 40, 'F');
+      doc.rect(0, 45, doc.internal.pageSize.width, 2, 'F');
       
+      // University Name
       doc.setTextColor(255, 255, 255);
-      doc.setFontSize(22);
+      doc.setFontSize(24);
       doc.setFont("helvetica", "bold");
-      doc.text("Institutional Ledger - Master Clearance Report", 14, 25);
+      doc.text("COMSATS UNIVERSITY ISLAMABAD", 14, 22);
       
+      // Report Title
+      doc.setTextColor(148, 163, 184); // Slate 400
+      doc.setFontSize(11);
+      doc.setFont("helvetica", "bold");
+      doc.text("INSTITUTIONAL LEDGER - MASTER CLEARANCE REPORT", 14, 32);
+      
+      // Date and Meta
+      doc.setTextColor(255, 255, 255);
       doc.setFontSize(10);
       doc.setFont("helvetica", "normal");
       const generateDate = new Date().toLocaleString();
-      doc.text(`Generated on: ${generateDate}`, doc.internal.pageSize.width - 14, 25, { align: "right" });
+      doc.text(`Generated on: ${generateDate}`, doc.internal.pageSize.width - 14, 22, { align: "right" });
+      doc.setTextColor(148, 163, 184);
+      doc.text(`System Status: Active & Synced`, doc.internal.pageSize.width - 14, 32, { align: "right" });
 
       // Summary Statistics Section
-      doc.setTextColor(50, 50, 50);
-      doc.setFontSize(12);
+      doc.setTextColor(30, 41, 59);
+      doc.setFontSize(14);
       doc.setFont("helvetica", "bold");
-      doc.text("System Overview", 14, 55);
+      doc.text("System Overview", 14, 62);
       
       // Draw stat boxes
-      const statY = 62;
-      const boxWidth = 50;
+      const statY = 68;
+      const boxWidth = 52;
       const stats = [
-        { label: "Total Requests", val: requests.length, color: [79, 70, 229] },
-        { label: "Approved", val: totalApproved, color: [16, 185, 129] },
-        { label: "Rejected", val: totalRejected, color: [239, 68, 68] },
-        { label: "In Review", val: totalInReview, color: [245, 158, 11] },
-        { label: "In Issuance", val: totalIssuance, color: [59, 130, 246] }
+        { label: "TOTAL REQUESTS", val: requests.length, color: [79, 70, 229], bg: [238, 242, 255] },
+        { label: "APPROVED", val: totalApproved, color: [16, 185, 129], bg: [209, 250, 229] },
+        { label: "REJECTED", val: totalRejected, color: [239, 68, 68], bg: [254, 226, 226] },
+        { label: "IN REVIEW", val: totalInReview, color: [245, 158, 11], bg: [254, 243, 199] },
+        { label: "IN ISSUANCE", val: totalIssuance, color: [59, 130, 246], bg: [219, 234, 254] }
       ];
 
       stats.forEach((stat, idx) => {
-        const x = 14 + (idx * (boxWidth + 7));
-        doc.setDrawColor(200, 200, 200);
-        doc.setFillColor(248, 250, 252);
-        doc.roundedRect(x, statY, boxWidth, 20, 2, 2, 'FD');
+        const x = 14 + (idx * (boxWidth + 6));
         
+        // Background
+        doc.setFillColor(...stat.bg);
+        doc.roundedRect(x, statY, boxWidth, 22, 3, 3, 'F');
+        
+        // Left accent border
+        doc.setFillColor(...stat.color);
+        doc.rect(x, statY, 3, 22, 'F');
+        
+        // Value
         doc.setTextColor(...stat.color);
         doc.setFont("helvetica", "bold");
-        doc.setFontSize(14);
-        doc.text(String(stat.val), x + boxWidth/2, statY + 9, { align: "center" });
+        doc.setFontSize(16);
+        doc.text(String(stat.val), x + boxWidth/2, statY + 11, { align: "center" });
         
-        doc.setTextColor(100, 100, 100);
+        // Label
+        doc.setTextColor(71, 85, 105);
         doc.setFont("helvetica", "bold");
-        doc.setFontSize(8);
-        doc.text(stat.label.toUpperCase(), x + boxWidth/2, statY + 16, { align: "center" });
+        doc.setFontSize(7);
+        doc.text(stat.label, x + boxWidth/2, statY + 18, { align: "center" });
       });
 
       // Data Table
       autoTable(doc, {
-        startY: 95,
+        startY: 105,
         head: [['Student Identity', 'Contact Email', 'Application Date', 'Departmental Progress', 'Overall Status']],
         body: tableData,
         theme: 'grid',
         headStyles: {
-          fillColor: primaryColor,
+          fillColor: [30, 41, 59], // Slate 800
           textColor: [255, 255, 255],
           fontStyle: 'bold',
+          fontSize: 10,
+          cellPadding: 5,
         },
         alternateRowStyles: {
-          fillColor: [249, 250, 251]
+          fillColor: [248, 250, 252] // Slate 50
+        },
+        bodyStyles: {
+          textColor: [51, 65, 85], // Slate 700
         },
         styles: {
           font: 'helvetica',
           fontSize: 9,
-          cellPadding: 4,
-          lineColor: [226, 232, 240],
+          cellPadding: 5,
+          lineColor: [226, 232, 240], // Slate 200
           lineWidth: 0.1,
         },
         columnStyles: {

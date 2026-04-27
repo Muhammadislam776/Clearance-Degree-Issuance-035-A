@@ -28,7 +28,7 @@ export default function Home() {
           {/* Badge */}
           <div className="hero-badge">
             <span className="badge-dot" />
-            University of Excellence — Official Portal
+            COMSATS UNIVERSITY ISLAMABAD — Official Portal
           </div>
 
           {/* Headline */}
