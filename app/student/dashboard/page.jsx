@@ -223,7 +223,7 @@ export default function StudentDashboard() {
                 <Col lg={8} className="animate-fade-in-up" style={{ animationDelay: "0.1s" }}>
                   <Card className="border-0 shadow-sm h-100 p-4 premium-glass-card" style={{ borderRadius: "20px" }}>
                     <div className="d-flex justify-content-between align-items-center mb-4">
-                      <h4 className="fw-bold mb-0">Clearance Journey</h4>
+                      <h4 className="fw-bold mb-0 journey-title">Clearance Journey</h4>
                       <Badge bg={statusVariant(latest.overall_status)} className="px-3 py-2 rounded-pill text-uppercase">
                         {latest.overall_status}
                       </Badge>
@@ -231,13 +231,13 @@ export default function StudentDashboard() {
                     
                     {isDegreeIssued && (
                       <div className="mb-4">
-                        <Alert variant="success" className="d-flex justify-content-between align-items-center border-0 shadow-sm rounded-4">
+                        <Alert variant="success" className="degree-issued-alert border-0 shadow-sm rounded-4 mb-0">
                           <div>
                             <strong>Congratulations!</strong> Your degree has been officially issued.
                           </div>
                           <Button 
                             variant="success" 
-                            className="rounded-pill px-4 fw-bold shadow-sm"
+                            className="rounded-pill px-4 fw-bold shadow-sm degree-download-btn"
                             onClick={async () => {
                               try {
                                 const { generateDegreePDF } = await import("@/lib/generateDegree");
@@ -438,6 +438,26 @@ export default function StudentDashboard() {
               background: rgba(30, 41, 59, 0.8) !important;
             }
 
+            .journey-title {
+              color: #ffffff !important;
+              text-shadow: 0 2px 10px rgba(0, 0, 0, 0.45);
+              letter-spacing: -0.02em;
+            }
+
+            .degree-issued-alert {
+              display: flex;
+              align-items: center;
+              justify-content: space-between;
+              gap: 1rem;
+              background: linear-gradient(135deg, rgba(236, 253, 245, 0.96) 0%, rgba(209, 250, 229, 0.96) 100%) !important;
+              color: #064e3b !important;
+            }
+
+            .degree-download-btn {
+              flex-shrink: 0;
+              white-space: nowrap;
+            }
+
             .stat-label {
               color: #94a3b8;
               font-size: 0.7rem;
@@ -461,6 +481,24 @@ export default function StudentDashboard() {
             .progress-bar {
               background: linear-gradient(90deg, #2563eb, #7c3aed) !important;
               box-shadow: 0 0 15px rgba(37, 99, 235, 0.4);
+            }
+
+            @media (max-width: 767px) {
+              .degree-issued-alert {
+                flex-direction: column;
+                align-items: stretch;
+                text-align: left;
+              }
+
+              .degree-download-btn {
+                width: 100%;
+                padding-top: 0.9rem !important;
+                padding-bottom: 0.9rem !important;
+              }
+
+              .journey-title {
+                font-size: 1.05rem !important;
+              }
             }
 
           `}</style>

@@ -53,7 +53,7 @@ export default function LoginPage() {
         else localStorage.removeItem("rememberedEmail");
         navigating = true;
         const userRole = result.user?.user_metadata?.role;
-        setTimeout(() => { router.replace(getDashboardPathForRole(userRole)); }, 800);
+        setTimeout(() => { router.replace(getDashboardPathForRole(userRole)); }, 200);
       } else {
         let msg = result.error || "Login failed. Please try again.";
         if (msg.includes("rate limit") || msg.includes("too many")) msg = "Too many attempts. Please wait a few minutes.";

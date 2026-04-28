@@ -745,7 +745,7 @@ export default function ClearancePage() {
 
                         <div className="dept-section mt-5">
                           <div className="d-flex align-items-center justify-content-between mb-3 px-1">
-                             <h5 className="fw-bold text-white mb-0">Departmental Review Status</h5>
+                            <h5 className="fw-bold dept-review-title mb-0">Departmental Review Status</h5>
                              <Badge bg="dark" className="border border-white border-opacity-10 opacity-75">REAL-TIME FEED</Badge>
                           </div>
                           
@@ -762,10 +762,10 @@ export default function ClearancePage() {
                               <tbody>
                                 {departmentStatuses.length > 0 ? (
                                   departmentStatuses.map((status) => (
-                                    <tr key={status.id}>
+                                    <tr key={status.id} className="dept-review-row">
                                       <td className="ps-4 py-3">
-                                        <div className="fw-bold text-white">{status.departments?.name || "Unknown"}</div>
-                                        <div className="small opacity-50">Department Node</div>
+                                        <div className="fw-bold dept-review-dept-name">{status.departments?.name || "Unknown"}</div>
+                                        <div className="small dept-review-subtitle">Department Node</div>
                                       </td>
                                       <td>
                                         <Badge 
@@ -1057,14 +1057,15 @@ export default function ClearancePage() {
           .dept-reviews-wrap {
             border-radius: 20px;
             overflow: hidden;
-            border: 1px solid rgba(255, 255, 255, 0.05);
-            background: rgba(0, 0, 0, 0.2);
+            border: 1px solid rgba(148, 163, 184, 0.14);
+            background: rgba(15, 23, 42, 0.82);
+            box-shadow: 0 18px 40px rgba(15, 23, 42, 0.28);
           }
 
           .dept-reviews-table thead th {
-            background: rgba(255, 255, 255, 0.03);
-            color: #94a3b8;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            background: linear-gradient(180deg, rgba(15, 23, 42, 0.98) 0%, rgba(30, 41, 59, 0.98) 100%);
+            color: #cbd5e1;
+            border-bottom: 1px solid rgba(148, 163, 184, 0.12);
             text-transform: uppercase;
             font-size: 0.75rem;
             letter-spacing: 0.05em;
@@ -1073,11 +1074,50 @@ export default function ClearancePage() {
 
           .dept-reviews-table tbody tr {
             border-bottom: 1px solid rgba(255, 255, 255, 0.02);
-            transition: all 0.2s ease;
+            transition: transform 0.22s ease, box-shadow 0.22s ease, background 0.22s ease;
           }
 
           .dept-reviews-table tbody tr:hover {
-            background: rgba(255, 255, 255, 0.02);
+            background: transparent;
+            transform: translateY(-2px);
+            box-shadow: 0 14px 24px rgba(15, 23, 42, 0.28);
+          }
+
+          .dept-reviews-table tbody td {
+            background: linear-gradient(180deg, rgba(30, 41, 59, 0.96) 0%, rgba(15, 23, 42, 0.96) 100%);
+            color: #f8fafc;
+            border-top: 1px solid rgba(148, 163, 184, 0.12);
+            border-bottom: 1px solid rgba(148, 163, 184, 0.12);
+            padding-top: 16px !important;
+            padding-bottom: 16px !important;
+          }
+
+          .dept-reviews-table tbody tr:hover td {
+            background: linear-gradient(180deg, rgba(37, 99, 235, 0.18) 0%, rgba(124, 58, 237, 0.18) 100%);
+          }
+
+          .dept-review-row td:first-child {
+            border-top-left-radius: 16px;
+            border-bottom-left-radius: 16px;
+          }
+
+          .dept-review-row td:last-child {
+            border-top-right-radius: 16px;
+            border-bottom-right-radius: 16px;
+          }
+
+          .dept-review-title {
+            color: #ffffff !important;
+            text-shadow: 0 2px 10px rgba(0, 0, 0, 0.45);
+          }
+
+          .dept-review-dept-name {
+            color: #ffffff;
+            text-shadow: 0 1px 6px rgba(0, 0, 0, 0.4);
+          }
+
+          .dept-review-subtitle {
+            color: #cbd5e1 !important;
           }
 
           :global(h1), :global(h2), :global(h3), :global(h4), :global(h5), :global(h6), :global(.fw-bold), :global(.fw-black) {
