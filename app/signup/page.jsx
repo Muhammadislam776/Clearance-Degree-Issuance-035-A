@@ -21,7 +21,8 @@ export default function SignupPage() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [role, setRole] = useState("student");
   const [rollNumber, setRollNumber] = useState("");
-  const [departmentId, setDepartmentId] = useState("");
+  const [departmentId, setDepartmentId] = useState(""); // For Staff (Clearance Departments)
+  const [academicDept, setAcademicDept] = useState(""); // For Students (Majors)
   const [departments, setDepartments] = useState([]);
   const [departmentsLoading, setDepartmentsLoading] = useState(true);
   const [departmentsLoadError, setDepartmentsLoadError] = useState("");
@@ -55,6 +56,17 @@ export default function SignupPage() {
       // localStorage might not be available
     }
   }, []);
+
+  const ACADEMIC_DEPARTMENTS = [
+    "Computer Science",
+    "Software Engineering",
+    "Information Technology",
+    "Business Administration",
+    "Economics",
+    "Mathematics",
+    "Physics",
+    "English"
+  ];
 
   const FALLBACK_DEPARTMENTS = [
     { id: "lib", name: "Library" },
@@ -198,9 +210,13 @@ export default function SignupPage() {
     }
     const roleNeedsDepartment = role === "student" || role === "department";
     if (roleNeedsDepartment) {
-      if (departmentsLoadError) errors.department = "Unable to load departments from the database.";
-      else if (!departmentsLoading && departments.length === 0) errors.department = "No departments available. Contact admin.";
-      else if (!departmentId) errors.department = role === "student" ? "Department is required for students" : "Department is required for staff";
+      if (role === "student") {
+        if (!academicDept) errors.department = "Please select your academic department";
+      } else {
+        if (departmentsLoadError) errors.department = "Unable to load departments from the database.";
+        else if (!departmentsLoading && departments.length === 0) errors.department = "No departments available. Contact admin.";
+        else if (!departmentId) errors.department = "Clearance department is required for staff";
+      }
     }
     setFormErrors(errors);
     return Object.keys(errors).length === 0;
@@ -222,11 +238,15 @@ export default function SignupPage() {
     
     try {
       const additionalData = {};
-      if (role === "student" || role === "department") {
+      if (role === "student") {
+        additionalData.department_name = academicDept;
+        additionalData.department_id = null; // Students don't link to a clearance department ID
+        additionalData.roll_number = rollNumber; 
+        additionalData.session = "2023-2027";
+      } else if (role === "department") {
         const selectedDept = departments.find(d => d.id === departmentId);
         additionalData.department_id = departmentId;
         additionalData.department_name = selectedDept ? selectedDept.name : "";
-        if (role === "student") { additionalData.roll_number = rollNumber; additionalData.session = "2023-2027"; }
       }
       const result = await signupUser(email, password, name, role, additionalData);
       clearTimeout(safetyTimeout); // Clear safety timeout if we got a response
@@ -250,9 +270,29 @@ export default function SignupPage() {
     }
   };
 
-  const renderDeptSelect = () => (
+  const renderAcademicDeptSelect = () => (
     <div className="lp-field">
-      <label className="lp-label">Department</label>
+      <label className="lp-label">Academic Major</label>
+      <div className={`lp-input-wrap ${formErrors.department ? "lp-input-error" : ""}`}>
+        <select
+          value={academicDept}
+          onChange={(e) => { setAcademicDept(e.target.value); setFormErrors({ ...formErrors, department: "" }); }}
+          disabled={loading}
+          className="lp-input lp-select"
+        >
+          <option value="">Select Your Major</option>
+          {ACADEMIC_DEPARTMENTS.map(dept => (
+            <option key={dept} value={dept}>{dept}</option>
+          ))}
+        </select>
+      </div>
+      {formErrors.department && <div className="lp-field-error">{formErrors.department}</div>}
+    </div>
+  );
+
+  const renderClearanceDeptSelect = () => (
+    <div className="lp-field">
+      <label className="lp-label">Clearance Department</label>
       <div className={`lp-input-wrap ${formErrors.department ? "lp-input-error" : ""}`}>
         <select
           value={departmentId}
@@ -421,12 +461,12 @@ export default function SignupPage() {
                     </div>
                     {formErrors.rollNumber && <div className="lp-field-error">{formErrors.rollNumber}</div>}
                   </div>
-                  {renderDeptSelect()}
+                  {renderAcademicDeptSelect()}
                 </>
               )}
 
-              {/* Department staff: Department only */}
-              {role === "department" && renderDeptSelect()}
+              {/* Department staff: Clearance Department only */}
+              {role === "department" && renderClearanceDeptSelect()}
 
               {/* Password */}
               <div className="lp-field">

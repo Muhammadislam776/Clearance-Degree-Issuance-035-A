@@ -1,6 +1,6 @@
 "use client";
 import React, { useState, useEffect, useCallback } from "react";
-import { Container, Row, Col, Card, Form, Button, Tab, Tabs, Alert, Badge } from "react-bootstrap";
+import { Container, Row, Col, Card, Form, Button, Tab, Tabs, Alert, Badge, Spinner } from "react-bootstrap";
 import StudentLayout from "@/components/layout/StudentLayout";
 import { useAuth } from "@/lib/useAuth";
 import { supabase } from "@/lib/supabaseClient";
@@ -150,16 +150,18 @@ export default function ClearancePage() {
     };
   }, [candidateBuckets, configuredBucket]);
 
-  const uploadStudentCardToRequest = useCallback(async (requestId) => {
+  const uploadStudentCardToRequest = useCallback(async (requestId, targetStudentId) => {
+    const studentIdToUse = targetStudentId || studentId;
+    
     if (!studentCardFile) {
       throw new Error("Student card is required. Please upload your student card.");
     }
-    if (!requestId || !studentId) {
+    if (!requestId || !studentIdToUse) {
       throw new Error("Missing request context for student card upload.");
     }
 
     const fileExt = studentCardFile.name.split(".").pop();
-    const fileName = `${studentId}/student-card-${uuidv4()}.${fileExt}`;
+    const fileName = `${studentIdToUse}/student-card-${uuidv4()}.${fileExt}`;
     const { uploadWithCandidates } = await resolveUploadBucket();
     const { bucket, error: uploadError } = await uploadWithCandidates(fileName, studentCardFile);
     if (uploadError) throw new Error("Student card upload failed: " + (uploadError.message || String(uploadError)));
@@ -170,7 +172,7 @@ export default function ClearancePage() {
 
     const { error: dbError } = await supabase.from("documents").insert([
       {
-        student_id: studentId,
+        student_id: studentIdToUse,
         request_id: requestId,
         file_url: publicUrl,
         file_type: "student_card",
@@ -346,7 +348,7 @@ export default function ClearancePage() {
       const requestId = submissionResult.data?.id || null;
       let uploadWarning = "";
       try {
-        await uploadStudentCardToRequest(requestId);
+        await uploadStudentCardToRequest(requestId, effectiveStudentId);
       } catch (uploadErr) {
         uploadWarning = uploadErr?.message || "Student card upload failed due to storage configuration.";
         console.warn("Student card upload skipped:", uploadWarning);

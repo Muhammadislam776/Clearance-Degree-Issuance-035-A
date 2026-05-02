@@ -17,7 +17,7 @@ body {
 
 /* Navbar */
 .navbar-premium {
-  background: rgba(15, 23, 42, 0.8) !important;
+  background: rgba(10, 25, 47, 0.95) !important;
   border-bottom: 1px solid rgba(148, 163, 184, 0.15);
   padding: 0.75rem 0;
   position: sticky;
@@ -43,6 +43,20 @@ body {
   padding: 0.6rem 1.2rem !important;
   border-radius: 12px;
   margin: 0 0.15rem;
+  position: relative;
+  overflow: hidden;
+}
+
+.nav-link-premium::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 10%;
+  width: 80%;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, #3b82f6, #6366F1, transparent);
+  opacity: 0;
+  transition: opacity 0.3s ease;
 }
 
 .nav-link-premium:hover {
@@ -51,10 +65,13 @@ body {
   transform: translateY(-1px);
 }
 
+.nav-link-premium:hover::after, .nav-link-premium.active::after {
+  opacity: 1;
+}
+
 .nav-link-premium.active {
   color: #f8fafc !important;
-  background: rgba(37, 99, 235, 0.2);
-  box-shadow: inset 0 0 0 1px rgba(37, 99, 235, 0.3);
+  background: rgba(37, 99, 235, 0.15);
 }
 
 /* Premium Cards */
@@ -277,8 +294,21 @@ body {
   box-shadow: 0 10px 20px -5px rgba(99, 102, 241, 0.4);
 }
 
-/* Mobile Sidebar Styles */
+/* Mobile Sidebar & Navbar Styles */
 @media (max-width: 991.98px) {
+  .navbar-collapse {
+    background: #0f172a;
+    border-radius: 20px;
+    padding: 1rem;
+    margin-top: 1rem;
+    box-shadow: 0 15px 30px rgba(0,0,0,0.5);
+    border: 1px solid rgba(255,255,255,0.05);
+  }
+
+  .nav-link-premium {
+    margin: 0.2rem 0;
+  }
+  
   .sidebar-premium {
     position: fixed !important;
     left: -280px;
@@ -315,4 +345,13 @@ body {
     margin-left: 0 !important;
     width: 100% !important;
   }
+}
+
+.exit-btn {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.exit-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 15px rgba(0,0,0,0.15) !important;
+  background-color: #f8fafc !important;
 }

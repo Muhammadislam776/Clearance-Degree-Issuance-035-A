@@ -24,7 +24,7 @@ function SidebarItem({ id, name, icon, active, onClick, onClose }) {
   );
 }
 
-function SidebarContent({ onClose }) {
+function SidebarContent({ onClose, router }) {
   const { activeSection, setActiveSection } = useSection();
   const [dynamicSections, setDynamicSections] = useState([{ id: "all", name: "Hub Overview", icon: "📁" }]);
 
@@ -35,9 +35,9 @@ function SidebarContent({ onClose }) {
           .from("departments")
           .select("id, name")
           .order("name");
-        
+
         if (error) throw error;
-        
+
         const icons = {
           "Library": "📚",
           "Fee": "💰",
@@ -103,14 +103,26 @@ function SidebarContent({ onClose }) {
         ))}
       </div>
       <div style={{ margin: "1.5rem 0.9rem 0" }}>
-        <div style={{
-          background: "linear-gradient(135deg, #0062FF 0%, #6366F1 60%, #8B5CF6 100%)",
-          borderRadius: "16px", padding: "1.1rem 1.2rem", color: "white",
-          boxShadow: "0 8px 20px rgba(0,98,255,0.25)"
-        }}>
-          <div style={{ fontSize: "1.3rem", marginBottom: "0.4rem" }}>🎓</div>
-          <p style={{ fontSize: "0.72rem", opacity: 0.8, margin: "0 0 0.2rem" }}>Need Support?</p>
-          <p style={{ fontSize: "0.82rem", fontWeight: 700, margin: 0 }}>Contact Admin Support</p>
+        <div 
+          onClick={() => {
+            onClose?.();
+            router.push("/department/support");
+          }}
+          style={{
+            background: "linear-gradient(135deg, #1E40AF 0%, #3B82F6 100%)",
+            borderRadius: "20px", padding: "1.5rem 1.25rem", color: "white",
+            boxShadow: "0 10px 30px rgba(30, 64, 175, 0.25)",
+            cursor: "pointer",
+            transition: "all 0.3s ease",
+            border: "1px solid rgba(255,255,255,0.1)",
+            display: "flex", flexDirection: "column", gap: "2px"
+          }}
+          className="dept-support-card"
+        >
+          <div style={{ fontSize: "1.2rem", marginBottom: "0.5rem" }}>🛠️</div>
+          <p style={{ fontSize: "0.62rem", opacity: 0.8, margin: 0, textTransform: "uppercase", letterSpacing: "1px", fontWeight: 700 }}>24/7 Service</p>
+          <p style={{ fontSize: "0.85rem", fontWeight: 800, margin: 0 }}>Institutional Support</p>
+          <p style={{ fontSize: "0.65rem", opacity: 0.7, margin: "0.2rem 0 0" }}>Connect with administrators</p>
         </div>
       </div>
     </div>
@@ -176,17 +188,17 @@ function DepartmentLayoutContent({ children }) {
       <nav className="dept-navbar">
         {/* Hamburger (mobile/tablet) */}
         <button
-          className="dept-hamburger"
-          onClick={() => setDrawerOpen(true)}
-          aria-label="Open menu"
+          className={`dept-hamburger ${drawerOpen ? "dept-hamburger--active" : ""}`}
+          onClick={() => setDrawerOpen(!drawerOpen)}
+          aria-label="Toggle menu"
         >
-          <span className="dept-hamburger-icon" aria-hidden="true">
-            <span /><span /><span />
-          </span>
+          <div className="dept-hamburger-box">
+            <div className="dept-hamburger-inner"></div>
+          </div>
         </button>
 
         {/* Brand */}
-          <div
+        <div
           onClick={() => router.push(isAcademicPortal ? "/academic/dashboard" : "/department/dashboard")}
           className="dept-brand"
         >
@@ -244,19 +256,19 @@ function DepartmentLayoutContent({ children }) {
                     <small className="text-uppercase fw-bold dept-dropdown-kicker" style={{ fontSize: "0.6rem" }}>Department Details</small>
                     <div className="fw-bold dept-dropdown-value">{deptInfo?.name || profile?.department || "N/A"}</div>
                   </div>
-                  
+
                   {deptInfo ? (
                     <div className="dept-mini-info dept-mini-info--dark" style={{ fontSize: "0.82rem" }}>
                       <div className="d-flex align-items-center mb-1">
-                        <span className="me-2">👤</span> 
+                        <span className="me-2">👤</span>
                         <span>Focal: <strong>{deptInfo.focal_person || "N/A"}</strong></span>
                       </div>
                       <div className="d-flex align-items-center mb-1">
-                        <span className="me-2">📞</span> 
+                        <span className="me-2">📞</span>
                         <span>Contact: <strong>{deptInfo.whatsapp_number || deptInfo.contact || "N/A"}</strong></span>
                       </div>
                       <div className="d-flex align-items-center mb-1">
-                        <span className="me-2">✉️</span> 
+                        <span className="me-2">✉️</span>
                         <span>Email: <strong>{deptInfo.email || "N/A"}</strong></span>
                       </div>
                     </div>
@@ -276,9 +288,9 @@ function DepartmentLayoutContent({ children }) {
               </div>
 
               <Dropdown.Divider className="my-0" />
-              
+
               <div className="p-2">
-                <button 
+                <button
                   onClick={handleLogout}
                   className="w-100 btn btn-link text-danger text-decoration-none d-flex align-items-center justify-content-center py-2"
                   style={{ fontWeight: 700, fontSize: "0.9rem" }}
@@ -305,9 +317,8 @@ function DepartmentLayoutContent({ children }) {
           <span className="dept-brand-gradient" style={{ fontFamily: "'Poppins',sans-serif", fontWeight: 800, fontSize: "1.1rem" }}>
             {isAcademicPortal ? "Academic Portal" : "Staff Portal"}
           </span>
-          <button className="dept-drawer-close" onClick={() => setDrawerOpen(false)}>✕</button>
         </div>
-        <SidebarContent onClose={() => setDrawerOpen(false)} />
+        <SidebarContent onClose={() => setDrawerOpen(false)} router={router} />
       </aside>
 
       {/* ── Layout Body ─────────────────────────────────────────────── */}
@@ -315,7 +326,7 @@ function DepartmentLayoutContent({ children }) {
 
         {/* Desktop Sidebar */}
         <aside className="dept-sidebar-desktop">
-          <SidebarContent />
+          <SidebarContent router={router} />
         </aside>
 
         {/* Main */}
@@ -419,49 +430,79 @@ function DepartmentLayoutContent({ children }) {
           display: none !important;
           align-items: center;
           justify-content: center;
-          width: 40px;
-          height: 40px;
-          background: linear-gradient(135deg, rgba(37,99,235,0.22), rgba(124,58,237,0.22));
-          border: 1px solid rgba(148,163,184,0.22);
+          width: 44px;
+          height: 44px;
+          background: rgba(30,41,59,0.7);
+          border: 1px solid rgba(148,163,184,0.18);
           border-radius: 12px;
           cursor: pointer;
-          box-shadow: 0 8px 20px rgba(15,23,42,0.2);
-          transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
-          flex-shrink: 0;
+          backdrop-filter: blur(8px);
+          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+          padding: 0;
+          z-index: 1400;
         }
         .dept-hamburger:hover {
+          background: rgba(30,41,59,0.9);
+          border-color: rgba(96,165,250,0.6);
           transform: translateY(-1px);
-          border-color: rgba(96,165,250,0.45);
-          box-shadow: 0 12px 24px rgba(15,23,42,0.26);
+          box-shadow: 0 0 15px rgba(96, 165, 250, 0.2);
         }
-        .dept-hamburger-icon {
-          display: flex;
-          flex-direction: column;
-          gap: 4px;
+        .dept-hamburger:hover .dept-hamburger-inner,
+        .dept-hamburger:hover .dept-hamburger-inner::before,
+        .dept-hamburger:hover .dept-hamburger-inner::after {
+          background-color: #93C5FD;
+          box-shadow: 0 0 12px rgba(96, 165, 250, 0.8);
         }
-        .dept-hamburger-icon span {
-          display: block;
-          width: 16px;
+        .dept-hamburger-box {
+          width: 24px;
+          height: 14px;
+          display: inline-block;
+          position: relative;
+        }
+        .dept-hamburger-inner,
+        .dept-hamburger-inner::before,
+        .dept-hamburger-inner::after {
+          width: 24px;
           height: 2px;
-          border-radius: 2px;
-          background: #DBEAFE;
-          transition: width 0.2s ease;
+          background-color: #60A5FA;
+          border-radius: 4px;
+          position: absolute;
+          left: 0;
+          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+          box-shadow: 0 0 8px rgba(96, 165, 250, 0.4);
         }
-        .dept-hamburger-icon span:nth-child(2) {
-          width: 12px;
+        .dept-hamburger-inner {
+          top: 50%;
+          transform: translateY(-50%);
         }
-        .dept-hamburger:hover .dept-hamburger-icon span:nth-child(2) {
-          width: 16px;
+        .dept-hamburger-inner::before {
+          content: "";
+          top: -7px;
+        }
+        .dept-hamburger-inner::after {
+          content: "";
+          top: 7px;
+        }
+        
+        /* Hamburger Active State */
+        .dept-hamburger--active .dept-hamburger-inner {
+          background-color: transparent;
+        }
+        .dept-hamburger--active .dept-hamburger-inner::before {
+          transform: translateY(6px) rotate(45deg);
+        }
+        .dept-hamburger--active .dept-hamburger-inner::after {
+          transform: translateY(-6px) rotate(-45deg);
         }
 
         /* ── Overlay ── */
         .dept-overlay {
           position: fixed;
           inset: 0;
-          background: rgba(15,23,42,0.45);
+          background: rgba(15,23,42,0.6);
           z-index: 1200;
-          backdrop-filter: blur(3px);
-          animation: fadeOverlay 0.25s ease;
+          backdrop-filter: blur(6px);
+          animation: fadeOverlay 0.4s cubic-bezier(0.4, 0, 0.2, 1);
         }
         @keyframes fadeOverlay { from { opacity:0; } to { opacity:1; } }
 
@@ -471,40 +512,29 @@ function DepartmentLayoutContent({ children }) {
           top: 0;
           left: 0;
           bottom: 0;
-          width: 280px;
-          background: rgba(15,23,42,0.96);
+          width: 300px;
+          background: rgba(15,23,42,0.92);
           z-index: 1300;
           transform: translateX(-100%);
-          transition: transform 0.32s cubic-bezier(0.4,0,0.2,1);
-          box-shadow: 4px 0 30px rgba(0,0,0,0.28);
+          transition: transform 0.4s cubic-bezier(0.4,0,0.2,1);
+          box-shadow: 20px 0 50px rgba(0,0,0,0.3);
           border-right: 1px solid rgba(148,163,184,0.14);
           overflow-y: auto;
           display: flex;
           flex-direction: column;
+          backdrop-filter: blur(20px);
         }
         .dept-drawer--open { transform: translateX(0); }
         .dept-drawer-header {
           display: flex;
           align-items: center;
           justify-content: space-between;
-          padding: 1rem 1.25rem;
-          border-bottom: 1px solid rgba(148,163,184,0.14);
+          padding: 1.5rem 1.25rem;
+          border-bottom: 1px solid rgba(148,163,184,0.1);
         }
         .dept-drawer-close {
-          background: rgba(255,255,255,0.06);
-          border: none;
-          border-radius: 8px;
-          width: 32px;
-          height: 32px;
-          font-size: 0.9rem;
-          cursor: pointer;
-          color: #CBD5E1;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          transition: all 0.2s ease;
+          display: none; /* Handled by hamburger */
         }
-        .dept-drawer-close:hover { background: rgba(220,38,38,0.14); color: #FCA5A5; }
 
         /* ── Desktop Sidebar ── */
         .dept-sidebar-desktop {
@@ -576,9 +606,19 @@ function DepartmentLayoutContent({ children }) {
 
         /* ── Responsive breakpoints ── */
         @media (max-width: 991px) {
-          .dept-hamburger { display: inline-flex !important; }
+          .dept-hamburger { display: flex !important; }
           .dept-sidebar-desktop { display: none; }
           .dept-main { padding: 1.25rem 1rem; }
+        }
+        
+        .dept-support-card:hover {
+          transform: translateY(-3px) scale(1.02);
+          box-shadow: 0 12px 28px rgba(0,98,255,0.4);
+          filter: brightness(1.1);
+        }
+        
+        .dept-sidebar-item:active {
+          transform: scale(0.98);
         }
         @media (max-width: 575px) {
           .dept-navbar { padding: 0.65rem 1rem; }

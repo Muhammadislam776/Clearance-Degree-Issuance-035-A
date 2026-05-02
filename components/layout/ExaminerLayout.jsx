@@ -34,22 +34,24 @@ export default function ExaminerLayout({ children }) {
           <Navbar.Brand onClick={() => router.push("/examiner/dashboard")} className="ex-navbar-brand cursor-pointer">
             Examiner Portal
           </Navbar.Brand>
-          <Navbar.Toggle aria-controls="basic-navbar-nav" />
+          <Navbar.Toggle aria-controls="basic-navbar-nav" className="ex-navbar-toggler">
+            <span className="ex-hamburger"></span>
+          </Navbar.Toggle>
           <Navbar.Collapse id="basic-navbar-nav">
             <Nav className="ms-auto align-items-center">
-              <Nav.Link 
+              <Nav.Link
                 onClick={() => router.push("/examiner/dashboard")}
                 className="ex-nav-link"
               >
                 Dashboard
               </Nav.Link>
-              <Nav.Link 
+              <Nav.Link
                 onClick={() => router.push("/examiner/pending")}
                 className="ex-nav-link"
               >
                 Pending
               </Nav.Link>
-              <Nav.Link 
+              <Nav.Link
                 onClick={() => router.push("/examiner/profile")}
                 className="ex-profile-dropdown ms-lg-3 d-flex align-items-center"
                 style={{ cursor: "pointer" }}
@@ -145,21 +147,75 @@ export default function ExaminerLayout({ children }) {
           transform: translateY(-1px);
         }
 
+        .ex-navbar .ex-navbar-toggler {
+          border: none;
+          padding: 10px;
+          outline: none !important;
+          box-shadow: none !important;
+        }
+        
+        .ex-hamburger {
+          display: block;
+          width: 24px;
+          height: 2px;
+          background: #60A5FA;
+          position: relative;
+          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+          box-shadow: 0 0 8px rgba(96, 165, 250, 0.4);
+        }
+        .ex-hamburger::before, .ex-hamburger::after {
+          content: "";
+          position: absolute;
+          width: 24px;
+          height: 2px;
+          background: #60A5FA;
+          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+          left: 0;
+          box-shadow: 0 0 8px rgba(96, 165, 250, 0.4);
+        }
+        .ex-hamburger::before { top: -7px; }
+        .ex-hamburger::after { bottom: -7px; }
+
+        .ex-navbar-toggler:hover .ex-hamburger,
+        .ex-navbar-toggler:hover .ex-hamburger::before,
+        .ex-navbar-toggler:hover .ex-hamburger::after {
+          background-color: #93C5FD;
+          box-shadow: 0 0 12px rgba(96, 165, 250, 0.8);
+        }
+
+        .navbar-toggler[aria-expanded="true"] .ex-hamburger {
+          background: transparent;
+          box-shadow: none;
+        }
+        .navbar-toggler[aria-expanded="true"] .ex-hamburger::before {
+          transform: translateY(7px) rotate(45deg);
+        }
+        .navbar-toggler[aria-expanded="true"] .ex-hamburger::after {
+          transform: translateY(-7px) rotate(-45deg);
+        }
+
         @media (max-width: 991px) {
+          .ex-navbar-brand { font-size: 1.5rem; }
+          .navbar-collapse {
+            background: rgba(15,23,42,0.98);
+            margin-top: 1rem;
+            padding: 1.25rem;
+            border-radius: 20px;
+            border: 1px solid rgba(148,163,184,0.12);
+            backdrop-filter: blur(20px);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+          }
+          .ex-nav-link {
+            text-align: center;
+            padding: 0.8rem !important;
+            margin-bottom: 0.5rem;
+          }
           .ex-profile-dropdown {
             width: 100%;
             margin-top: 0.5rem;
             text-align: center;
             justify-content: center;
           }
-        }
-
-        .ex-navbar .navbar-toggler {
-          border-color: rgba(148,163,184,0.24);
-          background: rgba(255,255,255,0.04);
-        }
-        .ex-navbar .navbar-toggler-icon {
-          filter: invert(1) brightness(2);
         }
       `}</style>
     </>

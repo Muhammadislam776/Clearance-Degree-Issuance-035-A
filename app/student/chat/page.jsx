@@ -197,11 +197,11 @@ export default function ChatPage() {
             {/* Mobile Back Button */}
             <div className="d-lg-none mb-3">
               <Button 
-                variant="light" 
-                className="border-0 shadow-sm rounded-pill px-4"
+                className="border-0 shadow-sm rounded-pill px-4 exit-btn text-white"
+                style={{ fontWeight: "600", background: "linear-gradient(135deg, #ef4444 0%, #991b1b 100%)", transition: "all 0.3s ease" }}
                 onClick={() => { setActiveTab("staff"); setSelectedDepartment(null); }}
               >
-                &larr; Back to Channels
+                Exit
               </Button>
             </div>
 

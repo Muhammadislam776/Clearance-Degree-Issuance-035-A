@@ -10,6 +10,7 @@ import "../../styles/dashboard-premium.css";
 export default function AdminLayout({ children }) {
   const router = useRouter();
   const { profile } = useAuth();
+  const [drawerOpen, setDrawerOpen] = React.useState(false);
   const adminName = profile?.name || "Administrator";
   const adminInitial = String(adminName).trim().charAt(0).toUpperCase() || "A";
 
@@ -22,43 +23,39 @@ export default function AdminLayout({ children }) {
 
   return (
     <>
-      <Navbar expand="lg" className="admin-navbar">
+      <Navbar expand="lg" className="admin-navbar" expanded={drawerOpen}>
         <Container>
-          <Navbar.Brand onClick={() => router.push("/admin/dashboard")} className="admin-navbar-brand cursor-pointer">
-            Administrative Control
-          </Navbar.Brand>
-          <Navbar.Toggle aria-controls="admin-navbar-nav" />
-          <Navbar.Collapse id="admin-navbar-nav">
+          <div className="d-flex align-items-center">
+            <button 
+              className={`admin-hamburger d-lg-none ${drawerOpen ? "active" : ""}`}
+              onClick={() => setDrawerOpen(!drawerOpen)}
+            >
+              <span></span><span></span><span></span>
+            </button>
+            <Navbar.Brand onClick={() => router.push("/admin/dashboard")} className="admin-navbar-brand cursor-pointer ms-2 ms-lg-0">
+              Administrative Control
+            </Navbar.Brand>
+          </div>
+          
+          <Navbar.Collapse id="admin-navbar-nav" className={drawerOpen ? "show" : ""}>
             <Nav className="ms-auto align-items-center">
-              <Nav.Link 
-                onClick={() => router.push("/admin/dashboard")}
-                className="admin-nav-link"
-              >
-                Dashboard
-              </Nav.Link>
-              <Nav.Link 
-                onClick={() => router.push("/admin/departments")}
-                className="admin-nav-link"
-              >
-                Departments
-              </Nav.Link>
-              <Nav.Link 
-                onClick={() => router.push("/admin/users")}
-                className="admin-nav-link"
-              >
-                Identity
+              <Nav.Link onClick={() => { router.push("/admin/dashboard"); setDrawerOpen(false); }} className="admin-nav-link">Dashboard</Nav.Link>
+              <Nav.Link onClick={() => { router.push("/admin/departments"); setDrawerOpen(false); }} className="admin-nav-link">Departments</Nav.Link>
+              <Nav.Link onClick={() => { router.push("/admin/users"); setDrawerOpen(false); }} className="admin-nav-link">Identity</Nav.Link>
+              <Nav.Link onClick={() => { router.push("/admin/support"); setDrawerOpen(false); }} className="admin-nav-link support-link">
+                <span className="me-1">💬</span> Support
               </Nav.Link>
 
               <button
                 type="button"
                 className="admin-profile-chip ms-lg-3"
-                onClick={() => router.push("/admin/profile")}
+                onClick={() => { router.push("/admin/profile"); setDrawerOpen(false); }}
               >
                 <span className="admin-profile-avatar">{adminInitial}</span>
                 <span className="admin-profile-name">{adminName}</span>
               </button>
 
-              <Button 
+              <Button
                 className="admin-exit-btn ms-lg-2"
                 onClick={handleLogout}
               >
@@ -172,27 +169,62 @@ export default function AdminLayout({ children }) {
           font-size: 0.86rem;
         }
 
-        .admin-navbar .navbar-toggler {
-          border-color: rgba(148,163,184,0.24);
-          background: rgba(255,255,255,0.04);
+        .admin-hamburger {
+          background: transparent;
+          border: none;
+          padding: 10px;
+          display: flex;
+          flex-direction: column;
+          gap: 5px;
+          cursor: pointer;
+          transition: all 0.3s ease;
         }
-        .admin-navbar .navbar-toggler-icon {
-          filter: invert(1) brightness(2);
+        .admin-hamburger span {
+          display: block;
+          width: 24px;
+          height: 2px;
+          background: #60A5FA;
+          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+          box-shadow: 0 0 8px rgba(96, 165, 250, 0.4);
+        }
+        .admin-hamburger:hover span {
+          background-color: #93C5FD;
+          box-shadow: 0 0 12px rgba(96, 165, 250, 0.8);
+        }
+        .admin-hamburger.active span:nth-child(1) { transform: translateY(7px) rotate(45deg); }
+        .admin-hamburger.active span:nth-child(2) { opacity: 0; }
+        .admin-hamburger.active span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
+
+        .support-link {
+          color: #93C5FD !important;
+          background: rgba(37,99,235,0.1);
+          padding: 0.45rem 1rem !important;
+        }
+        .support-link:hover {
+          background: rgba(37,99,235,0.2) !important;
         }
 
         @media (max-width: 991px) {
+          .admin-navbar-brand { font-size: 1.4rem; }
+          .navbar-collapse {
+            background: rgba(15,23,42,0.98);
+            margin-top: 1rem;
+            padding: 1rem;
+            border-radius: 16px;
+            border: 1px solid rgba(148,163,184,0.1);
+            backdrop-filter: blur(20px);
+          }
           .admin-profile-chip {
-            margin: 0.4rem 0 0.25rem;
+            margin: 0.8rem 0 0.4rem;
             width: 100%;
             justify-content: center;
           }
-
           .admin-exit-btn {
             width: 100%;
           }
-
-          .admin-profile-name {
-            max-width: unset;
+          .admin-nav-link {
+            padding: 0.75rem !important;
+            text-align: center;
           }
         }
       `}</style>

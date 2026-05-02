@@ -1,10 +1,14 @@
 "use client";
-import React from "react";
+import React, { useState } from "react";
 import Link from "next/link";
 import LandingFooter from "@/components/layout/LandingFooter";
 import "../styles/landing.css";
 
 export default function Home() {
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+  const closeMenu = () => setIsMobileMenuOpen(false);
+
   return (
     <div className="landing-page">
       {/* Navbar */}
@@ -14,8 +18,44 @@ export default function Home() {
             <span className="logo-icon">🎓</span>
             <span className="logo-label">Smart Clearance</span>
           </div>
+
+          <div 
+            className={`mobile-menu-btn ${isMobileMenuOpen ? 'active' : ''}`}
+            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+          >
+            <span className="menu-line"></span>
+            <span className="menu-line"></span>
+            <span className="menu-line"></span>
+          </div>
+
+          <ul className={`nav-links ${isMobileMenuOpen ? 'active' : ''}`}>
+            <li className="nav-item"><a href="#workflow" className="nav-link" onClick={closeMenu}>How It Works</a></li>
+            <li className="nav-item"><a href="#ideas" className="nav-link" onClick={closeMenu}>Ideas</a></li>
+            <li className="nav-item"><a href="#features" className="nav-link" onClick={closeMenu}>Features</a></li>
+            <li className="nav-item"><a href="#resources" className="nav-link" onClick={closeMenu}>Resources</a></li>
+            <li className="nav-item"><a href="#team" className="nav-link" onClick={closeMenu}>Team</a></li>
+            <li className="nav-item"><a href="#contact" className="nav-link" onClick={closeMenu}>Contact</a></li>
+            <li className="nav-drawer-ctas">
+              <Link href="/signup" className="nav-cta btn-ghost" onClick={closeMenu}>
+                <span>⚡</span> Register Now
+              </Link>
+              <Link href="/login" className="nav-cta btn-primary" onClick={closeMenu}>
+                <span>🚪</span> Login
+              </Link>
+            </li>
+          </ul>
+
+          <div className="nav-ctas">
+            <Link href="/signup" className="nav-cta btn-ghost">Register</Link>
+            <Link href="/login" className="nav-cta btn-primary">Login</Link>
+          </div>
         </div>
       </nav>
+
+      <div 
+        className={`nav-backdrop ${isMobileMenuOpen ? 'active' : ''}`} 
+        onClick={closeMenu} 
+      />
 
       {/* Hero */}
       <div className="landing-hero">
@@ -79,7 +119,7 @@ export default function Home() {
       </div>
 
       {/* How It Works Section */}
-      <section className="landing-workflow">
+      <section id="workflow" className="landing-workflow">
         <div className="container">
           <div className="section-header">
             <span className="section-badge">Workflow</span>
@@ -128,7 +168,7 @@ export default function Home() {
       </section>
 
       {/* Platform Features Section */}
-      <section className="landing-features">
+      <section id="features" className="landing-features">
         <div className="container">
           <div className="section-header">
             <span className="section-badge">Core Features</span>
@@ -207,7 +247,7 @@ export default function Home() {
       </section>
 
       {/* System Innovation Section */}
-      <section className="landing-innovation">
+      <section id="ideas" className="landing-innovation">
         <div className="container">
           <div className="section-header">
             <span className="section-badge">Innovation</span>
@@ -284,7 +324,7 @@ export default function Home() {
       </section>
 
       {/* Development Team Section */}
-      <section className="landing-team">
+      <section id="team" className="landing-team">
         <div className="container">
           <div className="section-header">
             <span className="section-badge">Meet The Developer</span>
@@ -293,25 +333,99 @@ export default function Home() {
           </div>
 
           <div className="team-grid">
+            {/* Developer Card 1 - Muhammad Abdullah */}
             <div className="developer-card">
               <div className="dev-avatar-wrapper">
                 <div className="dev-avatar">
-                  <span className="avatar-icon">👨‍💻</span>
+                  <img src="/assets/1.jpeg" alt="Muhammad Abdullah" className="avatar-img" />
                 </div>
-                <div className="dev-badge">
-                  <span className="star-icon">★</span>
+              </div>
+
+              <div className="dev-info">
+                <h3 className="dev-name">Muhammad Abdullah</h3>
+                <div className="dev-role-badge">
+                  <span className="role-icon">⚡</span>
+                  Super Admin & Lead Developer
+                </div>
+                <p className="dev-bio">
+                  Full-stack developer specializing in modern web technologies and scalable systems architecture.
+                </p>
+                
+                <div className="dev-skills-list">
+                  <div className="skill-item">
+                    <span className="skill-icon">🤖</span>
+                    <span>AI Consultant</span>
+                  </div>
+                  <div className="skill-item">
+                    <span className="skill-icon">🎯</span>
+                    <span>FYP to Product Specialist</span>
+                  </div>
+                  <div className="skill-item">
+                    <span className="skill-icon">📚</span>
+                    <span>CS Career & Research Mentor</span>
+                  </div>
+                  <div className="skill-item">
+                    <span className="skill-icon">💼</span>
+                    <span>12+ Years in Development, Automation & Freelancing</span>
+                  </div>
+                  <div className="skill-item">
+                    <span className="skill-icon">🎓</span>
+                    <span>Lecturer @ COMSATS</span>
+                  </div>
+                </div>
+                
+                <a 
+                  href="https://muhammadabdullahcv.vercel.app/" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="portfolio-btn"
+                >
+                  <span className="btn-icon">🔗</span>
+                  View Portfolio
+                </a>
+              </div>
+            </div>
+
+            {/* Developer Card 2 - Muhammad Islam */}
+            <div className="developer-card">
+              <div className="dev-avatar-wrapper">
+                <div className="dev-avatar">
+                  <img src="/assets/2.jpg" alt="Muhammad Islam" className="avatar-img" />
                 </div>
               </div>
 
               <div className="dev-info">
                 <h3 className="dev-name">Muhammad Islam</h3>
                 <div className="dev-role-badge">
-                  <span className="role-icon">⚡</span>
-                  Lead Developer & Full-Stack Engineer
+                  <span className="role-icon">🎓</span>
+                  Student & MERN Stack Developer
                 </div>
                 <p className="dev-bio">
-                  Full-stack developer specializing in modern web technologies, institutional automation, and high-performance system architecture.
+                  COMSATS University Islamabad | Full-Stack JavaScript developer passionate about building scalable web applications with modern frameworks.
                 </p>
+                
+                <div className="dev-skills-list">
+                  <div className="skill-item">
+                    <span className="skill-icon">⚛️</span>
+                    <span>React & Next.js Specialist</span>
+                  </div>
+                  <div className="skill-item">
+                    <span className="skill-icon">🔧</span>
+                    <span>Node.js & Express Backend</span>
+                  </div>
+                  <div className="skill-item">
+                    <span className="skill-icon">💾</span>
+                    <span>MongoDB & Database Design</span>
+                  </div>
+                  <div className="skill-item">
+                    <span className="skill-icon">🚀</span>
+                    <span>Full-Stack Web Development</span>
+                  </div>
+                  <div className="skill-item">
+                    <span className="skill-icon">🎨</span>
+                    <span>UI/UX & Responsive Design</span>
+                  </div>
+                </div>
                 
                 <a 
                   href="https://muhammadislamcv.vercel.app/" 

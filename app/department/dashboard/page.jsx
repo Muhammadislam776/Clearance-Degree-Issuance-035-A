@@ -12,16 +12,16 @@ import ReviewModal from "@/components/department/ReviewModal";
 
 // ── Config ────────────────────────────────────────────────────────────────────
 const STAT_CARDS = (stats) => [
-  { label: "Total Requests",    sub: "Global Volume",   value: stats.total,    icon: "📊", gradient: "linear-gradient(135deg,#0062FF,#6366F1)", glow: "rgba(0,98,255,0.22)" },
-  { label: "Clearance Granted", sub: "Ready to Issue",  value: stats.approved, icon: "✅", gradient: "linear-gradient(135deg,#059669,#10b981)", glow: "rgba(5,150,105,0.22)" },
-  { label: "Active Queue",      sub: "Pending Review",  value: stats.pending,  icon: "⏳", gradient: "linear-gradient(135deg,#D97706,#f59e0b)", glow: "rgba(217,119,6,0.22)" },
-  { label: "Disputes",          sub: "Action Needed",   value: stats.rejected, icon: "🛑", gradient: "linear-gradient(135deg,#DC2626,#ef4444)", glow: "rgba(220,38,38,0.22)" },
+  { label: "Total Requests", sub: "Global Volume", value: stats.total, icon: "📊", gradient: "linear-gradient(135deg,#0062FF,#6366F1)", glow: "rgba(0,98,255,0.22)" },
+  { label: "Clearance Granted", sub: "Ready to Issue", value: stats.approved, icon: "✅", gradient: "linear-gradient(135deg,#059669,#10b981)", glow: "rgba(5,150,105,0.22)" },
+  { label: "Active Queue", sub: "Pending Review", value: stats.pending, icon: "⏳", gradient: "linear-gradient(135deg,#D97706,#f59e0b)", glow: "rgba(217,119,6,0.22)" },
+  { label: "Disputes", sub: "Action Needed", value: stats.rejected, icon: "🛑", gradient: "linear-gradient(135deg,#DC2626,#ef4444)", glow: "rgba(220,38,38,0.22)" },
 ];
 
 const STATUS_CFG = {
-  approved: { label: "✅ Approved", bg: "rgba(5,150,105,0.1)",  color: "#059669", border: "#059669" },
-  rejected: { label: "❌ Rejected", bg: "rgba(220,38,38,0.1)",  color: "#DC2626", border: "#DC2626" },
-  pending:  { label: "⏳ Pending",  bg: "rgba(217,119,6,0.1)",  color: "#D97706", border: "#D97706" },
+  approved: { label: "✅ Approved", bg: "rgba(5,150,105,0.1)", color: "#059669", border: "#059669" },
+  rejected: { label: "❌ Rejected", bg: "rgba(220,38,38,0.1)", color: "#DC2626", border: "#DC2626" },
+  pending: { label: "⏳ Pending", bg: "rgba(217,119,6,0.1)", color: "#D97706", border: "#D97706" },
 };
 
 const AVATAR_GRADS = [
@@ -203,7 +203,7 @@ function DashboardContent() {
       fmt = deduplicatedData.map((item) => {
         const request = requestCacheRef.current.get(item.request_id) || {};
         let student = studentRowsMap.get(item.request_id);
-        
+
         if (!student && request.students) {
           student = {
             name: request.students.name || "Student",
@@ -211,7 +211,7 @@ function DashboardContent() {
             email: request.students.email || "N/A",
           };
         }
-        
+
         student = student || {};
 
         return {
@@ -249,7 +249,7 @@ function DashboardContent() {
       newStats = {
         total: finalFmt.length,
         approved: finalFmt.filter(r => r.status === "approved" || r.status === "completed").length,
-        pending:  finalFmt.filter(r => r.status === "pending" || r.status === "in_progress").length,
+        pending: finalFmt.filter(r => r.status === "pending" || r.status === "in_progress").length,
         rejected: finalFmt.filter(r => r.status === "rejected").length,
       };
 

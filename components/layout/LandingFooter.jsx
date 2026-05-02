@@ -5,7 +5,7 @@ export default function LandingFooter() {
   const currentYear = new Date().getFullYear();
 
   return (
-    <footer className="landing-footer pt-5 pb-4">
+    <footer id="contact" className="landing-footer pt-5 pb-4">
       <Container>
         {/* Contact & Help Header */}
         <div className="footer-contact-header text-center mb-5">
@@ -77,7 +77,7 @@ export default function LandingFooter() {
         </div>
 
         {/* Multi-Column Links Section */}
-        <div className="footer-links-grid pt-5 mb-5 border-top">
+        <div id="resources" className="footer-links-grid pt-5 mb-5 border-top">
           <Row className="gy-4">
             <Col lg={4} md={6}>
               <div className="footer-brand-info">
