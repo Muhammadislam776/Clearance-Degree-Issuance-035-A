@@ -26,7 +26,7 @@ export default function AdminLayout({ children }) {
       <Navbar expand="lg" className="admin-navbar" expanded={drawerOpen}>
         <Container>
           <div className="d-flex align-items-center">
-            <button 
+            <button
               className={`admin-hamburger d-lg-none ${drawerOpen ? "active" : ""}`}
               onClick={() => setDrawerOpen(!drawerOpen)}
             >
@@ -36,7 +36,7 @@ export default function AdminLayout({ children }) {
               Administrative Control
             </Navbar.Brand>
           </div>
-          
+
           <Navbar.Collapse id="admin-navbar-nav" className={drawerOpen ? "show" : ""}>
             <Nav className="ms-auto align-items-center">
               <Nav.Link onClick={() => { router.push("/admin/dashboard"); setDrawerOpen(false); }} className="admin-nav-link">Dashboard</Nav.Link>
@@ -69,7 +69,6 @@ export default function AdminLayout({ children }) {
       <Container fluid className="px-4 pt-4 admin-shell">
         {children}
       </Container>
-      <AIChatbot />
 
       <style jsx global>{`
         .admin-shell {

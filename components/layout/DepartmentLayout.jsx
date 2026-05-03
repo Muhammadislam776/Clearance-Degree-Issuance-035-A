@@ -289,14 +289,17 @@ function DepartmentLayoutContent({ children }) {
 
               <Dropdown.Divider className="my-0" />
 
-              <div className="p-2">
-                <button
-                  onClick={handleLogout}
-                  className="w-100 btn btn-link text-danger text-decoration-none d-flex align-items-center justify-content-center py-2"
-                  style={{ fontWeight: 700, fontSize: "0.9rem" }}
+              <div className="p-2 pt-0">
+                <Dropdown.Item
+                  as="button"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    handleLogout();
+                  }}
+                  className="dept-logout-btn"
                 >
-                  <span className="me-2">🚪</span> Sign Out Account
-                </button>
+                  Sign Out Account
+                </Dropdown.Item>
               </div>
             </Dropdown.Menu>
           </Dropdown>
@@ -335,7 +338,6 @@ function DepartmentLayoutContent({ children }) {
         </main>
       </div>
 
-      <AIChatbot />
 
       {/* ── Responsive Styles ───────────────────────────────────────── */}
       <style jsx global>{`
@@ -624,6 +626,32 @@ function DepartmentLayoutContent({ children }) {
           .dept-navbar { padding: 0.65rem 1rem; }
           .dept-main { padding: 1rem 0.75rem; }
           .dept-brand { font-size: 1rem; }
+        }
+        .dept-logout-btn {
+          width: 100%;
+          padding: 0.75rem;
+          background: rgba(239, 68, 68, 0.1);
+          border: 1px solid rgba(239, 68, 68, 0.2);
+          border-radius: 12px;
+          color: #EF4444;
+          font-weight: 700;
+          font-size: 0.9rem;
+          transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          text-decoration: none;
+        }
+        .dept-logout-btn:hover {
+          background: #EF4444;
+          color: white;
+          transform: translateY(-2px);
+          box-shadow: 0 10px 20px rgba(239, 68, 68, 0.3);
+          border-color: transparent;
+        }
+        .dept-logout-btn:active {
+          transform: translateY(0);
         }
       `}</style>
     </div>

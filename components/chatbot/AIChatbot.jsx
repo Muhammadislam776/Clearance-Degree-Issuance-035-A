@@ -68,7 +68,7 @@ const AIChatbot = () => {
         style={{
           position: 'fixed',
           bottom: '30px',
-          right: '30px',
+          left: '30px',
           width: '65px',
           height: '65px',
           borderRadius: '50%',
@@ -97,7 +97,7 @@ const AIChatbot = () => {
       style={{
         position: 'fixed',
         bottom: '30px',
-        right: '30px',
+        left: '30px',
         width: '380px',
         height: '550px',
         borderRadius: '20px',

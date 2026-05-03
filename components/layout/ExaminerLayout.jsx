@@ -66,7 +66,6 @@ export default function ExaminerLayout({ children }) {
         </Container>
       </Navbar>
       <Container fluid className="px-4 pt-4 ex-shell">{children}</Container>
-      <AIChatbot />
 
       <style jsx global>{`
         .ex-shell {
