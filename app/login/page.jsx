@@ -108,6 +108,7 @@ export default function LoginPage() {
       setSuccess("A secure 8-digit verification code has been sent to your email.");
       setResetCode(new Array(8).fill(""));
       setLoading(false);
+      startTimer(); // Manually restart timer on resend
     } else {
       setLoading(false);
       // Professional Rate Limit & Registration Errors
