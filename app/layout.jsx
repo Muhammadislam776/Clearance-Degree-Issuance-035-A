@@ -13,6 +13,11 @@ const poppins = Poppins({ subsets: ['latin'], weight: ['400','600','700'] });
 export const metadata = {
   title: 'Smart Student Clearance & Degree Issuance System',
   description: 'University clearance and degree issuance platform',
+  icons: {
+    icon: '/assets/favicon-clear.png',
+    shortcut: '/assets/favicon-clear.png',
+    apple: '/assets/favicon-clear.png',
+  },
 };
 
 export default function RootLayout({ children }) {

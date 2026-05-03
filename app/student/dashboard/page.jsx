@@ -184,8 +184,26 @@ export default function StudentDashboard() {
               <div className="gateway-icon-wrap mb-4 mx-auto">
                 <span style={{ fontSize: "5rem" }}>🚀</span>
               </div>
-              <h2 className="fw-black mt-3 mb-3" style={{ fontSize: "2.5rem" }}>Begin Your Clearance</h2>
-              <p className="text-muted mx-auto mb-5" style={{ maxWidth: "550px", fontSize: "1.1rem", lineHeight: "1.6" }}>
+              <h2
+                className="fw-black mt-3 mb-3"
+                style={{
+                  fontSize: "2.5rem",
+                  color: "#ffffff",
+                  textShadow: "0 2px 18px rgba(255, 255, 255, 0.12)",
+                  letterSpacing: "-0.03em",
+                }}
+              >
+                Begin Your Clearance
+              </h2>
+              <p
+                className="mx-auto mb-5"
+                style={{
+                  maxWidth: "550px",
+                  fontSize: "1.1rem",
+                  lineHeight: "1.6",
+                  color: "rgba(255, 255, 255, 0.74)",
+                }}
+              >
                 Pending requests older than 4 days with no activity are automatically archived. 
                 Submit a fresh application to start your departmental reviews and track your degree issuance progress in real-time.
               </p>

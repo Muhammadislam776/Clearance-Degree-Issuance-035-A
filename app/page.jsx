@@ -1,4 +1,5 @@
 "use client";
+
 import React, { useState } from "react";
 import Link from "next/link";
 import LandingFooter from "@/components/layout/LandingFooter";
@@ -19,16 +20,20 @@ export default function Home() {
             <span className="logo-label">Smart Clearance</span>
           </div>
 
-          <div 
+          <button
+            type="button"
             className={`mobile-menu-btn ${isMobileMenuOpen ? 'active' : ''}`}
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+            aria-label="Toggle menu"
+            aria-expanded={isMobileMenuOpen}
+            aria-controls="primary-navigation"
           >
             <span className="menu-line"></span>
             <span className="menu-line"></span>
             <span className="menu-line"></span>
-          </div>
+          </button>
 
-          <ul className={`nav-links ${isMobileMenuOpen ? 'active' : ''}`}>
+          <ul id="primary-navigation" className={`nav-links ${isMobileMenuOpen ? 'active' : ''}`}>
             <li className="nav-item"><a href="#workflow" className="nav-link" onClick={closeMenu}>How It Works</a></li>
             <li className="nav-item"><a href="#ideas" className="nav-link" onClick={closeMenu}>Ideas</a></li>
             <li className="nav-item"><a href="#features" className="nav-link" onClick={closeMenu}>Features</a></li>
