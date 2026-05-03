@@ -16,7 +16,9 @@ export default function Home() {
       <nav className="landing-nav">
         <div className="landing-nav-inner">
           <div className="landing-logo">
-            <span className="logo-icon">🎓</span>
+            <span className="logo-icon">
+              <img src="/assets/logo-icon.png" alt="Smart Clearance logo" draggable="false" />
+            </span>
             <span className="logo-label">Smart Clearance</span>
           </div>
 
