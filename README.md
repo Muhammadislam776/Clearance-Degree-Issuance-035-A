@@ -28,7 +28,7 @@ Access:   Full system management, user management, analytics
 ### 2️⃣ **Student Account**
 ```
 Email:    islamjutt56.i@gmail.com
-Password: Islam`1234
+Password: Islam`123
 Role:     Student
 Access:   Apply for clearance, track status, upload documents
 ```
